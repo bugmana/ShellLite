@@ -9,7 +9,7 @@ let package = Package(
     ],
     products: [
         .library(name: "ShellLiteCore", targets: ["ShellLiteCore"]),
-        .library(name: "ShellLite",     targets: ["ShellLite"]),
+        .executable(name: "ShellLite", targets: ["ShellLite"]),
     ],
     dependencies: [
         .package(
@@ -33,11 +33,12 @@ let package = Package(
             ],
             path: "Sources/ShellLiteCore"
         ),
-        // ── Full iOS app library (SwiftUI/UIKit — macOS/iOS only) ──────
-        .target(
+        // ── Full iOS app executable (SwiftUI/UIKit — macOS/iOS only) ──
+        .executableTarget(
             name: "ShellLite",
             dependencies: ["ShellLiteCore"],
-            path: "Sources/ShellLite"
+            path: "Sources/ShellLite",
+            exclude: ["Info.plist"]
         ),
         // ── Unit tests ─────────────────────────────────────────────────
         .testTarget(

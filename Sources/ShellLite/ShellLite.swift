@@ -40,4 +40,11 @@ final class ServerStore {
         profiles = saved
     }
 }
+#else
+@main
+struct ShellLiteApp {
+    static func main() {
+        print("ShellLite is designed for iOS/macOS.")
+    }
+}
 #endif

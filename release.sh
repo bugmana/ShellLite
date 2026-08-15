@@ -1,6 +1,6 @@
 #!/bin/sh
 # ─────────────────────────────────────────────────────────────────────────────
-# release.sh — Tag a new ShellLite release and push it to trigger Xcode Cloud.
+# release.sh — Tag a new ShellLite release and push it to trigger GitHub Actions.
 #
 # Usage:
 #   ./release.sh <version>          # e.g.  ./release.sh 1.2.0
@@ -10,7 +10,7 @@
 #   2. Ensures the working tree is clean (no uncommitted changes).
 #   3. Runs the unit tests locally — aborts if any fail.
 #   4. Creates an annotated git tag  v<version>.
-#   5. Pushes the tag to origin, which triggers the Xcode Cloud workflow.
+#   5. Pushes the tag to origin, which triggers the GitHub Actions workflow to build and release ShellLite.ipa.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -63,12 +63,13 @@ info "Creating annotated tag $TAG …"
 git tag -a "$TAG" -m "Release $VERSION
 
 Auto-tagged by release.sh on $(date -u '+%Y-%m-%d %H:%M UTC')
-Xcode Cloud will build and upload to TestFlight automatically."
+GitHub Actions will build ShellLite.ipa and publish the release."
 
 info "Pushing tag to origin …"
 git push origin "$TAG"
 
 echo ""
 echo "${GREEN}✔ Released $TAG${NC}"
-echo "  Xcode Cloud build will start momentarily."
-echo "  Monitor progress: https://appstoreconnect.apple.com/teams/*/xcode-cloud"
+echo "  GitHub Actions build will start momentarily."
+echo "  Download your IPA from GitHub Releases once complete."
+
