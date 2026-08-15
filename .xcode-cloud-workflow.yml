@@ -1,0 +1,90 @@
+# ShellLite — Xcode Cloud Workflow Reference
+# ─────────────────────────────────────────────────────────────────────────────
+# This file documents the Xcode Cloud workflow settings to configure in
+# App Store Connect → Xcode Cloud.
+#
+# Xcode Cloud workflows are configured through the UI (not a YAML file), but
+# this document serves as a source-controlled reference so the team can
+# recreate or audit the workflow at any time.
+#
+# Docs: https://developer.apple.com/documentation/xcode/xcode-cloud
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: "TestFlight Release"
+description: >
+  Triggered by any tag matching v*.*.* (e.g. v1.2.0).
+  Builds the ShellLite app, runs tests, and distributes to TestFlight
+  internal testers automatically.
+
+# ── Start Condition ───────────────────────────────────────────────────────────
+start_condition:
+  type: tag           # Trigger: push a git tag
+  tag_pattern: "v*"  # Matches v1.0.0, v2.3.11, etc.
+  # Xcode Cloud UI path:
+  #   Workflow → Start Conditions → Tag → Custom tag pattern → "v*"
+
+# ── Environment ───────────────────────────────────────────────────────────────
+environment:
+  xcode_version: "latest_release"   # Always use the latest stable Xcode
+  macos_version: "latest"
+  # Environment Variables (set in Xcode Cloud UI — mark sensitive ones Secret):
+  #   (none required by default; add your own as needed)
+
+# ── Actions ───────────────────────────────────────────────────────────────────
+actions:
+
+  - name: "Build & Test"
+    action_type: build
+    scheme: "ShellLite"                  # The Xcode scheme to build
+    platform: iOS
+    deployment_target: "18.0"
+    configuration: Release
+
+    test:
+      enabled: true
+      destination:
+        - platform: iOS Simulator
+          os_version: latest
+          device: iPhone 16 Pro
+
+  - name: "Archive"
+    action_type: archive
+    scheme: "ShellLite"
+    platform: iOS
+    configuration: Release
+    # Signing is managed by Xcode Cloud automatically via App Store Connect.
+    signing: automatic
+
+# ── Post-Actions ──────────────────────────────────────────────────────────────
+post_actions:
+
+  - type: TestFlight Internal Testing
+    description: >
+      After a successful archive, Xcode Cloud automatically uploads the IPA to
+      TestFlight and notifies all members of the "Internal Testers" group.
+    # Xcode Cloud UI path:
+    #   Workflow → Post-Actions → Add → TestFlight Internal Testing
+    #   → Group: Internal Testers
+
+# ── Custom Scripts ────────────────────────────────────────────────────────────
+# Xcode Cloud runs scripts from the ci_scripts/ directory automatically:
+#
+#   ci_scripts/ci_post_clone.sh       — after repo clone  (env validation)
+#   ci_scripts/ci_pre_xcodebuild.sh   — before build      (version stamping)
+#   ci_scripts/ci_post_xcodebuild.sh  — after build       (summary banner)
+#
+# No additional configuration needed — Xcode Cloud discovers them by convention.
+
+# ── One-Time Setup Checklist ──────────────────────────────────────────────────
+# Before the first run, complete these steps in App Store Connect / Xcode:
+#
+#  [ ] 1. Open the project in Xcode (File → Open → Package.swift).
+#  [ ] 2. Add an App target (File → New → Target → App) if one does not exist.
+#         ShellLite currently ships as a Swift Package library; Xcode Cloud
+#         requires an App target (with a bundle ID) to produce an IPA.
+#  [ ] 3. Set a unique Bundle Identifier (e.g. com.yourcompany.shelllite).
+#  [ ] 4. In Xcode → Product → Xcode Cloud → Create Workflow, follow the
+#         guided setup to connect your git host and App Store Connect account.
+#  [ ] 5. Configure the workflow to match this reference document.
+#  [ ] 6. Push a test tag (v0.0.1) to verify the pipeline end-to-end.
+#  [ ] 7. Add internal testers in TestFlight → Internal Testing.
