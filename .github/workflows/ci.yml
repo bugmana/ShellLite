@@ -1,6 +1,6 @@
 name: CI
 
-# Runs on every push and PR — fast Linux runner, free tier friendly.
+# Runs on every push and PR — uses official Swift 6.0 container for 100% reliability.
 on:
   push:
     branches: [ main, master ]
@@ -11,15 +11,12 @@ jobs:
   test:
     name: Swift Tests (Linux)
     runs-on: ubuntu-latest
+    container:
+      image: swift:6.0
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Select Swift toolchain
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: "6.0"
 
       - name: Build
         run: swift build --configuration debug
