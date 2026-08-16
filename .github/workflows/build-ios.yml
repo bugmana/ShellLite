@@ -1,4 +1,4 @@
-name: Build iOS
+name: Build Flutter iOS
 
 on:
   workflow_call:
@@ -11,61 +11,53 @@ on:
       version:
         description: 'Version string for the IPA build'
         required: false
-        default: '1.0.0-dev'
+        default: '1.0.1'
         type: string
 
 jobs:
   test-and-build:
-    name: Swift Tests & iOS Build
+    name: Flutter Tests & iOS Build
     runs-on: macos-15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.24.5'
+          cache: true
+
       - name: Verify Environment
         run: |
-          xcodebuild -version
-          swift --version
-          xcrun --sdk iphoneos --show-sdk-path
+          flutter --version
+          flutter doctor -v
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Static Analysis
+        run: flutter analyze
 
       - name: Run Tests
-        run: swift test
+        run: flutter test
 
-      - name: Build for iOS
+      - name: Build iOS App
         run: |
           set -e
-          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
-          echo "==> Compiling ShellLite for iOS (generic/platform=iOS)..."
-          xcodebuild build \
-            -scheme "ShellLite" \
-            -destination "generic/platform=iOS" \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath "$DERIVED_DATA" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+          echo "==> Building Flutter iOS App..."
+          flutter build ios --no-codesign --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
 
       - name: Package .ipa
         if: inputs.upload_artifact
         run: |
-          VERSION="${{ inputs.version }}"
-          BUILD="${{ github.run_number }}"
-          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
-          BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite"
+          set -e
+          mkdir -p build_output/Payload
+          cp -R build/ios/iphoneos/Runner.app build_output/Payload/ShellLite.app
 
-          mkdir -p build_output/Payload/ShellLite.app
-          cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
-          chmod +x build_output/Payload/ShellLite.app/ShellLite
-
-          if [ -f Sources/ShellLite/Info.plist ]; then
-            cp Sources/ShellLite/Info.plist build_output/Payload/ShellLite.app/Info.plist
-            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" build_output/Payload/ShellLite.app/Info.plist || true
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" build_output/Payload/ShellLite.app/Info.plist || true
-          fi
-
-          echo "Applying ad-hoc code signature..."
+          echo "Applying ad-hoc code signature for sideloading..."
           codesign --force --deep --sign - build_output/Payload/ShellLite.app
 
           cd build_output

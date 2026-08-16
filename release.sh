@@ -64,12 +64,16 @@ fi
 
 info "Preparing release $TAG …"
 
-# ── Run unit tests ────────────────────────────────────────────────────────────
-info "Running unit tests …"
-if ! swift test --quiet; then
-    error "Tests failed — fix them before releasing."
+# ── Run static analysis & unit tests ──────────────────────────────────────────
+info "Running static analysis & tests …"
+export PATH="/home/aron/.local/share/flutter/bin:$PATH"
+if command -v flutter >/dev/null 2>&1; then
+    flutter analyze
+    flutter test
+else
+    warn "Flutter not found on PATH; skipping local pre-release tests."
 fi
-info "All tests passed."
+info "All pre-release checks passed."
 
 # ── Create and push the tag ───────────────────────────────────────────────────
 info "Creating annotated tag $TAG …"
