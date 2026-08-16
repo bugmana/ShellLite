@@ -14,13 +14,13 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/apple/swift-nio-ssh.git",
-            from: "0.15.0"
+            from: "0.12.0"
         ),
         // Explicit dependency so Crypto module is directly importable.
         // swift-crypto 4.5.1 is already resolved as a transitive dep of swift-nio-ssh.
         .package(
             url: "https://github.com/apple/swift-crypto.git",
-            from: "4.0.0"
+            from: "3.0.0"
         ),
     ],
     targets: [

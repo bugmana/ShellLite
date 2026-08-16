@@ -20,12 +20,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify Tools & Schemes
+      - name: Verify Tools & Environment
         run: |
           xcodebuild -version
           swift --version
-          echo "Available schemes:"
-          xcodebuild -list || true
+          xcrun --sdk iphoneos --show-sdk-path
 
       - name: Run Tests
         run: swift test
@@ -34,38 +33,24 @@ jobs:
         run: |
           SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
           echo "iPhoneOS SDK: $SDK_PATH"
+          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
 
-          # Determine target scheme (SPM typically creates <PackageName>-Package or <TargetName>)
-          SCHEMES=$(xcodebuild -list 2>/dev/null | awk '/Schemes:/{flag=1;next}/^[[:space:]]*$/{flag=0}flag{gsub(/^[[:space:]]+/, ""); print}')
-          echo "Discovered schemes: $SCHEMES"
+          echo "==> Attempting build with xcodebuild for iOS..."
+          xcodebuild build \
+            -scheme "ShellLite" \
+            -destination "generic/platform=iOS" \
+            -configuration Release \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" || true
 
-          TARGET_SCHEME=""
-          for s in ShellLite ShellLite-Package $SCHEMES; do
-            if [ -n "$s" ]; then
-              TARGET_SCHEME="$s"
-              break
-            fi
-          done
-          echo "Using scheme: $TARGET_SCHEME"
-
-          if [ -n "$TARGET_SCHEME" ]; then
-            xcodebuild build \
-              -scheme "$TARGET_SCHEME" \
-              -destination "generic/platform=iOS" \
-              -configuration Release \
-              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-              CODE_SIGNING_ALLOWED=NO \
-              CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGN_IDENTITY="" || true
-          fi
-
-          # If xcodebuild did not create binary, fallback to swift build cross-compilation
-          if ! find "$RUNNER_TEMP/DerivedData" -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*.build*" 2>/dev/null | grep -q .; then
-            echo "Falling back to swift build with iOS SDK..."
+          # Check if binary was created in DerivedData; if not, compile via swift build
+          if [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ] && [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite" ]; then
+            echo "==> Falling back to swift build cross-compilation for iOS..."
             swift build -c release \
               --triple arm64-apple-ios18.0 \
-              -Xswiftc -sdk -Xswiftc "$SDK_PATH" \
-              -Xswiftc -target -Xswiftc arm64-apple-ios18.0
+              -Xswiftc -sdk -Xswiftc "$SDK_PATH"
           fi
 
       - name: Package .ipa
@@ -77,28 +62,52 @@ jobs:
           fi
           BUILD="${{ github.run_number }}"
 
-          mkdir -p build_output/Payload/ShellLite.app
+          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
+          BINARY=""
 
-          # Locate compiled executable binary
-          BINARY=$(find "$RUNNER_TEMP/DerivedData" .build -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*.build*" ! -path "*/checkouts/*" 2>/dev/null | head -n 1)
-          if [ -z "$BINARY" ]; then
+          # Priority-based binary discovery
+          if [ -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ]; then
+            BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite"
+          elif [ -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite" ]; then
+            BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite"
+          elif [ -f ".build/arm64-apple-ios18.0/release/ShellLite" ]; then
+            BINARY=".build/arm64-apple-ios18.0/release/ShellLite"
+          elif [ -f ".build/release/ShellLite" ]; then
+            BINARY=".build/release/ShellLite"
+          else
+            # Search for built Mach-O binary excluding dSYM and macosx debug artifacts
+            BINARY=$(find "$DERIVED_DATA" .build -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*/checkouts/*" ! -path "*/arm64-apple-macosx/*" ! -path "*/debug/*" 2>/dev/null | head -n 1)
+          fi
+
+          if [ -z "$BINARY" ] || [ ! -f "$BINARY" ]; then
             echo "Error: ShellLite executable binary was not found."
+            echo "Listing potential build output locations:"
+            find "$DERIVED_DATA" .build -maxdepth 5 -type f 2>/dev/null || true
             exit 1
           fi
-          echo "Found binary at: $BINARY"
 
+          echo "Found binary at: $BINARY"
+          file "$BINARY"
+
+          mkdir -p build_output/Payload/ShellLite.app
           cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
           chmod +x build_output/Payload/ShellLite.app/ShellLite
-          cp Sources/ShellLite/Info.plist build_output/Payload/ShellLite.app/Info.plist
 
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" build_output/Payload/ShellLite.app/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" build_output/Payload/ShellLite.app/Info.plist || true
+          if [ -f Sources/ShellLite/Info.plist ]; then
+            cp Sources/ShellLite/Info.plist build_output/Payload/ShellLite.app/Info.plist
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" build_output/Payload/ShellLite.app/Info.plist || true
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" build_output/Payload/ShellLite.app/Info.plist || true
+          fi
 
+          echo "Applying ad-hoc code signature..."
           codesign --force --deep --sign - build_output/Payload/ShellLite.app
 
           cd build_output
           zip -r ../ShellLite.ipa Payload
           cd ..
+
+          echo "ShellLite.ipa created successfully:"
+          ls -lh ShellLite.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
