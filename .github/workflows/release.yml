@@ -26,27 +26,12 @@ permissions:
   contents: write
 
 jobs:
-  test:
-    name: Swift Tests
+  resolve-version:
+    name: Resolve Version
     runs-on: macos-15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Verify Environment
-        run: |
-          xcodebuild -version
-          swift --version
-
-      - name: Run Tests
-        run: swift test
-
-  build-ipa:
-    name: Build & Package iOS IPA
-    needs: test
-    runs-on: macos-15
-
+    outputs:
+      version: ${{ steps.versioning.outputs.version }}
+      tag: ${{ steps.versioning.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,104 +82,32 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Resolved version: $VERSION (tag: $TAG)"
 
-      - name: Verify Tools & Environment
-        run: |
-          xcodebuild -version
-          swift --version
-          xcrun --sdk iphoneos --show-sdk-path
+  build-and-package:
+    name: Build & Package
+    needs: resolve-version
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      upload_artifact: true
+      version: ${{ needs.resolve-version.outputs.version }}
 
-      - name: Build for iOS
-        run: |
-          set -e
-          SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
-          echo "iPhoneOS SDK: $SDK_PATH"
-          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
-
-          echo "==> Building with xcodebuild for iOS..."
-          xcodebuild build \
-            -scheme "ShellLite" \
-            -destination "generic/platform=iOS" \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath "$DERIVED_DATA" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
-
-      - name: Package .ipa
-        run: |
-          VERSION="${{ steps.versioning.outputs.version }}"
-          BUILD="${{ github.run_number }}"
-
-          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
-          BINARY=""
-
-          # Priority-based binary discovery
-          if [ -f "build_output/Payload/ShellLite.app/ShellLite" ]; then
-            BINARY="build_output/Payload/ShellLite.app/ShellLite"
-          elif [ -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ]; then
-            BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite"
-            mkdir -p build_output/Payload/ShellLite.app
-            cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
-          elif [ -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite" ]; then
-            BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite"
-            mkdir -p build_output/Payload/ShellLite.app
-            cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
-          elif [ -f ".build/arm64-apple-ios18.0/release/ShellLite" ]; then
-            BINARY=".build/arm64-apple-ios18.0/release/ShellLite"
-            mkdir -p build_output/Payload/ShellLite.app
-            cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
-          else
-            # Search for built Mach-O binary excluding dSYM and macosx debug artifacts
-            BINARY=$(find "$DERIVED_DATA" .build -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*/checkouts/*" ! -path "*/arm64-apple-macosx/*" ! -path "*/debug/*" 2>/dev/null | head -n 1)
-            if [ -n "$BINARY" ] && [ -f "$BINARY" ]; then
-              mkdir -p build_output/Payload/ShellLite.app
-              cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
-            fi
-          fi
-
-          if [ ! -f "build_output/Payload/ShellLite.app/ShellLite" ]; then
-            echo "Error: ShellLite executable binary was not found."
-            echo "Listing potential build output locations:"
-            find "$DERIVED_DATA" .build build_output -maxdepth 5 -type f 2>/dev/null || true
-            exit 1
-          fi
-
-          echo "Found binary at: build_output/Payload/ShellLite.app/ShellLite"
-          file build_output/Payload/ShellLite.app/ShellLite
-          chmod +x build_output/Payload/ShellLite.app/ShellLite
-
-          if [ -f Sources/ShellLite/Info.plist ]; then
-            cp Sources/ShellLite/Info.plist build_output/Payload/ShellLite.app/Info.plist
-            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" build_output/Payload/ShellLite.app/Info.plist || true
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" build_output/Payload/ShellLite.app/Info.plist || true
-          fi
-
-          echo "Applying ad-hoc code signature..."
-          codesign --force --deep --sign - build_output/Payload/ShellLite.app
-
-          cd build_output
-          zip -r ../ShellLite.ipa Payload
-          cd ..
-
-          echo "ShellLite.ipa created successfully:"
-          ls -lh ShellLite.ipa
-
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
+  publish-release:
+    name: Publish GitHub Release
+    needs: [resolve-version, build-and-package]
+    runs-on: macos-15
+    steps:
+      - name: Download IPA Artifact
+        uses: actions/download-artifact@v4
         with:
           name: ShellLite-iOS-IPA
-          path: ShellLite.ipa
-          retention-days: 30
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "${{ steps.versioning.outputs.tag }}"
-          name: "ShellLite ${{ steps.versioning.outputs.tag }}"
+          tag_name: "${{ needs.resolve-version.outputs.tag }}"
+          name: "ShellLite ${{ needs.resolve-version.outputs.tag }}"
           files: ShellLite.ipa
           body: |
-            ## ShellLite ${{ steps.versioning.outputs.tag }}
+            ## ShellLite ${{ needs.resolve-version.outputs.tag }}
 
             ### 📦 Download & Install on iPhone
             Download `ShellLite.ipa` directly to your iPhone or PC:

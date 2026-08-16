@@ -1,0 +1,84 @@
+name: Build iOS
+
+on:
+  workflow_call:
+    inputs:
+      upload_artifact:
+        description: 'Whether to package and upload the .ipa artifact'
+        required: false
+        default: false
+        type: boolean
+      version:
+        description: 'Version string for the IPA build'
+        required: false
+        default: '1.0.0-dev'
+        type: string
+
+jobs:
+  test-and-build:
+    name: Swift Tests & iOS Build
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Environment
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Run Tests
+        run: swift test
+
+      - name: Build for iOS
+        run: |
+          set -e
+          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
+          echo "==> Compiling ShellLite for iOS (generic/platform=iOS)..."
+          xcodebuild build \
+            -scheme "ShellLite" \
+            -destination "generic/platform=iOS" \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package .ipa
+        if: inputs.upload_artifact
+        run: |
+          VERSION="${{ inputs.version }}"
+          BUILD="${{ github.run_number }}"
+          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
+          BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite"
+
+          mkdir -p build_output/Payload/ShellLite.app
+          cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
+          chmod +x build_output/Payload/ShellLite.app/ShellLite
+
+          if [ -f Sources/ShellLite/Info.plist ]; then
+            cp Sources/ShellLite/Info.plist build_output/Payload/ShellLite.app/Info.plist
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" build_output/Payload/ShellLite.app/Info.plist || true
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" build_output/Payload/ShellLite.app/Info.plist || true
+          fi
+
+          echo "Applying ad-hoc code signature..."
+          codesign --force --deep --sign - build_output/Payload/ShellLite.app
+
+          cd build_output
+          zip -r ../ShellLite.ipa Payload
+          cd ..
+
+          echo "ShellLite.ipa created successfully:"
+          ls -lh ShellLite.ipa
+
+      - name: Upload IPA Artifact
+        if: inputs.upload_artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShellLite-iOS-IPA
+          path: ShellLite.ipa
+          retention-days: 30

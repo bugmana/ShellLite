@@ -7,34 +7,8 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test-and-build:
-    name: Swift Tests & iOS Build
-    runs-on: macos-15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Verify Environment
-        run: |
-          xcodebuild -version
-          swift --version
-          xcrun --sdk iphoneos --show-sdk-path
-
-      - name: Run Tests
-        run: swift test
-
-      - name: Build for iOS
-        run: |
-          set -e
-          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
-          echo "==> Compiling ShellLite for iOS (generic/platform=iOS)..."
-          xcodebuild build \
-            -scheme "ShellLite" \
-            -destination "generic/platform=iOS" \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath "$DERIVED_DATA" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+  ci-build:
+    name: CI
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      upload_artifact: false
