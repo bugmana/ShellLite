@@ -48,26 +48,58 @@ jobs:
 
       - name: Build for iOS
         run: |
+          set -e
           SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
           echo "iPhoneOS SDK: $SDK_PATH"
           DERIVED_DATA="$RUNNER_TEMP/DerivedData"
+          mkdir -p build_output/Payload/ShellLite.app
 
-          echo "==> Attempting build with xcodebuild for iOS..."
+          echo "==> 1. Attempting build with swift build for iOS SDK..."
+          swift build -c release \
+            --sdk "$SDK_PATH" \
+            --triple arm64-apple-ios18.0 \
+            -Xlinker -syslibroot -Xlinker "$SDK_PATH" || true
+
+          echo "==> 2. Attempting build with xcodebuild for iOS..."
           xcodebuild build \
             -scheme "ShellLite" \
             -destination "generic/platform=iOS" \
+            -sdk iphoneos \
             -configuration Release \
             -derivedDataPath "$DERIVED_DATA" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" || true
 
-          # Check if binary was created in DerivedData; if not, compile via swift build
-          if [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ] && [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite" ]; then
-            echo "==> Falling back to swift build cross-compilation for iOS..."
-            swift build -c release \
-              --triple arm64-apple-ios18.0 \
-              -Xswiftc -sdk -Xswiftc "$SDK_PATH"
+          # If standalone executable has not been generated, compile iOS UI executable with swiftc
+          if [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ] && \
+             [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite" ] && \
+             [ ! -f ".build/arm64-apple-ios18.0/release/ShellLite" ]; then
+            echo "==> 3. Compiling iOS UI executable using swiftc directly..."
+            swift build -c release --sdk "$SDK_PATH" --triple arm64-apple-ios18.0 --target ShellLiteCore
+
+            MODULE_PATHS=$(find .build/arm64-apple-ios18.0/release -name "*.swiftmodule" -exec dirname {} \; | sort -u)
+            MODULE_ARGS=""
+            for mp in $MODULE_PATHS; do
+              MODULE_ARGS="$MODULE_ARGS -I $mp"
+            done
+
+            STATIC_LIBS=$(find .build/arm64-apple-ios18.0/release -maxdepth 1 -name "*.a" 2>/dev/null || true)
+
+            swiftc -target arm64-apple-ios18.0 \
+              -sdk "$SDK_PATH" \
+              -O \
+              -I .build/arm64-apple-ios18.0/release \
+              $MODULE_ARGS \
+              -L .build/arm64-apple-ios18.0/release \
+              $STATIC_LIBS \
+              -framework SwiftUI \
+              -framework UIKit \
+              -framework Foundation \
+              -framework Security \
+              Sources/ShellLite/ShellLite.swift \
+              Sources/ShellLite/Views/*.swift \
+              -o build_output/Payload/ShellLite.app/ShellLite
           fi
 
       - name: Package .ipa
@@ -83,31 +115,38 @@ jobs:
           BINARY=""
 
           # Priority-based binary discovery
-          if [ -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ]; then
+          if [ -f "build_output/Payload/ShellLite.app/ShellLite" ]; then
+            BINARY="build_output/Payload/ShellLite.app/ShellLite"
+          elif [ -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ]; then
             BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite"
+            mkdir -p build_output/Payload/ShellLite.app
+            cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
           elif [ -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite" ]; then
             BINARY="$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite"
+            mkdir -p build_output/Payload/ShellLite.app
+            cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
           elif [ -f ".build/arm64-apple-ios18.0/release/ShellLite" ]; then
             BINARY=".build/arm64-apple-ios18.0/release/ShellLite"
-          elif [ -f ".build/release/ShellLite" ]; then
-            BINARY=".build/release/ShellLite"
+            mkdir -p build_output/Payload/ShellLite.app
+            cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
           else
             # Search for built Mach-O binary excluding dSYM and macosx debug artifacts
             BINARY=$(find "$DERIVED_DATA" .build -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*/checkouts/*" ! -path "*/arm64-apple-macosx/*" ! -path "*/debug/*" 2>/dev/null | head -n 1)
+            if [ -n "$BINARY" ] && [ -f "$BINARY" ]; then
+              mkdir -p build_output/Payload/ShellLite.app
+              cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
+            fi
           fi
 
-          if [ -z "$BINARY" ] || [ ! -f "$BINARY" ]; then
+          if [ ! -f "build_output/Payload/ShellLite.app/ShellLite" ]; then
             echo "Error: ShellLite executable binary was not found."
             echo "Listing potential build output locations:"
-            find "$DERIVED_DATA" .build -maxdepth 5 -type f 2>/dev/null || true
+            find "$DERIVED_DATA" .build build_output -maxdepth 5 -type f 2>/dev/null || true
             exit 1
           fi
 
-          echo "Found binary at: $BINARY"
-          file "$BINARY"
-
-          mkdir -p build_output/Payload/ShellLite.app
-          cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
+          echo "Found binary at: build_output/Payload/ShellLite.app/ShellLite"
+          file build_output/Payload/ShellLite.app/ShellLite
           chmod +x build_output/Payload/ShellLite.app/ShellLite
 
           if [ -f Sources/ShellLite/Info.plist ]; then
