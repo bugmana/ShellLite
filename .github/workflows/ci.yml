@@ -32,6 +32,7 @@ jobs:
   build-ipa:
     name: Build & Package iOS IPA
     needs: test
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: macos-15
 
     steps:
