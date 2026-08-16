@@ -7,29 +7,9 @@ on:
     branches: [ main, master ]
 
 jobs:
-  flutter-checks:
-    name: Flutter Analyze & Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          flutter-version: '3.24.5'
-          cache: true
-
-      - name: Verify Flutter Version
-        run: flutter --version
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Run Static Analysis
-        run: flutter analyze
-
-      - name: Run Test Suite
-        run: flutter test
+  test-and-build:
+    name: CI Test & Build
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      upload_artifact: false
+      version: '1.0.0'

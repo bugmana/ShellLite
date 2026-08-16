@@ -1,9 +1,6 @@
 name: Release iOS IPA
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       bump_type:
@@ -44,39 +41,34 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-            TAG="v$VERSION"
-          else
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
-            RAW_VER="${LATEST_TAG#v}"
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$RAW_VER"
-            MAJOR=${MAJOR:-1}
-            MINOR=${MINOR:-0}
-            PATCH=${PATCH:-0}
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          RAW_VER="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$RAW_VER"
+          MAJOR=${MAJOR:-1}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
 
-            BUMP_TYPE="${{ inputs.bump_type }}"
-            if [ "$BUMP_TYPE" = "patch" ]; then
-              PATCH=$((PATCH + 1))
-              VERSION="$MAJOR.$MINOR.$PATCH"
-            elif [ "$BUMP_TYPE" = "minor" ]; then
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              VERSION="$MAJOR.$MINOR.$PATCH"
-            elif [ "$BUMP_TYPE" = "major" ]; then
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              VERSION="$MAJOR.$MINOR.$PATCH"
-            elif [ "$BUMP_TYPE" = "custom" ]; then
-              VERSION="${{ inputs.custom_version }}"
-            fi
-
-            TAG="v$VERSION"
-            echo "Auto-creating and pushing tag $TAG..."
-            git tag -a "$TAG" -m "Release $VERSION via GitHub Actions"
-            git push origin "$TAG" || true
+          BUMP_TYPE="${{ inputs.bump_type }}"
+          if [ "$BUMP_TYPE" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+            VERSION="$MAJOR.$MINOR.$PATCH"
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            VERSION="$MAJOR.$MINOR.$PATCH"
+          elif [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            VERSION="$MAJOR.$MINOR.$PATCH"
+          elif [ "$BUMP_TYPE" = "custom" ]; then
+            VERSION="${{ inputs.custom_version }}"
           fi
+
+          TAG="v$VERSION"
+          echo "Creating annotated tag $TAG..."
+          git tag -a "$TAG" -m "Release $VERSION via GitHub Actions"
+          git push origin "$TAG"
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
