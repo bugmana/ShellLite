@@ -38,35 +38,8 @@ public final class TerminalViewController: UIViewController {
 
     // MARK: Terminal view
 
-    private lazy var textView: UITextView = {
-        let tv = UITextView()
-        tv.isEditable    = true
-        tv.isSelectable  = true
-        tv.font          = Self.baseFont
-        tv.backgroundColor = UIColor(white: 0.05, alpha: 1)
-        tv.autocorrectionType     = .no
-        tv.autocapitalizationType = .none
-        tv.spellCheckingType      = .no
-        tv.smartDashesType        = .no
-        tv.smartQuotesType        = .no
-        tv.translatesAutoresizingMaskIntoConstraints = false
-        tv.delegate = self
-        return tv
-    }()
-
-    private lazy var accessoryBar: KeyboardAccessoryBar = {
-        let bar = KeyboardAccessoryBar()
-        bar.onKeyTap = { [weak self] key in
-            guard let self else { return }
-            switch key.label {
-            case "↑": self.cycleHistory(direction: .up)
-            case "↓": self.cycleHistory(direction: .down)
-            default:
-                Task { await self.session.sendInput(Data(key.sequence.utf8)) }
-            }
-        }
-        return bar
-    }()
+    private var textView: UITextView!
+    private var accessoryBar: KeyboardAccessoryBar!
 
     // MARK: Input state
 
@@ -109,15 +82,41 @@ public final class TerminalViewController: UIViewController {
         title = profile.displayName
         view.backgroundColor = UIColor(white: 0.05, alpha: 1)
 
-        view.addSubview(textView)
+        let bar = KeyboardAccessoryBar()
+        bar.onKeyTap = { [weak self] key in
+            guard let self else { return }
+            switch key.label {
+            case "↑": self.cycleHistory(direction: .up)
+            case "↓": self.cycleHistory(direction: .down)
+            default:
+                Task { await self.session.sendInput(Data(key.sequence.utf8)) }
+            }
+        }
+        self.accessoryBar = bar
+
+        let tv = UITextView()
+        tv.isEditable    = true
+        tv.isSelectable  = true
+        tv.font          = Self.baseFont
+        tv.backgroundColor = UIColor(white: 0.05, alpha: 1)
+        tv.autocorrectionType     = .no
+        tv.autocapitalizationType = .none
+        tv.spellCheckingType      = .no
+        tv.smartDashesType        = .no
+        tv.smartQuotesType        = .no
+        tv.translatesAutoresizingMaskIntoConstraints = false
+        tv.delegate = self
+        tv.inputAccessoryView = bar
+        self.textView = tv
+
+        view.addSubview(tv)
         NSLayoutConstraint.activate([
-            textView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            textView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            textView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            textView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            tv.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tv.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tv.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
 
-        textView.inputAccessoryView = accessoryBar
         Task { await startSession() }
     }
 
