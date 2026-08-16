@@ -20,9 +20,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Select Xcode 16
+      - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.app
+          # Detect available Xcode 16 installations on runner
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app
+          fi
+          xcodebuild -version
           swift --version
 
       - name: Run Tests
@@ -47,9 +57,17 @@ jobs:
           BUILD="${{ github.run_number }}"
 
           mkdir -p build_output/Payload/ShellLite.app
+
+          # Find compiled executable binary
+          BINARY=$(find .build -type f -name "ShellLite" ! -path "*/checkouts/*" ! -path "*.build*" | head -n 1)
+          if [ -z "$BINARY" ]; then
+            echo "Error: ShellLite executable not found in .build"
+            exit 1
+          fi
+          echo "Found binary at: $BINARY"
           
-          # Copy compiled iOS binary and Info.plist into .app
-          cp .build/arm64-apple-ios18.0/release/ShellLite build_output/Payload/ShellLite.app/ShellLite
+          cp "$BINARY" build_output/Payload/ShellLite.app/ShellLite
+          chmod +x build_output/Payload/ShellLite.app/ShellLite
           cp Sources/ShellLite/Info.plist build_output/Payload/ShellLite.app/Info.plist
 
           # Stamp version metadata in Info.plist
