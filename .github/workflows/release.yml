@@ -109,15 +109,8 @@ jobs:
           SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
           echo "iPhoneOS SDK: $SDK_PATH"
           DERIVED_DATA="$RUNNER_TEMP/DerivedData"
-          mkdir -p build_output/Payload/ShellLite.app
 
-          echo "==> 1. Attempting build with swift build for iOS SDK..."
-          swift build -c release \
-            --sdk "$SDK_PATH" \
-            --triple arm64-apple-ios18.0 \
-            -Xlinker -syslibroot -Xlinker "$SDK_PATH" || true
-
-          echo "==> 2. Attempting build with xcodebuild for iOS..."
+          echo "==> Building with xcodebuild for iOS..."
           xcodebuild build \
             -scheme "ShellLite" \
             -destination "generic/platform=iOS" \
@@ -126,38 +119,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" || true
-
-          # If standalone executable has not been generated, compile iOS UI executable with swiftc
-          if [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite" ] && \
-             [ ! -f "$DERIVED_DATA/Build/Products/Release-iphoneos/ShellLite.app/ShellLite" ] && \
-             [ ! -f ".build/arm64-apple-ios18.0/release/ShellLite" ]; then
-            echo "==> 3. Compiling iOS UI executable using swiftc directly..."
-            swift build -c release --sdk "$SDK_PATH" --triple arm64-apple-ios18.0 --target ShellLiteCore
-
-            MODULE_PATHS=$(find .build/arm64-apple-ios18.0/release -name "*.swiftmodule" -exec dirname {} \; | sort -u)
-            MODULE_ARGS=""
-            for mp in $MODULE_PATHS; do
-              MODULE_ARGS="$MODULE_ARGS -I $mp"
-            done
-
-            STATIC_LIBS=$(find .build/arm64-apple-ios18.0/release -maxdepth 1 -name "*.a" 2>/dev/null || true)
-
-            swiftc -target arm64-apple-ios18.0 \
-              -sdk "$SDK_PATH" \
-              -O \
-              -I .build/arm64-apple-ios18.0/release \
-              $MODULE_ARGS \
-              -L .build/arm64-apple-ios18.0/release \
-              $STATIC_LIBS \
-              -framework SwiftUI \
-              -framework UIKit \
-              -framework Foundation \
-              -framework Security \
-              Sources/ShellLite/ShellLite.swift \
-              Sources/ShellLite/Views/*.swift \
-              -o build_output/Payload/ShellLite.app/ShellLite
-          fi
+            CODE_SIGN_IDENTITY=""
 
       - name: Package .ipa
         run: |
