@@ -1,22 +1,22 @@
 import Foundation
-#if canImport(Security)
+#if os(iOS) && canImport(Security)
 import Security
 #endif
 
-#if !canImport(Security)
-// OSStatus is a Darwin typealias for Int32; define it here for Linux compatibility.
+#if !canImport(Security) || !os(iOS)
+// OSStatus is a Darwin typealias for Int32; define it here when Security is absent.
 public typealias OSStatus = Int32
 #endif
 
-/// Thin wrapper around Security.framework Keychain APIs.
-/// Falls back to a thread-safe in-memory store on Linux (for unit testing).
+/// Thin wrapper around Security.framework Keychain APIs on iOS.
+/// Uses a thread-safe in-memory store on macOS/Linux for unit testing and CI stability.
 public final class KeychainManager: Sendable {
     public static let shared = KeychainManager()
     private init() {}
 
     // MARK: - String API (passwords)
 
-#if canImport(Security)
+#if os(iOS) && canImport(Security)
     /// Saves a password string to the Keychain under `tag`, overwriting any prior entry.
     public func save(password: String, for tag: String) throws {
         try saveData(Data(password.utf8), for: tag)
@@ -75,7 +75,7 @@ public final class KeychainManager: Sendable {
     }
 
 #else
-    // ── Linux stub (in-memory, for unit testing without Security.framework) ──
+    // ── In-Memory Store (for unit testing on macOS & Linux) ──
     private let lock = NSLock()
     nonisolated(unsafe) private var store: [String: Data] = [:]
 

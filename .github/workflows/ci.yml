@@ -10,18 +10,15 @@ jobs:
   test:
     name: Swift Tests (Linux)
     runs-on: ubuntu-latest
-    container:
-      image: swift:6.0
 
     steps:
-      - name: Fix git ownership
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fix git ownership post-checkout
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.0.3"
 
       - name: Build
         run: swift build --configuration debug
