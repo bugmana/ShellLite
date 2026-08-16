@@ -1,5 +1,6 @@
-#if canImport(SwiftUI)
+#if os(iOS) && canImport(SwiftUI)
 import SwiftUI
+import ShellLiteCore
 
 /// Root view — displays the list of saved server profiles.
 public struct ServerListView: View {

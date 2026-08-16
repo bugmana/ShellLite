@@ -1,5 +1,6 @@
-#if canImport(SwiftUI)
+#if os(iOS) && canImport(SwiftUI)
 import SwiftUI
+import ShellLiteCore
 
 /// App entry point — iOS 18 only.
 @main
@@ -41,10 +42,12 @@ final class ServerStore {
     }
 }
 #else
+import Foundation
+
 @main
 struct ShellLiteApp {
     static func main() {
-        print("ShellLite is designed for iOS/macOS.")
+        print("ShellLite is designed for iOS.")
     }
 }
 #endif
