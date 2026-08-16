@@ -1,6 +1,7 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import UIKit
+import ShellLiteCore
 
 /// SwiftUI bridge to the UIKit-based terminal view controller.
 public struct TerminalViewWrapper: UIViewControllerRepresentable {
