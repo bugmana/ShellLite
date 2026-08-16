@@ -1,0 +1,15 @@
+[Unit]
+Description=ShellLite Web Development Server
+After=network.target
+
+[Service]
+Type=simple
+User=aron
+WorkingDirectory=/home/aron/Projects/ShellLite
+Environment="PATH=/home/aron/.local/share/flutter/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/aron/.local/share/flutter/bin/flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
