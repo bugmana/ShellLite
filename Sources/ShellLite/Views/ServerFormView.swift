@@ -68,7 +68,7 @@ public struct ServerFormView: View {
                 }
 
                 // ── Auth Method ──────────────────────────
-                Section("Authentication") {
+                Section {
                     Picker("Method", selection: $authChoice) {
                         ForEach(AuthChoice.allCases) { choice in
                             Text(choice.rawValue).tag(choice)
@@ -100,6 +100,8 @@ public struct ServerFormView: View {
                             }
                         }
                     }
+                } header: {
+                    Text("Authentication")
                 } footer: {
                     if authChoice == .password {
                         Text("Password stored in the iOS Keychain with kSecAttrAccessibleAfterFirstUnlock.")

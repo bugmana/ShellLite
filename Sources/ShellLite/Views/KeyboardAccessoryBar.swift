@@ -4,6 +4,7 @@ import UIKit
 /// A horizontally scrollable input accessory bar with terminal shortcut keys.
 ///
 /// Attach as `textView.inputAccessoryView` on any `UITextView`-based terminal view.
+@MainActor
 public final class KeyboardAccessoryBar: UIInputView {
 
     // MARK: - Key Model
@@ -41,7 +42,11 @@ public final class KeyboardAccessoryBar: UIInputView {
 
     // MARK: - Init
 
-    public init(keys: [Key] = defaultKeys) {
+    public convenience init() {
+        self.init(keys: Self.defaultKeys)
+    }
+
+    public init(keys: [Key]) {
         let frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44)
         super.init(frame: frame, inputViewStyle: .keyboard)
         buildUI(keys: keys)
