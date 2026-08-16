@@ -14,25 +14,67 @@
 * **Encrypted Credential Storage**: Uses [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) (iOS Keychain, Android EncryptedSharedPreferences/KeyStore, Linux Secret Service).
 * **Terminal Keyboard Accessory Bar**: Quick-access shortcuts for `⇥ Tab`, `^C`, `^D`, `↑`, `↓`, `←`, `→`, `Esc`, `|`, `~`, `/`, and `-`.
 * **Startup Commands**: Optionally specify an initial command (e.g. `tmux attach || tmux new`, `htop`) to run automatically upon connection.
-* **Local Emulation on Linux**: Run and test the full UI and SSH terminal flow directly on your Linux desktop with sub-second **Hot Reload**.
+* **First-Class Linux Emulation**: Run and test the full UI, state, and SSH terminal flow directly on Linux with sub-second **Hot Reload**.
 
 ---
 
-## 🛠️ Tech Stack
+## 🐧 Linux Development & Emulation
 
-* **Framework:** [Flutter 3.24+](https://flutter.dev)
-* **Language:** [Dart 3.5+](https://dart.dev)
-* **Key Libraries:**
-  * `dartssh2` — SSHv2 client implementation
-  * `xterm` — ANSI / VT100 terminal emulator widget
-  * `flutter_secure_storage` — Hardware-backed encrypted credential storage
-  * `shared_preferences` — Server profile list persistence
-  * `provider` — State management
-  * `uuid` — Unique profile identifiers
+ShellLite can be run natively on Linux desktop for rapid UI development, terminal emulation, and end-to-end SSH testing.
+
+### 1. Install System Dependencies
+
+#### Ubuntu / Debian / Pop!_OS
+```bash
+sudo apt update
+sudo apt install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev libjsoncpp-dev
+```
+
+#### Fedora
+```bash
+sudo dnf install -y clang cmake ninja-build pkg-config gtk3-devel libsecret-devel jsoncpp-devel
+```
+
+#### Arch Linux / Manjaro
+```bash
+sudo pacman -S --needed clang cmake ninja pkgconf gtk3 libsecret jsoncpp
+```
+
+### 2. Enable Linux Desktop in Flutter
+```bash
+flutter config --enable-linux-desktop
+```
+
+### 3. Run Locally with Hot Reload
+```bash
+flutter run -d linux
+```
+* Press `r` in the terminal for **Hot Reload**.
+* Press `R` for **Hot Restart**.
+* Press `q` to quit.
+
+### 4. Build Standalone Linux App
+```bash
+flutter build linux --release
+```
+The compiled binary will be located at `build/linux/x64/release/bundle/shell_lite`.
 
 ---
 
-## 📁 Architecture & Directory Layout
+## 🧪 Testing & Code Quality
+
+Run the test suite locally (runs without requiring any native compiler):
+```bash
+# Run all 25 unit & widget tests
+flutter test
+
+# Run static analysis / linting
+flutter analyze
+```
+
+---
+
+## 🛠️ Architecture & Directory Layout
 
 ```text
 ShellLite/
@@ -62,8 +104,8 @@ ShellLite/
 │   ├── services/                       # Key parser & secure storage tests
 │   └── widgets/                        # Widget rendering & interaction tests
 ├── .github/workflows/
-│   ├── build-ios.yml                   # Reusable Flutter test & iOS build workflow
-│   ├── ci.yml                          # Continuous integration for PRs & main
+│   ├── ci.yml                          # Fast Ubuntu CI for analysis & tests
+│   ├── build-ios.yml                   # Reusable Flutter iOS build & IPA packager
 │   └── release.yml                     # One-click release workflow for ShellLite.ipa
 ├── release.sh                          # Interactive release automation script
 └── pubspec.yaml                        # Flutter package configuration
@@ -71,48 +113,19 @@ ShellLite/
 
 ---
 
-## 🚀 Getting Started
+## 📦 iOS Builds & Release Pipeline
 
-### Prerequisites
-* [Flutter SDK](https://docs.flutter.dev/get-started/install) (`3.24.0` or newer)
-* Linux, macOS, or Windows host
+> **Note:** The iOS build pipeline can be triggered on demand via GitHub Actions once ready.
 
-### Local Setup & Testing on Linux
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/bugmana/ShellLite.git
-   cd ShellLite
-   ```
-2. **Install dependencies:**
-   ```bash
-   flutter pub get
-   ```
-3. **Run unit & widget tests:**
-   ```bash
-   flutter test
-   ```
-4. **Run static analysis:**
-   ```bash
-   flutter analyze
-   ```
-5. **Run locally on Linux Desktop with Hot Reload:**
-   ```bash
-   flutter run -d linux
-   ```
-
----
-
-## 📦 Building & Releases
-
-### Building for iOS (IPA)
-To compile an `.ipa` for sideloading on iPhone:
+### Local iOS Build (macOS host)
 ```bash
 flutter build ios --no-codesign --release
 ```
 
-### GitHub Actions Automation
-* **CI Workflow**: Automatically runs static analysis, executes all 25 unit/widget tests, and verifies the iOS build on every PR and commit to `main`.
-* **Release Workflow**: Triggered by pushing a version tag (e.g. `./release.sh 1.0.2`) or via **One-Click Release** in the GitHub Actions UI to build, sign ad-hoc, package `ShellLite.ipa`, and publish to GitHub Releases.
+### GitHub Actions Workflows
+* **CI Workflow (`ci.yml`)**: Runs on `ubuntu-latest` to verify static analysis and run all unit/widget tests on every commit and PR.
+* **Build iOS (`build-ios.yml`)**: Compiles the Flutter iOS project and packages `ShellLite.ipa` with ad-hoc signing for sideloading.
+* **Release (`release.yml`)**: One-click manual trigger or tag push to build, package `ShellLite.ipa`, and publish to GitHub Releases.
 
 ### Sideloading on iPhone
 1. Download `ShellLite.ipa` from [GitHub Releases](https://github.com/bugmana/ShellLite/releases).
