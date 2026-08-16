@@ -1,6 +1,5 @@
 name: CI
 
-# Runs on every push and PR — uses official Swift 6.0 container for 100% reliability.
 on:
   push:
     branches: [ main, master ]
@@ -15,8 +14,14 @@ jobs:
       image: swift:6.0
 
     steps:
+      - name: Fix git ownership
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
+
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Fix git ownership post-checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Build
         run: swift build --configuration debug

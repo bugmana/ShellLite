@@ -20,28 +20,56 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify Environment
+      - name: Verify Tools & Schemes
         run: |
           xcodebuild -version
           swift --version
+          echo "Available schemes:"
+          xcodebuild -list || true
 
       - name: Run Tests
         run: swift test
 
-      - name: Build iOS Target via Xcodebuild
+      - name: Build for iOS
         run: |
-          xcodebuild build \
-            -scheme ShellLite \
-            -destination "generic/platform=iOS" \
-            -configuration Release \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+          SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "iPhoneOS SDK: $SDK_PATH"
+
+          # Determine target scheme (SPM typically creates <PackageName>-Package or <TargetName>)
+          SCHEMES=$(xcodebuild -list 2>/dev/null | awk '/Schemes:/{flag=1;next}/^[[:space:]]*$/{flag=0}flag{gsub(/^[[:space:]]+/, ""); print}')
+          echo "Discovered schemes: $SCHEMES"
+
+          TARGET_SCHEME=""
+          for s in ShellLite ShellLite-Package $SCHEMES; do
+            if [ -n "$s" ]; then
+              TARGET_SCHEME="$s"
+              break
+            fi
+          done
+          echo "Using scheme: $TARGET_SCHEME"
+
+          if [ -n "$TARGET_SCHEME" ]; then
+            xcodebuild build \
+              -scheme "$TARGET_SCHEME" \
+              -destination "generic/platform=iOS" \
+              -configuration Release \
+              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" || true
+          fi
+
+          # If xcodebuild did not create binary, fallback to swift build cross-compilation
+          if ! find "$RUNNER_TEMP/DerivedData" -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*.build*" 2>/dev/null | grep -q .; then
+            echo "Falling back to swift build with iOS SDK..."
+            swift build -c release \
+              --triple arm64-apple-ios18.0 \
+              -Xswiftc -sdk -Xswiftc "$SDK_PATH" \
+              -Xswiftc -target -Xswiftc arm64-apple-ios18.0
+          fi
 
       - name: Package .ipa
         run: |
-          # Extract version from tag or default
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
@@ -51,10 +79,10 @@ jobs:
 
           mkdir -p build_output/Payload/ShellLite.app
 
-          # Locate compiled executable from DerivedData
-          BINARY=$(find "$RUNNER_TEMP/DerivedData" -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*.build*" | head -n 1)
+          # Locate compiled executable binary
+          BINARY=$(find "$RUNNER_TEMP/DerivedData" .build -type f -name "ShellLite" ! -path "*.dSYM*" ! -path "*.build*" ! -path "*/checkouts/*" 2>/dev/null | head -n 1)
           if [ -z "$BINARY" ]; then
-            echo "Error: ShellLite executable not found in DerivedData"
+            echo "Error: ShellLite executable binary was not found."
             exit 1
           fi
           echo "Found binary at: $BINARY"
@@ -63,14 +91,11 @@ jobs:
           chmod +x build_output/Payload/ShellLite.app/ShellLite
           cp Sources/ShellLite/Info.plist build_output/Payload/ShellLite.app/Info.plist
 
-          # Stamp version metadata in Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" build_output/Payload/ShellLite.app/Info.plist || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" build_output/Payload/ShellLite.app/Info.plist || true
 
-          # Ad-hoc sign for local sideloading / SideStore / Sideloadly
           codesign --force --deep --sign - build_output/Payload/ShellLite.app
 
-          # Package into IPA
           cd build_output
           zip -r ../ShellLite.ipa Payload
           cd ..
