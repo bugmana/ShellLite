@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # ─────────────────────────────────────────────────────────────────────────────
 # release.sh — Tag a new ShellLite release and push it to trigger GitHub Actions.
 #
