@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xterm/xterm.dart';
 
 class AppTheme {
   static const Color background = Color(0xFF0B0F14);
@@ -13,6 +14,32 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF8B949E);
   static const Color errorRed = Color(0xFFF85149);
   static const Color warningYellow = Color(0xFFD29922);
+
+  static const TerminalTheme terminalTheme = TerminalTheme(
+    cursor: terminalGreen,
+    selection: Color(0x5558A6FF),
+    foreground: textPrimary,
+    background: background,
+    black: Color(0xFF30363D),
+    red: errorRed,
+    green: terminalGreen,
+    yellow: warningYellow,
+    blue: accentBlue,
+    magenta: Color(0xFFBC8CFF),
+    cyan: Color(0xFF39C5CF),
+    white: Color(0xFFD0D7DE),
+    brightBlack: Color(0xFF6E7681),
+    brightRed: Color(0xFFFFA198),
+    brightGreen: Color(0xFF56D364),
+    brightYellow: Color(0xFFE3B341),
+    brightBlue: Color(0xFF79C0FF),
+    brightMagenta: Color(0xFFD2A8FF),
+    brightCyan: Color(0xFF56D4DD),
+    brightWhite: Colors.white,
+    searchHitBackground: Color(0x66D29922),
+    searchHitBackgroundCurrent: accentGreen,
+    searchHitForeground: Colors.white,
+  );
 
   static ThemeData get darkTheme {
     return ThemeData(

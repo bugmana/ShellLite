@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../config/app_config.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import '../services/storage_service.dart';
@@ -14,6 +15,8 @@ class ServerStore extends ChangeNotifier {
   List<ServerProfile> get profiles => List.unmodifiable(_profiles);
   bool get isLoading => _isLoading;
   bool get isEmpty => _profiles.isEmpty;
+  bool get canAddServer => _profiles.length < ServerConfig.maxServers;
+  int get maxServers => ServerConfig.maxServers;
 
   Future<void> load() async {
     _isLoading = true;
@@ -23,6 +26,10 @@ class ServerStore extends ChangeNotifier {
   }
 
   Future<void> addProfile(ServerProfile profile, {required String credential}) async {
+    if (!canAddServer) {
+      throw StateError('Maximum limit of $maxServers servers reached.');
+    }
+
     final tag = profile.authMethod is PasswordAuth
         ? (profile.authMethod as PasswordAuth).credentialTag
         : (profile.authMethod as SSHKeyAuth).privateKeyTag;

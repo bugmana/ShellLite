@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import '../config/app_config.dart';
 import 'auth_method.dart';
 
 /// Represents a saved SSH server connection profile.
@@ -15,7 +16,7 @@ class ServerProfile {
     String? id,
     required this.displayName,
     required this.host,
-    this.port = 22,
+    this.port = SSHConfig.defaultPort,
     required this.username,
     required this.authMethod,
     this.initialCommand,
@@ -56,7 +57,7 @@ class ServerProfile {
       id: json['id'] as String,
       displayName: json['displayName'] as String,
       host: json['host'] as String,
-      port: (json['port'] as num?)?.toInt() ?? 22,
+      port: (json['port'] as num?)?.toInt() ?? SSHConfig.defaultPort,
       username: json['username'] as String,
       authMethod: AuthMethod.fromJson(json['authMethod'] as Map<String, dynamic>),
       initialCommand: json['initialCommand'] as String?,

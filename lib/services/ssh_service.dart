@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dartssh2/dartssh2.dart';
+import '../config/app_config.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import 'key_parser.dart';
@@ -37,23 +38,25 @@ class SSHService {
     required int terminalHeight,
     required void Function(String output) onOutput,
     required void Function(SSHConnectionState state, String? error) onStateChange,
+    StorageService? storageService,
   }) async {
     _state = SSHConnectionState.connecting;
     _lastError = null;
     onStateChange(_state, null);
 
     try {
+      final storage = storageService ?? _storageService;
       final auth = profile.authMethod;
       String? password;
       List<SSHKeyPair>? keyPairs;
 
       if (auth is PasswordAuth) {
-        password = await _storageService.retrieveCredential(auth.credentialTag);
+        password = await storage.retrieveCredential(auth.credentialTag);
         if (password == null || password.isEmpty) {
           throw Exception('No password found for server profile.');
         }
       } else if (auth is SSHKeyAuth) {
-        final pem = await _storageService.retrieveCredential(auth.privateKeyTag);
+        final pem = await storage.retrieveCredential(auth.privateKeyTag);
         if (pem == null || pem.isEmpty) {
           throw Exception('No private key found for server profile.');
         }
@@ -63,14 +66,18 @@ class SSHService {
       final socket = await SSHSocket.connect(
         profile.host,
         profile.port,
-        timeout: const Duration(seconds: 15),
+        timeout: SSHConfig.connectTimeout,
       );
 
       _client = SSHClient(
         socket,
         username: profile.username,
         onPasswordRequest: password != null ? () => password! : null,
+        onUserInfoRequest: password != null
+            ? (request) => request.prompts.map((_) => password!).toList()
+            : null,
         identities: keyPairs,
+        keepAliveInterval: SSHConfig.keepAliveInterval,
       );
 
       await _client!.authenticated;
@@ -78,8 +85,8 @@ class SSHService {
       // Start PTY shell
       _shellSession = await _client!.shell(
         pty: SSHPtyConfig(
-          width: terminalWidth > 0 ? terminalWidth : 80,
-          height: terminalHeight > 0 ? terminalHeight : 24,
+          width: terminalWidth > 0 ? terminalWidth : TerminalConfig.defaultWidth,
+          height: terminalHeight > 0 ? terminalHeight : TerminalConfig.defaultHeight,
         ),
       );
 

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../config/app_config.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import '../providers/server_store.dart';
 import '../services/key_parser.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ssh_key_generator_dialog.dart';
 
 class ServerFormScreen extends StatefulWidget {
   final ServerProfile? existingProfile;
@@ -29,6 +31,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
 
   AuthType _authType = AuthType.password;
   bool _obscurePassword = true;
+  bool _obscureKey = true;
   bool _isLoadingCredential = false;
   String? _keyValidationError;
 
@@ -38,7 +41,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     final p = widget.existingProfile;
     _nameController = TextEditingController(text: p?.displayName ?? '');
     _hostController = TextEditingController(text: p?.host ?? '');
-    _portController = TextEditingController(text: p?.port.toString() ?? '22');
+    _portController = TextEditingController(text: p?.port.toString() ?? '${SSHConfig.defaultPort}');
     _usernameController = TextEditingController(text: p?.username ?? '');
     _credentialController = TextEditingController();
     _initialCommandController = TextEditingController(text: p?.initialCommand ?? '');
@@ -84,6 +87,26 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     }
   }
 
+  Future<void> _generateNewKey() async {
+    final generated = await SSHKeyGeneratorDialog.show(context);
+    if (generated != null) {
+      setState(() {
+        _credentialController.text = generated.privateKeyPem;
+        _obscureKey = true;
+        _validateKey(generated.privateKeyPem);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Generated Ed25519 key applied!'),
+            backgroundColor: AppTheme.surface,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData('text/plain');
     if (data != null && data.text != null) {
@@ -106,9 +129,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     }
 
     final store = context.read<ServerStore>();
-    final port = int.tryParse(_portController.text.trim()) ?? 22;
+    final port = int.tryParse(_portController.text.trim()) ?? SSHConfig.defaultPort;
     final id = widget.existingProfile?.id ?? const Uuid().v4();
-    final tag = 'cred_$id';
+    final tag = StorageConfig.buildCredentialTag(id);
 
     final authMethod = _authType == AuthType.password
         ? PasswordAuth(credentialTag: tag)
@@ -209,7 +232,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                           controller: _portController,
                           decoration: const InputDecoration(
                             labelText: 'Port',
-                            hintText: '22',
+                            hintText: '${SSHConfig.defaultPort}',
                           ),
                           keyboardType: TextInputType.number,
                           validator: (val) {
@@ -297,35 +320,122 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Paste OpenSSH Private Key',
+                          'OpenSSH Private Key',
                           style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                         ),
-                        TextButton.icon(
-                          onPressed: _pasteFromClipboard,
-                          icon: const Icon(Icons.paste_rounded, size: 16),
-                          label: const Text('Paste', style: TextStyle(fontSize: 13)),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!_obscureKey && _credentialController.text.trim().isNotEmpty) ...[
+                              TextButton.icon(
+                                onPressed: () => setState(() => _obscureKey = true),
+                                icon: const Icon(Icons.visibility_off_outlined, size: 15, color: AppTheme.accentBlue),
+                                label: const Text('Hide Key', style: TextStyle(fontSize: 12, color: AppTheme.accentBlue)),
+                              ),
+                              const SizedBox(width: 2),
+                            ],
+                            TextButton.icon(
+                              onPressed: _generateNewKey,
+                              icon: const Icon(Icons.auto_awesome_rounded, size: 15, color: AppTheme.terminalGreen),
+                              label: const Text('Generate', style: TextStyle(fontSize: 12, color: AppTheme.terminalGreen)),
+                            ),
+                            const SizedBox(width: 2),
+                            TextButton.icon(
+                              onPressed: _pasteFromClipboard,
+                              icon: const Icon(Icons.paste_rounded, size: 15),
+                              label: const Text('Paste', style: TextStyle(fontSize: 12)),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    TextFormField(
-                      controller: _credentialController,
-                      maxLines: 6,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
+                    if (_obscureKey && _credentialController.text.trim().isNotEmpty) ...[
+                      Material(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => setState(() => _obscureKey = false),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.lock_rounded, color: AppTheme.terminalGreen, size: 20),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Secure Private Key Stored',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        '••••••••••••••••••••••••••••••••••••',
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                          color: AppTheme.textSecondary,
+                                          letterSpacing: 2.0,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.cardSurface,
+                                    foregroundColor: AppTheme.accentBlue,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                      side: const BorderSide(color: AppTheme.border),
+                                    ),
+                                  ),
+                                  onPressed: () => setState(() => _obscureKey = false),
+                                  icon: const Icon(Icons.visibility_outlined, size: 15),
+                                  label: const Text('Show Key', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      decoration: const InputDecoration(
-                        hintText: '-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----',
+                    ] else ...[
+                      TextFormField(
+                        controller: _credentialController,
+                        maxLines: 6,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: '-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----',
+                        ),
+                        onChanged: (val) {
+                          _validateKey(val);
+                          setState(() {});
+                        },
+                        validator: (val) {
+                          if (!isEditing && (val == null || val.trim().isEmpty)) {
+                            return 'Private key is required';
+                          }
+                          return null;
+                        },
                       ),
-                      onChanged: _validateKey,
-                      validator: (val) {
-                        if (!isEditing && (val == null || val.trim().isEmpty)) {
-                          return 'Private key is required';
-                        }
-                        return null;
-                      },
-                    ),
+                    ],
                     if (_keyValidationError != null) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -354,11 +464,6 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _save,
-                    child: Text(isEditing ? 'Save Changes' : 'Add Server'),
-                  ),
                   const SizedBox(height: 24),
                 ],
               ),
