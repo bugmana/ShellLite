@@ -29,6 +29,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      - dependency-name: "flutter_secure_storage"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "local_auth"
+        update-types: ["version-update:semver-major"]
 
   # 2. GitHub Actions Workflows
   # Staggered to Thursday morning off-peak.
@@ -69,3 +74,17 @@ updates:
     commit-message:
       prefix: "android(deps)"
       include: "scope"
+    groups:
+      gradle-plugins:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "gradle-wrapper"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.jetbrains.kotlin.android"
+        update-types: ["version-update:semver-major"]
