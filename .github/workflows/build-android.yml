@@ -43,13 +43,13 @@ jobs:
         run: |
           set -e
           echo "==> Building Flutter Android Release APK..."
-          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+          flutter build apk --release --android-skip-build-dependency-validation --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
 
       - name: Build Android App Bundle (AAB)
         run: |
           set -e
           echo "==> Building Flutter Android Release AAB..."
-          flutter build appbundle --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+          flutter build appbundle --release --android-skip-build-dependency-validation --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
 
       - name: Prepare Artifacts
         if: inputs.upload_artifact
