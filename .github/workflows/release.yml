@@ -31,7 +31,7 @@ jobs:
       tag: ${{ steps.versioning.outputs.tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -96,22 +96,22 @@ jobs:
     runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Download iOS IPA Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-iOS-IPA
 
       - name: Download Android APK Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-APK
 
       - name: Download Android AAB Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: "${{ needs.resolve-version.outputs.tag }}"
           name: "${{ vars.APP_NAME || 'ShellLite' }} ${{ needs.resolve-version.outputs.tag }}"
