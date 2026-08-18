@@ -19,7 +19,7 @@ dependencies:
   uuid: ^4.5.1
   pinenacl: ^0.6.0
   crypto: ^3.0.3
-  local_auth: ^2.3.0
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:
