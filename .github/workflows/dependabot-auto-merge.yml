@@ -1,6 +1,9 @@
 name: Dependabot Auto-Merge
 
 on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
@@ -9,10 +12,10 @@ permissions:
   pull-requests: write
 
 jobs:
-  auto-merge:
-    name: Auto-Merge Dependabot PR
+  enable-auto-merge:
+    name: Enable Auto-Merge
     runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
-    if: github.actor == 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     steps:
       - name: Fetch Dependabot Metadata
         id: metadata
@@ -20,11 +23,29 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Enable Auto-Merge for Non-Breaking Updates
+      - name: Approve & Enable Native Auto-Merge
         if: steps.metadata.outputs.update-type != 'version-update:semver-major'
         run: |
           gh pr review --approve "$PR_URL" || true
-          gh pr merge --auto --squash "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL" || true
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  merge-on-ci-success:
+    name: Merge On CI Success
+    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: Merge Dependabot PR on CI Success
+        run: |
+          PR_NUMBER=$(gh pr list --search "${{ github.event.workflow_run.head_sha }}" --json number --jq '.[0].number')
+          if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+            AUTHOR=$(gh pr view "$PR_NUMBER" --json author --jq '.author.login')
+            if [ "$AUTHOR" = "app/dependabot" ] || [ "$AUTHOR" = "dependabot[bot]" ]; then
+              echo "==> CI succeeded! Auto-merging Dependabot PR #$PR_NUMBER..."
+              gh pr merge "$PR_NUMBER" --squash --delete-branch || true
+            fi
+          fi
+        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
