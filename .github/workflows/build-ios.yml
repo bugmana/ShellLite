@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload IPA Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-iOS-IPA
           path: ${{ vars.APP_NAME || 'ShellLite' }}.ipa

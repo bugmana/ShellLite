@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java JDK
         uses: actions/setup-java@v5
@@ -63,7 +63,7 @@ jobs:
 
       - name: Upload Android APK Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-APK
           path: ${{ vars.APP_NAME || 'ShellLite' }}.apk
@@ -71,7 +71,7 @@ jobs:
 
       - name: Upload Android AAB Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
           path: ${{ vars.APP_NAME || 'ShellLite' }}.aab
