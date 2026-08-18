@@ -17,7 +17,7 @@ on:
 jobs:
   build-android:
     name: Flutter Android Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout
@@ -26,14 +26,14 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: ${{ vars.JAVA_DISTRIBUTION || 'temurin' }}
+          java-version: ${{ vars.JAVA_VERSION || '17' }}
           cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: ${{ vars.FLUTTER_CHANNEL || 'stable' }}
           cache: true
 
       - name: Install Dependencies

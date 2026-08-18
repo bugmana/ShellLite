@@ -25,7 +25,7 @@ permissions:
 jobs:
   resolve-version:
     name: Resolve Version
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
     outputs:
       version: ${{ steps.versioning.outputs.version }}
       tag: ${{ steps.versioning.outputs.tag }}
@@ -93,7 +93,7 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [resolve-version, build-ios, build-android]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Download iOS IPA Artifact
         uses: actions/download-artifact@v4
