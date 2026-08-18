@@ -1,6 +1,7 @@
 name: Dependabot Auto-Merge
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
@@ -36,16 +37,25 @@ jobs:
   merge-on-ci-success:
     name: Merge On CI Success
     runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
-      - name: Merge Dependabot PR on CI Success
+      - name: Merge Validated Dependabot PRs
         run: |
-          PR_NUMBER=$(gh pr list --search "${{ github.event.workflow_run.head_sha }}" --json number --jq '.[0].number')
-          if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
-            AUTHOR=$(gh pr view "$PR_NUMBER" --json author --jq '.author.login')
-            if [ "$AUTHOR" = "app/dependabot" ] || [ "$AUTHOR" = "dependabot[bot]" ]; then
-              echo "==> CI succeeded! Auto-merging Dependabot PR #$PR_NUMBER..."
-              gh pr merge "$PR_NUMBER" --squash --delete-branch || true
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Searching for open Dependabot PRs..."
+            PRS=$(gh pr list --app dependabot --json number --jq '.[].number')
+            for PR in $PRS; do
+              echo "Processing Dependabot PR #$PR..."
+              gh pr merge "$PR" --squash --delete-branch || true
+            done
+          else
+            PR_NUMBER=$(gh pr list --search "${{ github.event.workflow_run.head_sha }}" --json number --jq '.[0].number')
+            if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+              AUTHOR=$(gh pr view "$PR_NUMBER" --json author --jq '.author.login')
+              if [ "$AUTHOR" = "app/dependabot" ] || [ "$AUTHOR" = "dependabot[bot]" ]; then
+                echo "==> CI succeeded! Auto-merging Dependabot PR #$PR_NUMBER..."
+                gh pr merge "$PR_NUMBER" --squash --delete-branch || true
+              fi
             fi
           fi
         env:
