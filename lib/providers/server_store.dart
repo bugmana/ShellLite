@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../config/app_config.dart';
-import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import '../services/storage_service.dart';
 
@@ -30,11 +29,7 @@ class ServerStore extends ChangeNotifier {
       throw StateError('Maximum limit of $maxServers servers reached.');
     }
 
-    final tag = profile.authMethod is PasswordAuth
-        ? (profile.authMethod as PasswordAuth).credentialTag
-        : (profile.authMethod as SSHKeyAuth).privateKeyTag;
-
-    await _storageService.saveCredential(tag, credential);
+    await _storageService.saveCredential(profile.authMethod.credentialTag, credential);
 
     _profiles.insert(0, profile);
     await _storageService.saveProfiles(_profiles);
@@ -46,10 +41,7 @@ class ServerStore extends ChangeNotifier {
     if (index == -1) return;
 
     if (newCredential != null && newCredential.isNotEmpty) {
-      final tag = profile.authMethod is PasswordAuth
-          ? (profile.authMethod as PasswordAuth).credentialTag
-          : (profile.authMethod as SSHKeyAuth).privateKeyTag;
-      await _storageService.saveCredential(tag, newCredential);
+      await _storageService.saveCredential(profile.authMethod.credentialTag, newCredential);
     }
 
     _profiles[index] = profile;
@@ -62,19 +54,12 @@ class ServerStore extends ChangeNotifier {
     if (index == -1) return;
 
     final profile = _profiles.removeAt(index);
-    final tag = profile.authMethod is PasswordAuth
-        ? (profile.authMethod as PasswordAuth).credentialTag
-        : (profile.authMethod as SSHKeyAuth).privateKeyTag;
-
-    await _storageService.deleteCredential(tag);
+    await _storageService.deleteCredential(profile.authMethod.credentialTag);
     await _storageService.saveProfiles(_profiles);
     notifyListeners();
   }
 
   Future<String?> getCredential(ServerProfile profile) async {
-    final tag = profile.authMethod is PasswordAuth
-        ? (profile.authMethod as PasswordAuth).credentialTag
-        : (profile.authMethod as SSHKeyAuth).privateKeyTag;
-    return await _storageService.retrieveCredential(tag);
+    return await _storageService.retrieveCredential(profile.authMethod.credentialTag);
   }
 }

@@ -17,6 +17,7 @@ class SecurityService {
       _prefs ?? await SharedPreferences.getInstance();
 
   Future<bool> isBiometricsSupported() async {
+    if (kIsWeb) return false;
     try {
       final isDeviceSupported = await _localAuth.isDeviceSupported();
       final canCheck = await _localAuth.canCheckBiometrics;
@@ -28,6 +29,7 @@ class SecurityService {
   }
 
   Future<bool> isBiometricEnabled() async {
+    if (kIsWeb) return false;
     try {
       final prefs = await _sharedPrefs;
       return prefs.getBool(_biometricEnabledKey) ?? false;
@@ -37,6 +39,7 @@ class SecurityService {
   }
 
   Future<void> setBiometricEnabled(bool enabled) async {
+    if (kIsWeb) return;
     try {
       final prefs = await _sharedPrefs;
       await prefs.setBool(_biometricEnabledKey, enabled);
@@ -44,6 +47,7 @@ class SecurityService {
   }
 
   Future<bool> authenticate({String reason = 'Authenticate to access ShellLite'}) async {
+    if (kIsWeb) return true;
     try {
       return await _localAuth.authenticate(
         localizedReason: reason,

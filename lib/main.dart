@@ -16,12 +16,11 @@ import 'widgets/app_lock_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Dark status bar and navigation bar styling
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
+    SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AppTheme.background,
+      systemNavigationBarColor: AppTheme.defaultExtension.background,
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );

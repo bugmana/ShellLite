@@ -1,0 +1,77 @@
+name: Build Flutter Android
+
+on:
+  workflow_call:
+    inputs:
+      upload_artifact:
+        description: 'Whether to package and upload the APK and AAB artifacts'
+        required: false
+        default: false
+        type: boolean
+      version:
+        description: 'Version string for the Android build'
+        required: false
+        default: '1.0.1'
+        type: string
+
+jobs:
+  build-android:
+    name: Flutter Android Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android Release APK
+        run: |
+          set -e
+          echo "==> Building Flutter Android Release APK..."
+          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+
+      - name: Build Android App Bundle (AAB)
+        run: |
+          set -e
+          echo "==> Building Flutter Android Release AAB..."
+          flutter build appbundle --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+
+      - name: Prepare Artifacts
+        if: inputs.upload_artifact
+        run: |
+          set -e
+          cp build/app/outputs/flutter-apk/app-release.apk ShellLite.apk
+          cp build/app/outputs/bundle/release/app-release.aab ShellLite.aab
+          echo "Android artifacts prepared successfully:"
+          ls -lh ShellLite.apk ShellLite.aab
+
+      - name: Upload Android APK Artifact
+        if: inputs.upload_artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShellLite-Android-APK
+          path: ShellLite.apk
+          retention-days: 30
+
+      - name: Upload Android AAB Artifact
+        if: inputs.upload_artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShellLite-Android-AAB
+          path: ShellLite.aab
+          retention-days: 30

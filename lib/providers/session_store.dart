@@ -33,7 +33,6 @@ class SessionStore extends ChangeNotifier {
   SessionStore({StorageService? storageService})
       : _storageService = storageService ?? StorageService();
 
-  List<OpenSession> get sessions => _sessions.values.toList();
   String? get activeSessionId => _activeSessionId;
   OpenSession? get activeSession =>
       _activeSessionId != null ? _sessions[_activeSessionId] : null;
@@ -120,13 +119,6 @@ class SessionStore extends ChangeNotifier {
         notifyListeners();
       },
     );
-  }
-
-  void setActiveSession(String sessionId) {
-    if (_sessions.containsKey(sessionId)) {
-      _activeSessionId = sessionId;
-      notifyListeners();
-    }
   }
 
   void closeSession(String sessionId) {

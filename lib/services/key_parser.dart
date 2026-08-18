@@ -21,12 +21,6 @@ class EncryptedKeyException extends SSHKeyException {
   ]);
 }
 
-class UnsupportedKeyTypeException extends SSHKeyException {
-  final String keyType;
-  const UnsupportedKeyTypeException(this.keyType)
-      : super('Unsupported SSH key type: $keyType');
-}
-
 /// Helper service for validating and parsing OpenSSH and PEM private keys.
 class SSHKeyParser {
   /// Validates and parses an unencrypted OpenSSH / PEM private key string.

@@ -1,4 +1,4 @@
-name: Release iOS IPA
+name: Release Multi-Platform
 
 on:
   workflow_dispatch:
@@ -25,7 +25,7 @@ permissions:
 jobs:
   resolve-version:
     name: Resolve Version
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.versioning.outputs.version }}
       tag: ${{ steps.versioning.outputs.tag }}
@@ -74,36 +74,66 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Resolved version: $VERSION (tag: $TAG)"
 
-  build-and-package:
-    name: Build & Package
+  build-ios:
+    name: Build iOS
     needs: resolve-version
     uses: ./.github/workflows/build-ios.yml
     with:
       upload_artifact: true
       version: ${{ needs.resolve-version.outputs.version }}
 
+  build-android:
+    name: Build Android
+    needs: resolve-version
+    uses: ./.github/workflows/build-android.yml
+    with:
+      upload_artifact: true
+      version: ${{ needs.resolve-version.outputs.version }}
+
   publish-release:
     name: Publish GitHub Release
-    needs: [resolve-version, build-and-package]
-    runs-on: macos-15
+    needs: [resolve-version, build-ios, build-android]
+    runs-on: ubuntu-latest
     steps:
-      - name: Download IPA Artifact
+      - name: Download iOS IPA Artifact
         uses: actions/download-artifact@v4
         with:
           name: ShellLite-iOS-IPA
+
+      - name: Download Android APK Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ShellLite-Android-APK
+
+      - name: Download Android AAB Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ShellLite-Android-AAB
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ needs.resolve-version.outputs.tag }}"
           name: "ShellLite ${{ needs.resolve-version.outputs.tag }}"
-          files: ShellLite.ipa
+          files: |
+            ShellLite.ipa
+            ShellLite.apk
+            ShellLite.aab
           body: |
             ## ShellLite ${{ needs.resolve-version.outputs.tag }}
 
-            ### 📦 Download & Install on iPhone
-            Download `ShellLite.ipa` directly to your iPhone or PC:
-            - **SideStore**: Open `ShellLite.ipa` in the SideStore app on your iPhone.
-            - **Sideloadly / AltStore**: Select `ShellLite.ipa` and install to your connected device.
+            ### 📦 Download & Install
+
+            #### 🤖 Android
+            - **Direct APK (`ShellLite.apk`)**: Download and open on any Android device to install directly (enable *Install unknown apps* in system settings).
+            - **App Bundle (`ShellLite.aab`)**: Android App Bundle for store distribution.
+
+            #### 🍏 iOS
+            - **Sideloadable IPA (`ShellLite.ipa`)**: Download to your device and install via:
+              - **SideStore**: Open `ShellLite.ipa` in SideStore on your iPhone.
+              - **AltStore / Sideloadly**: Select `ShellLite.ipa` and install to your connected device.
+
+            #### 🌐 Web
+            - Access the live web version at [https://shell.strandberg.dev/](https://shell.strandberg.dev/).
           draft: false
           prerelease: false

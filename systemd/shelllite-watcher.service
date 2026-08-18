@@ -5,5 +5,5 @@ Description=Rebuild ShellLite Web on File Change
 Type=oneshot
 WorkingDirectory=%h/projects/ShellLite
 Environment="PATH=%h/.local/share/flutter/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=%h/.local/share/flutter/bin/flutter build web
+ExecStart=%h/.local/share/flutter/bin/flutter build web --base-href /shelllite/
 ExecStartPost=/bin/chmod -R a+rX %h/projects/ShellLite/build/web

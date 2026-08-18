@@ -100,9 +100,16 @@ class _TerminalScreenState extends State<TerminalScreen> {
     super.dispose();
   }
 
+  OpenSession? _readSession(BuildContext context) {
+    final store = _tryRead<SessionStore>(context);
+    return store?.activeSession ?? store?.getSession(widget.profile.id);
+  }
+
+  Terminal _readTerminal(BuildContext context) =>
+      _readSession(context)?.terminal ?? _fallbackTerminal;
+
   void _handleKeyTap(String sequence) {
-    final sessionStore = _tryRead<SessionStore>(context);
-    final session = sessionStore?.activeSession ?? sessionStore?.getSession(widget.profile.id);
+    final session = _readSession(context);
     if (session != null) {
       session.sshService.sendInput(sequence);
     } else {
@@ -118,10 +125,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   }
 
   void _copyBuffer() async {
-    final sessionStore = _tryRead<SessionStore>(context);
-    final session = sessionStore?.activeSession ?? sessionStore?.getSession(widget.profile.id);
-    final term = session?.terminal ?? _fallbackTerminal;
-    final text = term.buffer.getText();
+    final text = _readTerminal(context).buffer.getText();
     if (text.isEmpty) return;
 
     await Clipboard.setData(ClipboardData(text: text));
@@ -138,10 +142,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   }
 
   void _clearTerminal() {
-    final sessionStore = _tryRead<SessionStore>(context);
-    final session = sessionStore?.activeSession ?? sessionStore?.getSession(widget.profile.id);
-    final term = session?.terminal ?? _fallbackTerminal;
-    term.eraseDisplay();
+    _readTerminal(context).eraseDisplay();
   }
 
   void _toggleSearch() {

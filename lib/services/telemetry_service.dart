@@ -33,17 +33,7 @@ class TelemetryService {
     SSHSocket? socket;
     try {
       final storage = storageService ?? StorageService();
-      String? credential;
-
-      if (profile.authMethod is PasswordAuth) {
-        credential = await storage.retrieveCredential(
-          (profile.authMethod as PasswordAuth).credentialTag,
-        );
-      } else if (profile.authMethod is SSHKeyAuth) {
-        credential = await storage.retrieveCredential(
-          (profile.authMethod as SSHKeyAuth).privateKeyTag,
-        );
-      }
+      final credential = await storage.retrieveCredential(profile.authMethod.credentialTag);
 
       socket = await SSHSocket.connect(
         profile.host,
@@ -60,26 +50,14 @@ class TelemetryService {
         }
       }
 
+      final isPasswordAuth = profile.authMethod is PasswordAuth;
       client = SSHClient(
         socket,
         username: profile.username,
-        onPasswordRequest: () {
-          if (profile.authMethod is PasswordAuth && credential != null) {
-            return credential;
-          }
-          return null;
-        },
-        onUserInfoRequest: (request) {
-          final responses = <String>[];
-          for (final _ in request.prompts) {
-            if (profile.authMethod is PasswordAuth && credential != null) {
-              responses.add(credential);
-            } else {
-              responses.add('');
-            }
-          }
-          return responses;
-        },
+        onPasswordRequest: isPasswordAuth && credential != null ? () => credential : null,
+        onUserInfoRequest: isPasswordAuth && credential != null
+            ? (request) => request.prompts.map((_) => credential).toList()
+            : null,
         identities: keyPairs,
       );
 

@@ -28,11 +28,13 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   late final TextEditingController _usernameController;
   late final TextEditingController _credentialController;
   late final TextEditingController _initialCommandController;
+  late final TextEditingController _tmuxSessionNameController;
 
   AuthType _authType = AuthType.password;
   bool _obscurePassword = true;
   bool _obscureKey = true;
   bool _isLoadingCredential = false;
+  bool _persistSession = false;
   String? _keyValidationError;
 
   @override
@@ -45,6 +47,8 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     _usernameController = TextEditingController(text: p?.username ?? '');
     _credentialController = TextEditingController();
     _initialCommandController = TextEditingController(text: p?.initialCommand ?? '');
+    _tmuxSessionNameController = TextEditingController(text: p?.tmuxSessionName ?? '');
+    _persistSession = p?.persistSession ?? false;
 
     if (p != null) {
       _authType = p.authMethod.type;
@@ -71,6 +75,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     _usernameController.dispose();
     _credentialController.dispose();
     _initialCommandController.dispose();
+    _tmuxSessionNameController.dispose();
     super.dispose();
   }
 
@@ -139,6 +144,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
         : SSHKeyAuth(privateKeyTag: tag);
 
     final initialCmd = _initialCommandController.text.trim();
+    final tmuxSession = _tmuxSessionNameController.text.trim();
 
     final profile = ServerProfile(
       id: id,
@@ -148,6 +154,8 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
       username: _usernameController.text.trim(),
       authMethod: authMethod,
       initialCommand: initialCmd.isNotEmpty ? initialCmd : null,
+      persistSession: _persistSession,
+      tmuxSessionName: _persistSession && tmuxSession.isNotEmpty ? tmuxSession : null,
     );
 
     if (widget.existingProfile == null) {
@@ -454,6 +462,67 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
 
                   const SizedBox(height: 24),
 
+                  // ── Persistent Session (tmux) Section ───────────────────
+                  _buildSectionHeader('PERSISTENT SESSION (TMUX)', theme),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _persistSession ? theme.primaryAccent.withValues(alpha: 0.5) : theme.border,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          title: Text(
+                            'Keep Session Alive (tmux)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: theme.textPrimary,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Keeps background jobs & processes running when app is closed; auto-reattaches to the same session on connect.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.textSecondary,
+                              height: 1.3,
+                            ),
+                          ),
+                          value: _persistSession,
+                          activeThumbColor: theme.primaryAccent,
+                          onChanged: (val) {
+                            setState(() {
+                              _persistSession = val;
+                            });
+                          },
+                        ),
+                        if (_persistSession) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                            child: TextFormField(
+                              controller: _tmuxSessionNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'tmux Session Name',
+                                hintText: 'shelllite',
+                                prefixIcon: Icon(Icons.terminal_rounded, size: 20),
+                                helperText: 'Always targets this exact session name. Defaults to "shelllite".',
+                              ),
+                              autocorrect: false,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
                   // ── Startup Command Section ─────────────────────────────
                   _buildSectionHeader('STARTUP (OPTIONAL)', theme),
                   const SizedBox(height: 8),
@@ -461,7 +530,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                     controller: _initialCommandController,
                     decoration: const InputDecoration(
                       labelText: 'Initial Command',
-                      hintText: 'e.g. tmux attach || tmux new',
+                      hintText: 'e.g. htop or cd /var/www',
                       prefixIcon: Icon(Icons.play_arrow_outlined, size: 20),
                     ),
                   ),

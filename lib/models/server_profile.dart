@@ -11,6 +11,8 @@ class ServerProfile {
   final String username;
   final AuthMethod authMethod;
   final String? initialCommand;
+  final bool persistSession;
+  final String? tmuxSessionName;
 
   ServerProfile({
     String? id,
@@ -20,6 +22,8 @@ class ServerProfile {
     required this.username,
     required this.authMethod,
     this.initialCommand,
+    this.persistSession = false,
+    this.tmuxSessionName,
   }) : id = id ?? const Uuid().v4();
 
   ServerProfile copyWith({
@@ -30,6 +34,8 @@ class ServerProfile {
     String? username,
     AuthMethod? authMethod,
     String? initialCommand,
+    bool? persistSession,
+    String? tmuxSessionName,
   }) {
     return ServerProfile(
       id: id ?? this.id,
@@ -39,6 +45,8 @@ class ServerProfile {
       username: username ?? this.username,
       authMethod: authMethod ?? this.authMethod,
       initialCommand: initialCommand ?? this.initialCommand,
+      persistSession: persistSession ?? this.persistSession,
+      tmuxSessionName: tmuxSessionName ?? this.tmuxSessionName,
     );
   }
 
@@ -50,6 +58,8 @@ class ServerProfile {
         'username': username,
         'authMethod': authMethod.toJson(),
         if (initialCommand != null) 'initialCommand': initialCommand,
+        'persistSession': persistSession,
+        if (tmuxSessionName != null) 'tmuxSessionName': tmuxSessionName,
       };
 
   factory ServerProfile.fromJson(Map<String, dynamic> json) {
@@ -61,6 +71,8 @@ class ServerProfile {
       username: json['username'] as String,
       authMethod: AuthMethod.fromJson(json['authMethod'] as Map<String, dynamic>),
       initialCommand: json['initialCommand'] as String?,
+      persistSession: (json['persistSession'] as bool?) ?? false,
+      tmuxSessionName: json['tmuxSessionName'] as String?,
     );
   }
 
@@ -75,7 +87,9 @@ class ServerProfile {
           port == other.port &&
           username == other.username &&
           authMethod == other.authMethod &&
-          initialCommand == other.initialCommand;
+          initialCommand == other.initialCommand &&
+          persistSession == other.persistSession &&
+          tmuxSessionName == other.tmuxSessionName;
 
   @override
   int get hashCode =>
@@ -85,9 +99,11 @@ class ServerProfile {
       port.hashCode ^
       username.hashCode ^
       authMethod.hashCode ^
-      (initialCommand?.hashCode ?? 0);
+      (initialCommand?.hashCode ?? 0) ^
+      persistSession.hashCode ^
+      (tmuxSessionName?.hashCode ?? 0);
 
   @override
   String toString() =>
-      'ServerProfile(id: $id, name: $displayName, $username@$host:$port, auth: $authMethod)';
+      'ServerProfile(id: $id, name: $displayName, $username@$host:$port, auth: $authMethod, tmux: $persistSession)';
 }

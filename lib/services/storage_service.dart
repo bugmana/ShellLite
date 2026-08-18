@@ -69,40 +69,43 @@ class StorageService {
   }
 
   // ── Secure Credentials (Passwords & Private Keys) ──────────────────────────
+ 
+   Future<void> saveCredential(String tag, String value) async {
+     _inMemoryCredentials[tag] = value;
+     if (kIsWeb) return;
+     try {
+       await _secureStorage
+           .write(key: tag, value: value)
+           .timeout(const Duration(milliseconds: 300));
+     } catch (e) {
+       debugPrint('StorageService.saveCredential secureStorage fallback to in-memory: $e');
+     }
+   }
 
-  Future<void> saveCredential(String tag, String value) async {
-    _inMemoryCredentials[tag] = value;
-    try {
-      await _secureStorage
-          .write(key: tag, value: value)
-          .timeout(const Duration(milliseconds: 300));
-    } catch (e) {
-      debugPrint('StorageService.saveCredential secureStorage fallback to in-memory: $e');
-    }
-  }
+   Future<String?> retrieveCredential(String tag) async {
+     if (kIsWeb) return _inMemoryCredentials[tag];
+     try {
+       final val = await _secureStorage
+           .read(key: tag)
+           .timeout(const Duration(milliseconds: 300));
+       if (val != null) return val;
+     } catch (e) {
+       debugPrint('StorageService.retrieveCredential error: $e');
+     }
+     return _inMemoryCredentials[tag];
+   }
 
-  Future<String?> retrieveCredential(String tag) async {
-    try {
-      final val = await _secureStorage
-          .read(key: tag)
-          .timeout(const Duration(milliseconds: 300));
-      if (val != null) return val;
-    } catch (e) {
-      debugPrint('StorageService.retrieveCredential error: $e');
-    }
-    return _inMemoryCredentials[tag];
-  }
-
-  Future<void> deleteCredential(String tag) async {
-    _inMemoryCredentials.remove(tag);
-    try {
-      await _secureStorage
-          .delete(key: tag)
-          .timeout(const Duration(milliseconds: 300));
-    } catch (e) {
-      debugPrint('StorageService.deleteCredential error: $e');
-    }
-  }
+   Future<void> deleteCredential(String tag) async {
+     _inMemoryCredentials.remove(tag);
+     if (kIsWeb) return;
+     try {
+       await _secureStorage
+           .delete(key: tag)
+           .timeout(const Duration(milliseconds: 300));
+     } catch (e) {
+       debugPrint('StorageService.deleteCredential error: $e');
+     }
+   }
 
   // ── First-Run Gesture Tip Flag ─────────────────────────────────────────────
 

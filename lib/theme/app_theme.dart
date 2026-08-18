@@ -57,27 +57,11 @@ extension AppThemeContextExtension on BuildContext {
 }
 
 class AppTheme {
-  // Static Obsidian fallback colors for backward compatibility
-  static const Color background = Color(0xFF0B0F14);
-  static const Color surface = Color(0xFF161B22);
-  static const Color cardSurface = Color(0xFF1F242C);
-  static const Color border = Color(0xFF30363D);
-
-  static const Color accentGreen = Color(0xFF2EA043);
-  static const Color terminalGreen = Color(0xFF3FB950);
-  static const Color accentBlue = Color(0xFF58A6FF);
-  static const Color textPrimary = Color(0xFFF0F6FC);
-  static const Color textSecondary = Color(0xFF8B949E);
-  static const Color errorRed = Color(0xFFF85149);
-  static const Color warningYellow = Color(0xFFD29922);
-
   static final AppThemeExtension defaultExtension = AppThemeExtension(
     palette: TerminalThemePresets.obsidian.palette,
   );
 
   static TerminalTheme get terminalTheme => TerminalThemePresets.obsidian.theme;
-
-  static ThemeData get darkTheme => buildTheme(TerminalThemePresets.obsidian);
 
   static ThemeData buildTheme(TerminalThemePreset preset) {
     final p = preset.palette;

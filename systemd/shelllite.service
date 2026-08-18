@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 WorkingDirectory=%h/projects/ShellLite
 Environment="PATH=%h/.local/share/flutter/bin:%h/flutter/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=%h/.local/share/flutter/bin/flutter run -d web-server --web-port=8080 --web-hostname=127.0.0.1 --pid-file /tmp/shelllite.pid
+ExecStart=%h/.local/share/flutter/bin/flutter run -d web-server --web-port=8080 --web-hostname=127.0.0.1 --base-href /shelllite/ --pid-file /tmp/shelllite.pid
 ExecReload=/usr/bin/pkill -USR1 -f "flutter_tools.*web-server"
 Restart=always
 RestartSec=5s

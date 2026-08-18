@@ -15,9 +15,9 @@ on:
         type: string
 
 jobs:
-  test-and-build:
-    name: Flutter Tests & iOS Build
-    runs-on: macos-15
+  build-ios:
+    name: Flutter iOS Build
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -27,22 +27,10 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.24.5'
           cache: true
-
-      - name: Verify Environment
-        run: |
-          flutter --version
-          flutter doctor -v
 
       - name: Install Dependencies
         run: flutter pub get
-
-      - name: Run Static Analysis
-        run: flutter analyze
-
-      - name: Run Tests
-        run: flutter test
 
       - name: Build iOS App
         run: |

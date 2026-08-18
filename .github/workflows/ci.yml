@@ -7,8 +7,56 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test-and-build:
-    name: CI Test & Build
+  test-and-lint:
+    name: Lint & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Static Analysis
+        run: flutter analyze
+
+      - name: Run Unit & Widget Tests
+        run: flutter test
+
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Web Release
+        run: flutter build web --release
+
+  build-android:
+    name: Build Android
+    uses: ./.github/workflows/build-android.yml
+    with:
+      upload_artifact: false
+      version: '1.0.0'
+
+  build-ios:
+    name: Build iOS
     uses: ./.github/workflows/build-ios.yml
     with:
       upload_artifact: false

@@ -97,25 +97,42 @@
   </div>
 
   <script>
-    window.addEventListener('flutter-first-frame', function () {
-      var loader = document.getElementById('app-loading');
-      if (loader) {
-        loader.style.opacity = '0';
-        setTimeout(function() { loader.remove(); }, 300);
-      }
-    });
-    // Check periodically for Flutter rendering
-    var checkInterval = setInterval(function() {
-      if (document.querySelector('flutter-view, flt-glass-pane, canvas, flt-scene-host')) {
-        var loader = document.getElementById('app-loading');
-        if (loader) {
-          loader.style.opacity = '0';
-          setTimeout(function() { loader.remove(); }, 300);
+    // Clean up any stale or looping service workers from previous versions
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (var i = 0; i < registrations.length; i++) {
+          registrations[i].unregister();
         }
+      });
+    }
+
+    function hideLoader() {
+      var loader = document.getElementById('app-loading');
+      if (loader && loader.style.opacity !== '0') {
+        loader.style.opacity = '0';
+        setTimeout(function () {
+          if (loader.parentNode) {
+            loader.parentNode.removeChild(loader);
+          }
+        }, 300);
+      }
+    }
+
+    window.addEventListener('flutter-first-frame', hideLoader);
+
+    // Check periodically for Flutter rendering elements
+    var checkInterval = setInterval(function () {
+      if (document.querySelector('flutter-view, flt-glass-pane, canvas, flt-scene-host')) {
+        hideLoader();
         clearInterval(checkInterval);
       }
-    }, 200);
-    setTimeout(function() { clearInterval(checkInterval); }, 10000);
+    }, 100);
+
+    // Fail-safe fallback so loading screen never hangs permanently
+    setTimeout(function () {
+      clearInterval(checkInterval);
+      hideLoader();
+    }, 3500);
   </script>
 
   <script src="flutter_bootstrap.js" async></script>

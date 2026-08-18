@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../config/app_config.dart';
 import '../theme/app_theme.dart';
 
-typedef TerminalKey = TerminalKeyShortcut;
-
 class KeyboardAccessoryBar extends StatelessWidget {
   final ValueChanged<String> onKeyTap;
   final VoidCallback? onSnippetTap;
@@ -77,7 +75,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
     );
   }
 
-  Widget _buildKeyButton(TerminalKey key, AppThemeExtension theme) {
+  Widget _buildKeyButton(TerminalKeyShortcut key, AppThemeExtension theme) {
     return Material(
       color: theme.cardSurface,
       borderRadius: BorderRadius.circular(6),

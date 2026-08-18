@@ -106,8 +106,29 @@ class SSHService {
         onStateChange(SSHConnectionState.disconnected, null);
       });
 
-      // Execute optional initial command if present
-      if (profile.initialCommand != null && profile.initialCommand!.trim().isNotEmpty) {
+      // Execute persistent session (tmux) auto-attach or initial command
+      if (profile.persistSession) {
+        final rawName = profile.tmuxSessionName?.trim();
+        final sessionName = (rawName != null && rawName.isNotEmpty)
+            ? rawName.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_')
+            : 'shelllite';
+
+        // tmux new-session -A -s <name>:
+        // -A: attaches to existing session if it exists, or creates a new session named <name> if stopped/killed outside
+        // Checks if tmux binary exists to prevent terminating parent shell on servers without tmux
+        final tmuxCmd =
+            'if command -v tmux >/dev/null 2>&1; then '
+            'exec tmux new-session -A -s "$sessionName"; '
+            'else '
+            'printf "\\r\\n\\033[33m[ShellLite] Notice: tmux is not installed on this host. Falling back to default shell.\\033[0m\\r\\n"; '
+            'fi';
+        sendInput('$tmuxCmd\n');
+
+        if (profile.initialCommand != null && profile.initialCommand!.trim().isNotEmpty) {
+          final cmd = profile.initialCommand!.trim();
+          sendInput('$cmd\n');
+        }
+      } else if (profile.initialCommand != null && profile.initialCommand!.trim().isNotEmpty) {
         final cmd = profile.initialCommand!.trim();
         sendInput('$cmd\n');
       }

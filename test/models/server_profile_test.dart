@@ -121,5 +121,35 @@ void main() {
       expect(decoded.initialCommand, 'tmux attach || tmux new');
       expect(decoded, original);
     });
+
+    test('Persist session and tmux session name defaults and JSON round-trip', () {
+      final defaultProfile = ServerProfile(
+        displayName: 'Default',
+        host: '1.2.3.4',
+        username: 'root',
+        authMethod: const PasswordAuth(credentialTag: 'p1'),
+      );
+      expect(defaultProfile.persistSession, isFalse);
+      expect(defaultProfile.tmuxSessionName, isNull);
+
+      final original = ServerProfile(
+        displayName: 'Persistent Dev Box',
+        host: '1.2.3.4',
+        username: 'ubuntu',
+        authMethod: const PasswordAuth(credentialTag: 'p2'),
+        persistSession: true,
+        tmuxSessionName: 'my_work_session',
+      );
+      final jsonStr = json.encode(original.toJson());
+      final decoded = ServerProfile.fromJson(json.decode(jsonStr) as Map<String, dynamic>);
+
+      expect(decoded.persistSession, isTrue);
+      expect(decoded.tmuxSessionName, 'my_work_session');
+      expect(decoded, equals(original));
+
+      final updated = original.copyWith(persistSession: false, tmuxSessionName: 'other');
+      expect(updated.persistSession, isFalse);
+      expect(updated.tmuxSessionName, 'other');
+    });
   });
 }

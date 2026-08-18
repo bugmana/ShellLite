@@ -5,6 +5,7 @@ sealed class AuthMethod {
   const AuthMethod();
 
   AuthType get type;
+  String get credentialTag;
 
   Map<String, dynamic> toJson();
 
@@ -22,6 +23,7 @@ sealed class AuthMethod {
 }
 
 class PasswordAuth extends AuthMethod {
+  @override
   final String credentialTag;
 
   const PasswordAuth({required this.credentialTag});
@@ -56,6 +58,9 @@ class SSHKeyAuth extends AuthMethod {
 
   @override
   AuthType get type => AuthType.sshKey;
+
+  @override
+  String get credentialTag => privateKeyTag;
 
   @override
   Map<String, dynamic> toJson() => {

@@ -137,6 +137,39 @@ class ServerCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (profile.persistSession) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.primaryAccent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: theme.primaryAccent.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.all_inclusive_rounded,
+                            size: 12,
+                            color: theme.primaryAccent,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            'tmux',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.primaryAccent,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   PopupMenuButton<String>(
                     tooltip: '',
                     icon: Icon(Icons.more_vert_rounded, color: theme.textSecondary, size: 20),

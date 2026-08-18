@@ -44,11 +44,4 @@ class TelemetryStore extends ChangeNotifier {
     }
   }
 
-  void clear(String profileId) {
-    _telemetryMap.remove(profileId);
-    _loadingMap.remove(profileId);
-    _attempted.remove(profileId);
-    _failed.remove(profileId);
-    notifyListeners();
-  }
 }
