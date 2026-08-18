@@ -42,23 +42,24 @@ jobs:
         if: inputs.upload_artifact
         run: |
           set -e
+          APP="${{ vars.APP_NAME || 'ShellLite' }}"
           mkdir -p build_output/Payload
-          cp -R build/ios/iphoneos/Runner.app build_output/Payload/ShellLite.app
+          cp -R build/ios/iphoneos/Runner.app "build_output/Payload/${APP}.app"
 
           echo "Applying ad-hoc code signature for sideloading..."
-          codesign --force --deep --sign - build_output/Payload/ShellLite.app
+          codesign --force --deep --sign - "build_output/Payload/${APP}.app"
 
           cd build_output
-          zip -r ../ShellLite.ipa Payload
+          zip -r "../${APP}.ipa" Payload
           cd ..
 
-          echo "ShellLite.ipa created successfully:"
-          ls -lh ShellLite.ipa
+          echo "${APP}.ipa created successfully:"
+          ls -lh "${APP}.ipa"
 
       - name: Upload IPA Artifact
         if: inputs.upload_artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ShellLite-iOS-IPA
-          path: ShellLite.ipa
-          retention-days: 30
+          name: ${{ vars.APP_NAME || 'ShellLite' }}-iOS-IPA
+          path: ${{ vars.APP_NAME || 'ShellLite' }}.ipa
+          retention-days: ${{ fromJson(vars.ARTIFACT_RETENTION_DAYS || '30') }}

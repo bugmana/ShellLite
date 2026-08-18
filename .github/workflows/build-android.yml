@@ -55,23 +55,24 @@ jobs:
         if: inputs.upload_artifact
         run: |
           set -e
-          cp build/app/outputs/flutter-apk/app-release.apk ShellLite.apk
-          cp build/app/outputs/bundle/release/app-release.aab ShellLite.aab
+          APP="${{ vars.APP_NAME || 'ShellLite' }}"
+          cp build/app/outputs/flutter-apk/app-release.apk "${APP}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "${APP}.aab"
           echo "Android artifacts prepared successfully:"
-          ls -lh ShellLite.apk ShellLite.aab
+          ls -lh "${APP}.apk" "${APP}.aab"
 
       - name: Upload Android APK Artifact
         if: inputs.upload_artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ShellLite-Android-APK
-          path: ShellLite.apk
-          retention-days: 30
+          name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-APK
+          path: ${{ vars.APP_NAME || 'ShellLite' }}.apk
+          retention-days: ${{ fromJson(vars.ARTIFACT_RETENTION_DAYS || '30') }}
 
       - name: Upload Android AAB Artifact
         if: inputs.upload_artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ShellLite-Android-AAB
-          path: ShellLite.aab
-          retention-days: 30
+          name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
+          path: ${{ vars.APP_NAME || 'ShellLite' }}.aab
+          retention-days: ${{ fromJson(vars.ARTIFACT_RETENTION_DAYS || '30') }}

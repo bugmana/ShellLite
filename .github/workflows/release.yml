@@ -98,40 +98,40 @@ jobs:
       - name: Download iOS IPA Artifact
         uses: actions/download-artifact@v4
         with:
-          name: ShellLite-iOS-IPA
+          name: ${{ vars.APP_NAME || 'ShellLite' }}-iOS-IPA
 
       - name: Download Android APK Artifact
         uses: actions/download-artifact@v4
         with:
-          name: ShellLite-Android-APK
+          name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-APK
 
       - name: Download Android AAB Artifact
         uses: actions/download-artifact@v4
         with:
-          name: ShellLite-Android-AAB
+          name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ needs.resolve-version.outputs.tag }}"
-          name: "ShellLite ${{ needs.resolve-version.outputs.tag }}"
+          name: "${{ vars.APP_NAME || 'ShellLite' }} ${{ needs.resolve-version.outputs.tag }}"
           files: |
-            ShellLite.ipa
-            ShellLite.apk
-            ShellLite.aab
+            ${{ vars.APP_NAME || 'ShellLite' }}.ipa
+            ${{ vars.APP_NAME || 'ShellLite' }}.apk
+            ${{ vars.APP_NAME || 'ShellLite' }}.aab
           body: |
-            ## ShellLite ${{ needs.resolve-version.outputs.tag }}
+            ## ${{ vars.APP_NAME || 'ShellLite' }} ${{ needs.resolve-version.outputs.tag }}
 
             ### 📦 Download & Install
 
             #### 🤖 Android
-            - **Direct APK (`ShellLite.apk`)**: Download and open on any Android device to install directly (enable *Install unknown apps* in system settings).
-            - **App Bundle (`ShellLite.aab`)**: Android App Bundle for store distribution.
+            - **Direct APK (`${{ vars.APP_NAME || 'ShellLite' }}.apk`)**: Download and open on any Android device to install directly (enable *Install unknown apps* in system settings).
+            - **App Bundle (`${{ vars.APP_NAME || 'ShellLite' }}.aab`)**: Android App Bundle for store distribution.
 
             #### 🍏 iOS
-            - **Sideloadable IPA (`ShellLite.ipa`)**: Download to your device and install via:
-              - **SideStore**: Open `ShellLite.ipa` in SideStore on your iPhone.
-              - **AltStore / Sideloadly**: Select `ShellLite.ipa` and install to your connected device.
+            - **Sideloadable IPA (`${{ vars.APP_NAME || 'ShellLite' }}.ipa`)**: Download to your device and install via:
+              - **SideStore**: Open `${{ vars.APP_NAME || 'ShellLite' }}.ipa` in SideStore on your iPhone.
+              - **AltStore / Sideloadly**: Select `${{ vars.APP_NAME || 'ShellLite' }}.ipa` and install to your connected device.
 
             #### 🌐 Web
             - Access the live web version at [https://shell.strandberg.dev/](https://shell.strandberg.dev/).
