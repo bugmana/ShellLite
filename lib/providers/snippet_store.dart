@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../config/app_config.dart';
 import '../models/snippet.dart';
 import '../services/storage_service.dart';
 
@@ -13,6 +14,9 @@ class SnippetStore extends ChangeNotifier {
 
   List<Snippet> get snippets => List.unmodifiable(_snippets);
   bool get isLoading => _isLoading;
+  bool get isEmpty => _snippets.isEmpty;
+  bool get canAddSnippet => _snippets.length < SnippetConfig.maxSnippets;
+  int get maxSnippets => SnippetConfig.maxSnippets;
 
   List<String> get categories {
     final set = <String>{'All'};
@@ -34,6 +38,9 @@ class SnippetStore extends ChangeNotifier {
   }
 
   Future<void> addSnippet(Snippet snippet) async {
+    if (!canAddSnippet) {
+      throw StateError('Maximum limit of $maxSnippets snippets reached.');
+    }
     _snippets.insert(0, snippet);
     await _storageService.saveSnippets(_snippets);
     notifyListeners();

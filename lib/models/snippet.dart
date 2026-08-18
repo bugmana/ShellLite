@@ -43,52 +43,40 @@ class Snippet {
 class DefaultSnippets {
   static List<Snippet> get defaults => [
         const Snippet(
-          id: 'snip_uptime',
-          title: 'System Uptime & Load',
-          command: 'uptime\n',
-          category: 'Monitoring',
-        ),
-        const Snippet(
           id: 'snip_htop',
-          title: 'Launch HTop',
+          title: 'htop',
           command: 'htop\n',
-          category: 'Monitoring',
-        ),
-        const Snippet(
-          id: 'snip_free',
-          title: 'Memory Usage (Human-readable)',
-          command: 'free -h\n',
-          category: 'Monitoring',
+          category: 'System',
         ),
         const Snippet(
           id: 'snip_df',
-          title: 'Disk Space (Human-readable)',
+          title: 'Disk Usage (df -h)',
           command: 'df -h\n',
           category: 'System',
         ),
         const Snippet(
+          id: 'snip_free',
+          title: 'Memory Usage (free -h)',
+          command: 'free -h\n',
+          category: 'System',
+        ),
+        const Snippet(
           id: 'snip_docker_ps',
-          title: 'Docker Running Containers',
+          title: 'Docker PS',
           command: 'docker ps\n',
           category: 'Docker',
         ),
         const Snippet(
           id: 'snip_docker_logs',
-          title: 'Follow Docker Logs',
+          title: 'Docker Logs',
           command: 'docker logs -f --tail 100 {{container_name}}\n',
           category: 'Docker',
         ),
         const Snippet(
           id: 'snip_systemctl_status',
-          title: 'Systemctl Service Status',
+          title: 'Service Status',
           command: 'systemctl status {{service_name}}\n',
           category: 'System',
-        ),
-        const Snippet(
-          id: 'snip_tail_syslog',
-          title: 'Follow Syslog',
-          command: 'tail -f /var/log/syslog\n',
-          category: 'Logs',
         ),
       ];
 }

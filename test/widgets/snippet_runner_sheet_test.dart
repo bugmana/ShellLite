@@ -31,13 +31,13 @@ void main() {
     );
 
     expect(find.text('Command Snippets'), findsOneWidget);
-    expect(find.text('System Uptime & Load'), findsOneWidget);
-    expect(find.text('Launch HTop'), findsOneWidget);
+    expect(find.text('Disk Usage (df -h)'), findsOneWidget);
+    expect(find.text('Memory Usage (free -h)'), findsOneWidget);
 
-    // Tap on System Uptime & Load
-    await tester.tap(find.text('System Uptime & Load'));
+    // Tap on Disk Usage (df -h)
+    await tester.tap(find.text('Disk Usage (df -h)'));
     await tester.pumpAndSettle();
 
-    expect(executedCmd, 'uptime\n');
+    expect(executedCmd, 'df -h\n');
   });
 }

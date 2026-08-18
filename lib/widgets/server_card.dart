@@ -240,32 +240,61 @@ class ServerCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: theme.border),
                   ),
-                  child: Row(
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      if (telemetry.memUsage != null) ...[
-                        Icon(Icons.memory_rounded, size: 13, color: theme.primaryAccent),
-                        const SizedBox(width: 4),
-                        Text(
-                          'RAM: ${telemetry.memUsage}',
-                          style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.textPrimary),
+                      if (telemetry.cpuUsage != null || telemetry.cpuLoad != null) ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.speed_rounded, size: 13, color: theme.warning),
+                            const SizedBox(width: 4),
+                            Text(
+                              'CPU: ${telemetry.cpuUsage ?? telemetry.cpuLoad}',
+                              style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.textPrimary),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
+                      ],
+                      if (telemetry.memUsage != null) ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.memory_rounded, size: 13, color: theme.primaryAccent),
+                            const SizedBox(width: 4),
+                            Text(
+                              'RAM: ${telemetry.memUsage}',
+                              style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.textPrimary),
+                            ),
+                          ],
+                        ),
                       ],
                       if (telemetry.diskUsage != null) ...[
-                        Icon(Icons.storage_rounded, size: 13, color: theme.secondaryAccent),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Disk: ${telemetry.diskUsage}',
-                          style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.textPrimary),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.storage_rounded, size: 13, color: theme.secondaryAccent),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Disk: ${telemetry.diskUsage}',
+                              style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.textPrimary),
+                            ),
+                          ],
                         ),
                       ],
                       if (telemetry.uptime != null) ...[
-                        const Spacer(),
-                        Icon(Icons.schedule_rounded, size: 12, color: theme.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          telemetry.uptime!,
-                          style: TextStyle(fontSize: 10, color: theme.textSecondary),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.schedule_rounded, size: 12, color: theme.textSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              telemetry.uptime!,
+                              style: TextStyle(fontSize: 10, color: theme.textSecondary),
+                            ),
+                          ],
                         ),
                       ],
                     ],

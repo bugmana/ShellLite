@@ -62,7 +62,7 @@ class TelemetryService {
       );
 
       final result = await client.run(
-        'uptime && echo "---MEM---" && free -h && echo "---DISK---" && df -h /',
+        'uptime && echo "---CPU---" && (top -bn1 2>/dev/null | grep -i "cpu" | head -n1 || grep "^cpu " /proc/stat 2>/dev/null || echo "") && echo "---MEM---" && free -h && echo "---DISK---" && df -h /',
       ).timeout(commandTimeout);
 
       final output = utf8.decode(result);

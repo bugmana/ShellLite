@@ -9,7 +9,22 @@ class SnippetManagerScreen extends StatelessWidget {
   const SnippetManagerScreen({super.key});
 
   void _openEditor(BuildContext context, [Snippet? existing]) {
+    final store = context.read<SnippetStore>();
     final theme = context.appTheme;
+
+    if (existing == null && !store.canAddSnippet) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Maximum snippet limit reached (${store.maxSnippets} snippets). Delete a snippet to add another.',
+          ),
+          backgroundColor: theme.surface,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     final titleController = TextEditingController(text: existing?.title ?? '');
     final commandController = TextEditingController(text: existing?.command ?? '');
     final categoryController = TextEditingController(text: existing?.category ?? 'General');
@@ -90,7 +105,9 @@ class SnippetManagerScreen extends StatelessWidget {
                 );
 
                 if (existing == null) {
-                  context.read<SnippetStore>().addSnippet(snippet);
+                  if (context.read<SnippetStore>().canAddSnippet) {
+                    context.read<SnippetStore>().addSnippet(snippet);
+                  }
                 } else {
                   context.read<SnippetStore>().updateSnippet(snippet);
                 }
@@ -212,7 +229,7 @@ class SnippetManagerScreen extends StatelessWidget {
             )
           : ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: snippets.length + 1,
+              itemCount: snippets.length + (store.canAddSnippet ? 1 : 0),
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 if (index == snippets.length) {
@@ -241,6 +258,15 @@ class SnippetManagerScreen extends StatelessWidget {
                                   color: theme.textPrimary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '(${snippets.length}/${store.maxSnippets})',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: store.canAddSnippet ? theme.textSecondary : theme.warning,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],

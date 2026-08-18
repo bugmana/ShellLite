@@ -22,6 +22,11 @@ class ServerConfig {
   static const int maxServers = 10;
 }
 
+/// Snippet limits and defaults.
+class SnippetConfig {
+  static const int maxSnippets = 10;
+}
+
 /// SSH Connection and Networking defaults.
 class SSHConfig {
   static const int defaultPort = 22;

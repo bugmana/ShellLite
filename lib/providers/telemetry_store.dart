@@ -44,4 +44,11 @@ class TelemetryStore extends ChangeNotifier {
     }
   }
 
+  @visibleForTesting
+  void setTelemetry(String profileId, ServerTelemetry telemetry) {
+    _telemetryMap[profileId] = telemetry;
+    _attempted.add(profileId);
+    _failed.remove(profileId);
+    notifyListeners();
+  }
 }
