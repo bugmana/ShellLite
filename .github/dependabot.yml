@@ -3,35 +3,14 @@
 
 version: 2
 updates:
-  # 1. GitHub Actions Workflows
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Etc/UTC"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "ci/cd"
-    commit-message:
-      prefix: "ci(deps)"
-      include: "scope"
-    groups:
-      actions:
-        patterns:
-          - "actions/*"
-          - "subosito/*"
-          - "softprops/*"
-
-  # 2. Flutter / Dart Dependencies (pub)
+  # 1. Flutter / Dart Dependencies (pub)
+  # Scheduled Tuesday morning off-peak to catch Monday release cycles without queue congestion.
   - package-ecosystem: "pub"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "06:00"
+      day: "tuesday"
+      time: "03:37"
       timezone: "Etc/UTC"
     open-pull-requests-limit: 5
     labels:
@@ -51,13 +30,37 @@ updates:
           - "minor"
           - "patch"
 
+  # 2. GitHub Actions Workflows
+  # Staggered to Thursday morning off-peak.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "04:19"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci/cd"
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+          - "subosito/*"
+          - "softprops/*"
+
   # 3. Android Gradle Dependencies & Plugins
+  # Staggered monthly schedule (Wednesday off-peak).
   - package-ecosystem: "gradle"
     directory: "/android"
     schedule:
       interval: "monthly"
-      day: "monday"
-      time: "06:00"
+      day: "wednesday"
+      time: "02:43"
       timezone: "Etc/UTC"
     open-pull-requests-limit: 3
     labels:
