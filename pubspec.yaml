@@ -1,5 +1,5 @@
 name: shell_lite
-description: "Lightweight SSH client & terminal emulator for iOS, Android, and Linux."
+description: "Modern, lightweight, cross-platform SSH client & terminal emulator for iOS, Android, Linux, and Web."
 publish_to: 'none'
 
 version: 1.0.1+2
