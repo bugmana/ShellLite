@@ -20,13 +20,14 @@ class ServerListScreen extends StatefulWidget {
 class _ServerListScreenState extends State<ServerListScreen> {
   void _openForm({ServerProfile? existingProfile}) {
     final store = context.read<ServerStore>();
+    final theme = context.appTheme;
     if (existingProfile == null && !store.canAddServer) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             'Maximum server limit reached (${store.maxServers} servers). Remove a server to add another.',
           ),
-          backgroundColor: AppTheme.surface,
+          backgroundColor: theme.surface,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -49,26 +50,27 @@ class _ServerListScreenState extends State<ServerListScreen> {
   }
 
   void _confirmDelete(ServerProfile profile) {
+    final theme = context.appTheme;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: theme.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppTheme.border),
+          side: BorderSide(color: theme.border),
           borderRadius: BorderRadius.circular(12),
         ),
-        title: const Text('Delete Server', style: TextStyle(color: AppTheme.textPrimary)),
+        title: Text('Delete Server', style: TextStyle(color: theme.textPrimary)),
         content: Text(
           'Are you sure you want to delete "${profile.displayName}"?',
-          style: const TextStyle(color: AppTheme.textSecondary),
+          style: TextStyle(color: theme.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            style: ElevatedButton.styleFrom(backgroundColor: theme.error),
             onPressed: () {
               context.read<ServerStore>().deleteProfile(profile.id);
               Navigator.of(ctx).pop();
@@ -95,15 +97,16 @@ class _ServerListScreenState extends State<ServerListScreen> {
   Widget build(BuildContext context) {
     final store = context.watch<ServerStore>();
     final profiles = store.profiles;
+    final theme = context.appTheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.terminal_rounded, color: AppTheme.terminalGreen, size: 22),
-            SizedBox(width: 8),
-            Text('ShellLite'),
+            Icon(Icons.terminal_rounded, color: theme.primaryAccent, size: 22),
+            const SizedBox(width: 8),
+            const Text('ShellLite'),
           ],
         ),
         actions: [
@@ -122,12 +125,12 @@ class _ServerListScreenState extends State<ServerListScreen> {
         ],
       ),
       body: store.isLoading && store.profiles.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.terminalGreen))
+          ? Center(child: CircularProgressIndicator(color: theme.primaryAccent))
           : profiles.isEmpty
-              ? _buildEmptyState()
+              ? _buildEmptyState(theme)
               : RefreshIndicator(
-                  color: AppTheme.terminalGreen,
-                  backgroundColor: AppTheme.surface,
+                  color: theme.primaryAccent,
+                  backgroundColor: theme.surface,
                   onRefresh: _handleRefresh,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -147,7 +150,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                         child: Material(
-                          color: AppTheme.surface,
+                          color: theme.surface,
                           borderRadius: BorderRadius.circular(12),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(12),
@@ -157,17 +160,17 @@ class _ServerListScreenState extends State<ServerListScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppTheme.border),
+                                border: Border.all(color: theme.border),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.add_rounded, color: AppTheme.terminalGreen, size: 20),
+                                  Icon(Icons.add_rounded, color: theme.primaryAccent, size: 20),
                                   const SizedBox(width: 8),
-                                  const Text(
+                                  Text(
                                     'Add Server',
                                     style: TextStyle(
-                                      color: AppTheme.textPrimary,
+                                      color: theme.textPrimary,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
                                     ),
@@ -177,7 +180,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
                                     '(${profiles.length}/${store.maxServers})',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: store.canAddServer ? AppTheme.textSecondary : AppTheme.warningYellow,
+                                      color: store.canAddServer ? theme.textSecondary : theme.warning,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -193,7 +196,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppThemeExtension theme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -204,32 +207,32 @@ class _ServerListScreenState extends State<ServerListScreen> {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: theme.surface,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: theme.border),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.dns_rounded,
                 size: 36,
-                color: AppTheme.textSecondary,
+                color: theme.textSecondary,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No Servers Configured',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: theme.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Add your first SSH server profile to start connecting.',
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textSecondary,
+                color: theme.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),

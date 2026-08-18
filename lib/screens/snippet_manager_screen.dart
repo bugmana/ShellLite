@@ -9,6 +9,7 @@ class SnippetManagerScreen extends StatelessWidget {
   const SnippetManagerScreen({super.key});
 
   void _openEditor(BuildContext context, [Snippet? existing]) {
+    final theme = context.appTheme;
     final titleController = TextEditingController(text: existing?.title ?? '');
     final commandController = TextEditingController(text: existing?.command ?? '');
     final categoryController = TextEditingController(text: existing?.category ?? 'General');
@@ -17,14 +18,14 @@ class SnippetManagerScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: theme.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppTheme.border),
+          side: BorderSide(color: theme.border),
           borderRadius: BorderRadius.circular(14),
         ),
         title: Text(
           existing == null ? 'New Snippet' : 'Edit Snippet',
-          style: const TextStyle(fontSize: 17, color: AppTheme.textPrimary),
+          style: TextStyle(fontSize: 17, color: theme.textPrimary),
         ),
         content: Form(
           key: formKey,
@@ -60,9 +61,9 @@ class SnippetManagerScreen extends StatelessWidget {
                   validator: (v) => v == null || v.trim().isEmpty ? 'Command is required' : null,
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '💡 Use {{placeholder}} for dynamic values prompted on run.',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                  style: TextStyle(fontSize: 11, color: theme.textSecondary),
                 ),
               ],
             ),
@@ -71,7 +72,7 @@ class SnippetManagerScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -104,26 +105,27 @@ class SnippetManagerScreen extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context, Snippet snippet) {
+    final theme = context.appTheme;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: theme.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppTheme.border),
+          side: BorderSide(color: theme.border),
           borderRadius: BorderRadius.circular(12),
         ),
-        title: const Text('Delete Snippet', style: TextStyle(color: AppTheme.textPrimary)),
+        title: Text('Delete Snippet', style: TextStyle(color: theme.textPrimary)),
         content: Text(
           'Are you sure you want to delete "${snippet.title}"?',
-          style: const TextStyle(color: AppTheme.textSecondary),
+          style: TextStyle(color: theme.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            style: ElevatedButton.styleFrom(backgroundColor: theme.error),
             onPressed: () {
               context.read<SnippetStore>().deleteSnippet(snippet.id);
               Navigator.of(ctx).pop();
@@ -136,33 +138,34 @@ class SnippetManagerScreen extends StatelessWidget {
   }
 
   void _confirmReset(BuildContext context, SnippetStore store) {
+    final theme = context.appTheme;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: theme.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppTheme.border),
+          side: BorderSide(color: theme.border),
           borderRadius: BorderRadius.circular(12),
         ),
-        title: const Text('Restore Default Snippets', style: TextStyle(color: AppTheme.textPrimary)),
-        content: const Text(
+        title: Text('Restore Default Snippets', style: TextStyle(color: theme.textPrimary)),
+        content: Text(
           'Are you sure you want to restore default snippets? This will overwrite your custom snippets.',
-          style: TextStyle(color: AppTheme.textSecondary),
+          style: TextStyle(color: theme.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            style: ElevatedButton.styleFrom(backgroundColor: theme.error),
             onPressed: () {
               store.resetToDefaults();
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Restored default snippets'),
-                  backgroundColor: AppTheme.surface,
+                SnackBar(
+                  content: const Text('Restored default snippets'),
+                  backgroundColor: theme.surface,
                 ),
               );
             },
@@ -175,6 +178,7 @@ class SnippetManagerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final store = context.watch<SnippetStore>();
     final snippets = store.snippets;
 
@@ -194,9 +198,9 @@ class SnippetManagerScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.code_off_rounded, size: 48, color: AppTheme.textSecondary),
+                  Icon(Icons.code_off_rounded, size: 48, color: theme.textSecondary),
                   const SizedBox(height: 12),
-                  const Text('No snippets found', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
+                  Text('No snippets found', style: TextStyle(color: theme.textSecondary, fontSize: 16)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.add_rounded),
@@ -215,7 +219,7 @@ class SnippetManagerScreen extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(top: 4, bottom: 16),
                     child: Material(
-                      color: AppTheme.surface,
+                      color: theme.surface,
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(10),
@@ -224,17 +228,17 @@ class SnippetManagerScreen extends StatelessWidget {
                           height: 46,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.border),
+                            border: Border.all(color: theme.border),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.add_rounded, color: AppTheme.terminalGreen, size: 20),
-                              SizedBox(width: 8),
+                              Icon(Icons.add_rounded, color: theme.primaryAccent, size: 20),
+                              const SizedBox(width: 8),
                               Text(
                                 'Add Snippet',
                                 style: TextStyle(
-                                  color: AppTheme.textPrimary,
+                                  color: theme.textPrimary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -251,9 +255,9 @@ class SnippetManagerScreen extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardSurface,
+                    color: theme.cardSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: theme.border),
                   ),
                   child: Row(
                     children: [
@@ -265,25 +269,25 @@ class SnippetManagerScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   snippet.title,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.textPrimary,
+                                    color: theme.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.surface,
+                                    color: theme.surface,
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: AppTheme.border),
+                                    border: Border.all(color: theme.border),
                                   ),
                                   child: Text(
                                     snippet.category,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
-                                      color: AppTheme.textSecondary,
+                                      color: theme.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -292,22 +296,22 @@ class SnippetManagerScreen extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               snippet.command.trimRight(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 11,
-                                color: AppTheme.terminalGreen,
+                                color: theme.primaryAccent,
                               ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.textSecondary),
+                        icon: Icon(Icons.edit_outlined, size: 18, color: theme.textSecondary),
                         tooltip: 'Edit',
                         onPressed: () => _openEditor(context, snippet),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppTheme.errorRed),
+                        icon: Icon(Icons.delete_outline_rounded, size: 18, color: theme.error),
                         tooltip: 'Delete',
                         onPressed: () => _confirmDelete(context, snippet),
                       ),

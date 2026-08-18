@@ -1,12 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:xterm/xterm.dart';
 
+class AppThemePalette {
+  final Color background;
+  final Color surface;
+  final Color cardSurface;
+  final Color cardSurfaceHover;
+  final Color border;
+  final Color primaryAccent;
+  final Color secondaryAccent;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color error;
+  final Color warning;
+  final Color success;
+
+  const AppThemePalette({
+    required this.background,
+    required this.surface,
+    required this.cardSurface,
+    required this.cardSurfaceHover,
+    required this.border,
+    required this.primaryAccent,
+    required this.secondaryAccent,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.error,
+    required this.warning,
+    required this.success,
+  });
+}
+
 class TerminalThemePreset {
   final String id;
   final String name;
   final String description;
   final TerminalTheme theme;
   final List<Color> previewPalette;
+  final AppThemePalette palette;
 
   const TerminalThemePreset({
     required this.id,
@@ -14,6 +47,7 @@ class TerminalThemePreset {
     required this.description,
     required this.theme,
     required this.previewPalette,
+    required this.palette,
   });
 }
 
@@ -54,6 +88,21 @@ class TerminalThemePresets {
       Color(0xFFF85149),
       Color(0xFFF0F6FC),
     ],
+    palette: AppThemePalette(
+      background: Color(0xFF0B0F14),
+      surface: Color(0xFF161B22),
+      cardSurface: Color(0xFF1F242C),
+      cardSurfaceHover: Color(0xFF282F3A),
+      border: Color(0xFF30363D),
+      primaryAccent: Color(0xFF3FB950),
+      secondaryAccent: Color(0xFF58A6FF),
+      textPrimary: Color(0xFFF0F6FC),
+      textSecondary: Color(0xFF8B949E),
+      textMuted: Color(0xFF6E7681),
+      error: Color(0xFFF85149),
+      warning: Color(0xFFD29922),
+      success: Color(0xFF3FB950),
+    ),
   );
 
   static const catppuccinMocha = TerminalThemePreset(
@@ -92,6 +141,21 @@ class TerminalThemePresets {
       Color(0xFFF38BA8),
       Color(0xFFCDD6F4),
     ],
+    palette: AppThemePalette(
+      background: Color(0xFF1E1E2E),
+      surface: Color(0xFF181825),
+      cardSurface: Color(0xFF313244),
+      cardSurfaceHover: Color(0xFF45475A),
+      border: Color(0xFF45475A),
+      primaryAccent: Color(0xFFA6E3A1),
+      secondaryAccent: Color(0xFF89B4FA),
+      textPrimary: Color(0xFFCDD6F4),
+      textSecondary: Color(0xFFA6ADC8),
+      textMuted: Color(0xFF6C7086),
+      error: Color(0xFFF38BA8),
+      warning: Color(0xFFF9E2AF),
+      success: Color(0xFFA6E3A1),
+    ),
   );
 
   static const dracula = TerminalThemePreset(
@@ -130,6 +194,21 @@ class TerminalThemePresets {
       Color(0xFFFF79C6),
       Color(0xFFF8F8F2),
     ],
+    palette: AppThemePalette(
+      background: Color(0xFF282A36),
+      surface: Color(0xFF21222C),
+      cardSurface: Color(0xFF343746),
+      cardSurfaceHover: Color(0xFF44475A),
+      border: Color(0xFF44475A),
+      primaryAccent: Color(0xFF50FA7B),
+      secondaryAccent: Color(0xFFBD93F9),
+      textPrimary: Color(0xFFF8F8F2),
+      textSecondary: Color(0xFF6272A4),
+      textMuted: Color(0xFF4E5A7E),
+      error: Color(0xFFFF5555),
+      warning: Color(0xFFF1FA8C),
+      success: Color(0xFF50FA7B),
+    ),
   );
 
   static const nord = TerminalThemePreset(
@@ -168,6 +247,21 @@ class TerminalThemePresets {
       Color(0xFFBF616A),
       Color(0xFFD8DEE9),
     ],
+    palette: AppThemePalette(
+      background: Color(0xFF2E3440),
+      surface: Color(0xFF242933),
+      cardSurface: Color(0xFF3B4252),
+      cardSurfaceHover: Color(0xFF434C5E),
+      border: Color(0xFF4C566A),
+      primaryAccent: Color(0xFFA3BE8C),
+      secondaryAccent: Color(0xFF88C0D0),
+      textPrimary: Color(0xFFECEFF4),
+      textSecondary: Color(0xFFD8DEE9),
+      textMuted: Color(0xFF9AA7B9),
+      error: Color(0xFFBF616A),
+      warning: Color(0xFFEBCB8B),
+      success: Color(0xFFA3BE8C),
+    ),
   );
 
   static const tokyoNight = TerminalThemePreset(
@@ -206,6 +300,21 @@ class TerminalThemePresets {
       Color(0xFFF7768E),
       Color(0xFFA9B1D6),
     ],
+    palette: AppThemePalette(
+      background: Color(0xFF1A1B26),
+      surface: Color(0xFF16161E),
+      cardSurface: Color(0xFF24283B),
+      cardSurfaceHover: Color(0xFF2F354D),
+      border: Color(0xFF383E5A),
+      primaryAccent: Color(0xFF9ECE6A),
+      secondaryAccent: Color(0xFF7AA2F7),
+      textPrimary: Color(0xFFC0CAF5),
+      textSecondary: Color(0xFF7982A9),
+      textMuted: Color(0xFF565F89),
+      error: Color(0xFFF7768E),
+      warning: Color(0xFFE0AF68),
+      success: Color(0xFF9ECE6A),
+    ),
   );
 
   static const solarizedDark = TerminalThemePreset(
@@ -244,6 +353,21 @@ class TerminalThemePresets {
       Color(0xFFDC322F),
       Color(0xFF839496),
     ],
+    palette: AppThemePalette(
+      background: Color(0xFF002B36),
+      surface: Color(0xFF00212B),
+      cardSurface: Color(0xFF073642),
+      cardSurfaceHover: Color(0xFF0E4351),
+      border: Color(0xFF0F4756),
+      primaryAccent: Color(0xFF859900),
+      secondaryAccent: Color(0xFF268BD2),
+      textPrimary: Color(0xFFEEE8D5),
+      textSecondary: Color(0xFF839496),
+      textMuted: Color(0xFF657B83),
+      error: Color(0xFFDC322F),
+      warning: Color(0xFFB58900),
+      success: Color(0xFF859900),
+    ),
   );
 
   static const List<TerminalThemePreset> all = [

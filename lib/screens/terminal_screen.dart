@@ -126,10 +126,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) {
+      final theme = context.appTheme;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Copied ${text.length} characters of terminal output to clipboard'),
-          backgroundColor: AppTheme.cardSurface,
+          backgroundColor: theme.cardSurface,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -149,16 +150,16 @@ class _TerminalScreenState extends State<TerminalScreen> {
     });
   }
 
-  Color _getStatusColor(SSHConnectionState state) {
+  Color _getStatusColor(SSHConnectionState state, AppThemeExtension theme) {
     switch (state) {
       case SSHConnectionState.connected:
-        return AppTheme.terminalGreen;
+        return theme.success;
       case SSHConnectionState.connecting:
-        return AppTheme.warningYellow;
+        return theme.warning;
       case SSHConnectionState.error:
-        return AppTheme.errorRed;
+        return theme.error;
       case SSHConnectionState.disconnected:
-        return AppTheme.textSecondary;
+        return theme.textSecondary;
     }
   }
 
@@ -177,6 +178,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final terminalSettings = _tryWatch<TerminalSettingsStore>(context);
     final sessionStore = _tryWatch<SessionStore>(context);
     final session = sessionStore?.activeSession ?? sessionStore?.getSession(widget.profile.id);
@@ -213,7 +215,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   height: 7,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _getStatusColor(connectionState),
+                    color: _getStatusColor(connectionState, theme),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -221,7 +223,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   _getStatusText(connectionState),
                   style: TextStyle(
                     fontSize: 11,
-                    color: _getStatusColor(connectionState),
+                    color: _getStatusColor(connectionState, theme),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -234,7 +236,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
             icon: Icon(
               _isSearching ? Icons.search_off_rounded : Icons.search_rounded,
               size: 20,
-              color: _isSearching ? AppTheme.terminalGreen : null,
+              color: _isSearching ? theme.primaryAccent : null,
             ),
             tooltip: _isSearching ? 'Close Search' : 'Search Buffer',
             onPressed: _toggleSearch,
@@ -247,9 +249,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, size: 20),
             tooltip: 'More actions',
-            color: AppTheme.surface,
+            color: theme.surface,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppTheme.border),
+              side: BorderSide(color: theme.border),
               borderRadius: BorderRadius.circular(10),
             ),
             onSelected: (val) {
@@ -285,74 +287,74 @@ class _TerminalScreenState extends State<TerminalScreen> {
               }
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'snippets',
                 child: Row(
                   children: [
-                    Icon(Icons.bolt_rounded, size: 18, color: AppTheme.terminalGreen),
-                    SizedBox(width: 10),
-                    Text('Command Snippets'),
+                    Icon(Icons.bolt_rounded, size: 18, color: theme.primaryAccent),
+                    const SizedBox(width: 10),
+                    const Text('Command Snippets'),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'copy',
                 child: Row(
                   children: [
-                    Icon(Icons.copy_all_rounded, size: 18, color: AppTheme.textSecondary),
-                    SizedBox(width: 10),
-                    Text('Copy Buffer Log'),
+                    Icon(Icons.copy_all_rounded, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: 10),
+                    const Text('Copy Buffer Log'),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'paste',
                 child: Row(
                   children: [
-                    Icon(Icons.paste_rounded, size: 18, color: AppTheme.textSecondary),
-                    SizedBox(width: 10),
-                    Text('Paste'),
+                    Icon(Icons.paste_rounded, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: 10),
+                    const Text('Paste'),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'clear',
                 child: Row(
                   children: [
-                    Icon(Icons.clear_all_rounded, size: 18, color: AppTheme.textSecondary),
-                    SizedBox(width: 10),
-                    Text('Clear Screen'),
+                    Icon(Icons.clear_all_rounded, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: 10),
+                    const Text('Clear Screen'),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'reconnect',
                 child: Row(
                   children: [
-                    Icon(Icons.refresh_rounded, size: 18, color: AppTheme.textSecondary),
-                    SizedBox(width: 10),
-                    Text('Reconnect'),
+                    Icon(Icons.refresh_rounded, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: 10),
+                    const Text('Reconnect'),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'disconnect',
                 child: Row(
                   children: [
-                    Icon(Icons.power_settings_new_rounded, size: 18, color: AppTheme.errorRed),
-                    SizedBox(width: 10),
-                    Text('Disconnect Session', style: TextStyle(color: AppTheme.errorRed)),
+                    Icon(Icons.power_settings_new_rounded, size: 18, color: theme.error),
+                    const SizedBox(width: 10),
+                    Text('Disconnect Session', style: TextStyle(color: theme.error)),
                   ],
                 ),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'guide',
                 child: Row(
                   children: [
-                    Icon(Icons.help_outline_rounded, size: 18, color: AppTheme.textSecondary),
-                    SizedBox(width: 10),
-                    Text('Gestures Guide'),
+                    Icon(Icons.help_outline_rounded, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: 10),
+                    const Text('Gestures Guide'),
                   ],
                 ),
               ),
@@ -396,7 +398,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                       top: 10,
                       left: 12,
                       right: 12,
-                      child: _buildGestureTipBanner(),
+                      child: _buildGestureTipBanner(theme),
                     ),
                 ],
               ),
@@ -411,21 +413,21 @@ class _TerminalScreenState extends State<TerminalScreen> {
     );
   }
 
-  Widget _buildGestureTipBanner() {
+  Widget _buildGestureTipBanner(AppThemeExtension theme) {
     return Material(
       color: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppTheme.cardSurface.withOpacity(0.96),
+          color: theme.cardSurface.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: AppTheme.terminalGreen.withOpacity(0.6),
+            color: theme.primaryAccent.withValues(alpha: 0.6),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -433,17 +435,17 @@ class _TerminalScreenState extends State<TerminalScreen> {
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.lightbulb_outline_rounded,
-              color: AppTheme.terminalGreen,
+              color: theme.primaryAccent,
               size: 20,
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Tip: Hold anywhere on screen for navigation joystick (↑/↓ History, → Tab, ← Cursor)',
                 style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: theme.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   height: 1.3,
@@ -454,11 +456,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
             InkWell(
               borderRadius: BorderRadius.circular(4),
               onTap: _dismissGestureTip,
-              child: const Padding(
-                padding: EdgeInsets.all(4),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
                 child: Icon(
                   Icons.close_rounded,
-                  color: AppTheme.textSecondary,
+                  color: theme.textSecondary,
                   size: 16,
                 ),
               ),

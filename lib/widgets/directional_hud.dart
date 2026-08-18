@@ -155,6 +155,8 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return GestureDetector(
@@ -167,7 +169,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
             clipBehavior: Clip.none,
             children: [
               widget.child,
-              if (_touchOrigin != null) _buildHUD(constraints),
+              if (_touchOrigin != null) _buildHUD(constraints, theme),
             ],
           ),
         );
@@ -175,7 +177,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
     );
   }
 
-  Widget _buildHUD(BoxConstraints constraints) {
+  Widget _buildHUD(BoxConstraints constraints, AppThemeExtension theme) {
     final double left = (_touchOrigin!.dx - _hudSize / 2).clamp(
       8.0,
       constraints.maxWidth - _hudSize - 8.0,
@@ -196,23 +198,23 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
           duration: const Duration(milliseconds: 150),
           child: Container(
             decoration: BoxDecoration(
-              color: AppTheme.cardSurface.withOpacity(0.92),
+              color: theme.cardSurface.withValues(alpha: 0.92),
               shape: BoxShape.circle,
               border: Border.all(
                 color: _activeDirection != HUDDirection.none
-                    ? AppTheme.terminalGreen.withOpacity(0.8)
-                    : AppTheme.border,
+                    ? theme.primaryAccent.withValues(alpha: 0.8)
+                    : theme.border,
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.55),
+                  color: Colors.black.withValues(alpha: 0.55),
                   blurRadius: 18,
                   spreadRadius: 2,
                 ),
                 if (_activeDirection != HUDDirection.none)
                   BoxShadow(
-                    color: AppTheme.terminalGreen.withOpacity(0.25),
+                    color: theme.primaryAccent.withValues(alpha: 0.25),
                     blurRadius: 12,
                     spreadRadius: 1,
                   ),
@@ -228,6 +230,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
                     icon: Icons.arrow_upward_rounded,
                     label: 'Up',
                     isActive: _activeDirection == HUDDirection.up,
+                    theme: theme,
                   ),
                 ),
                 // Bottom: Down Arrow
@@ -237,6 +240,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
                     icon: Icons.arrow_downward_rounded,
                     label: 'Down',
                     isActive: _activeDirection == HUDDirection.down,
+                    theme: theme,
                   ),
                 ),
                 // Right: Tab
@@ -246,6 +250,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
                     icon: Icons.keyboard_tab_rounded,
                     label: 'Tab',
                     isActive: _activeDirection == HUDDirection.right,
+                    theme: theme,
                   ),
                 ),
                 // Left: Left Arrow
@@ -255,6 +260,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
                     icon: Icons.arrow_back_rounded,
                     label: 'Left',
                     isActive: _activeDirection == HUDDirection.left,
+                    theme: theme,
                   ),
                 ),
                 // Center Thumb Indicator
@@ -266,17 +272,17 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _activeDirection != HUDDirection.none
-                          ? AppTheme.terminalGreen
-                          : AppTheme.surface,
+                          ? theme.primaryAccent
+                          : theme.surface,
                       border: Border.all(
                         color: _activeDirection != HUDDirection.none
                             ? Colors.white
-                            : AppTheme.border,
+                            : theme.border,
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 4,
                         ),
                       ],
@@ -287,7 +293,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
                           : _getDirectionIcon(_activeDirection),
                       color: _activeDirection != HUDDirection.none
                           ? Colors.black
-                          : AppTheme.textSecondary,
+                          : theme.textSecondary,
                       size: 18,
                     ),
                   ),
@@ -319,12 +325,13 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
     required IconData icon,
     required String label,
     required bool isActive,
+    required AppThemeExtension theme,
   }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 120),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: isActive ? AppTheme.terminalGreen.withOpacity(0.2) : Colors.transparent,
+        color: isActive ? theme.primaryAccent.withValues(alpha: 0.2) : Colors.transparent,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -333,7 +340,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
           Icon(
             icon,
             size: 18,
-            color: isActive ? AppTheme.terminalGreen : AppTheme.textSecondary,
+            color: isActive ? theme.primaryAccent : theme.textSecondary,
           ),
           const SizedBox(height: 1),
           Text(
@@ -341,7 +348,7 @@ class _DirectionalHUDOverlayState extends State<DirectionalHUDOverlay> {
             style: TextStyle(
               fontSize: 9,
               fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-              color: isActive ? AppTheme.terminalGreen : AppTheme.textSecondary,
+              color: isActive ? theme.primaryAccent : theme.textSecondary,
             ),
           ),
         ],

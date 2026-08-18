@@ -32,6 +32,25 @@ flutter build linux --release
 
 ---
 
+## 🌐 Web & Mobile Safari Development
+
+ShellLite is hosted over **HTTPS on port 443** for instant testing on **Safari (iPhone 14)** and desktop browsers:
+
+- **Live URL**: [https://2.29.1.204.sslip.io](https://2.29.1.204.sslip.io)
+- **Automatic SSL**: Let's Encrypt managed by Caddy.
+
+### 🔥 Automatic Hot Reload on File Save
+
+Whenever you edit and save any `.dart` file in `lib/`, the development server **automatically detects changes and hot-reloads instantly (~100ms–200ms)**. No manual commands needed!
+
+Optional manual controls:
+```bash
+sudo systemctl reload shelllite   # Force manual Hot Reload
+sudo systemctl restart shelllite  # Force state reset / restart
+```
+
+---
+
 ## 🧪 Testing & Linting
 
 ```bash

@@ -122,6 +122,7 @@ class _TerminalSearchBarState extends State<TerminalSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final matchCount = _matches.length;
     final currentPos = _currentMatchIndex >= 0 ? _currentMatchIndex + 1 : 0;
 
@@ -130,12 +131,12 @@ class _TerminalSearchBarState extends State<TerminalSearchBar> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: AppTheme.cardSurface.withOpacity(0.98),
+          color: theme.cardSurface.withValues(alpha: 0.98),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.border, width: 1),
+          border: Border.all(color: theme.border, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -143,18 +144,18 @@ class _TerminalSearchBarState extends State<TerminalSearchBar> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.search_rounded, size: 18, color: AppTheme.textSecondary),
+            Icon(Icons.search_rounded, size: 18, color: theme.textSecondary),
             const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: _searchController,
                 focusNode: _focusNode,
-                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-                decoration: const InputDecoration(
+                style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                decoration: InputDecoration(
                   hintText: 'Search buffer...',
-                  hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  hintStyle: TextStyle(color: theme.textSecondary, fontSize: 13),
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 6),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 6),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -168,8 +169,8 @@ class _TerminalSearchBarState extends State<TerminalSearchBar> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: matchCount > 0
-                      ? AppTheme.terminalGreen.withOpacity(0.15)
-                      : AppTheme.border.withOpacity(0.5),
+                      ? theme.primaryAccent.withValues(alpha: 0.15)
+                      : theme.border.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -177,7 +178,7 @@ class _TerminalSearchBarState extends State<TerminalSearchBar> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: matchCount > 0 ? AppTheme.terminalGreen : AppTheme.textSecondary,
+                    color: matchCount > 0 ? theme.primaryAccent : theme.textSecondary,
                   ),
                 ),
               ),

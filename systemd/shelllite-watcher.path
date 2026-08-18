@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch ShellLite lib directory for changes and trigger Flutter Hot Reload
+After=shelllite.service
+
+[Path]
+PathModified=%h/projects/ShellLite/lib
+Unit=shelllite-watcher.service
+
+[Install]
+WantedBy=default.target

@@ -57,10 +57,12 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return AlertDialog(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: theme.surface,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: AppTheme.border),
+        side: BorderSide(color: theme.border),
         borderRadius: BorderRadius.circular(16),
       ),
       title: Row(
@@ -68,13 +70,13 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppTheme.accentGreen.withOpacity(0.15),
+              color: theme.primaryAccent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.key_rounded, color: AppTheme.terminalGreen, size: 20),
+            child: Icon(Icons.key_rounded, color: theme.primaryAccent, size: 20),
           ),
           const SizedBox(width: 10),
-          const Text('SSH Key Generator', style: TextStyle(fontSize: 18, color: AppTheme.textPrimary)),
+          Text('SSH Key Generator', style: TextStyle(fontSize: 18, color: theme.textPrimary)),
         ],
       ),
       content: SingleChildScrollView(
@@ -82,9 +84,9 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Generates a high-security unencrypted Ed25519 key pair.',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(color: theme.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 14),
 
@@ -109,21 +111,21 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardSurface,
+                  color: theme.cardSurface,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: theme.border),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.fingerprint_rounded, size: 16, color: AppTheme.accentBlue),
+                    Icon(Icons.fingerprint_rounded, size: 16, color: theme.secondaryAccent),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         _generatedKey!.fingerprint,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 11,
-                          color: AppTheme.textSecondary,
+                          color: theme.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -138,10 +140,10 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'PUBLIC KEY (for remote server):',
                     style: TextStyle(
-                      color: AppTheme.textSecondary,
+                      color: theme.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
@@ -152,13 +154,13 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
                     icon: Icon(
                       _isCopiedPublic ? Icons.check_rounded : Icons.copy_rounded,
                       size: 14,
-                      color: _isCopiedPublic ? AppTheme.terminalGreen : AppTheme.accentBlue,
+                      color: _isCopiedPublic ? theme.primaryAccent : theme.secondaryAccent,
                     ),
                     label: Text(
                       _isCopiedPublic ? 'Copied!' : 'Copy',
                       style: TextStyle(
                         fontSize: 12,
-                        color: _isCopiedPublic ? AppTheme.terminalGreen : AppTheme.accentBlue,
+                        color: _isCopiedPublic ? theme.primaryAccent : theme.secondaryAccent,
                       ),
                     ),
                   ),
@@ -169,23 +171,23 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppTheme.background,
+                  color: theme.background,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: theme.border),
                 ),
                 child: SelectableText(
                   _generatedKey!.publicKeyOpenSSH,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 11,
-                    color: AppTheme.textPrimary,
+                    color: theme.textPrimary,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 '💡 Paste this public key into ~/.ssh/authorized_keys on your remote server.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                style: TextStyle(color: theme.textSecondary, fontSize: 11),
               ),
             ],
           ],
@@ -194,7 +196,7 @@ class _SSHKeyGeneratorDialogState extends State<SSHKeyGeneratorDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
         ),
         ElevatedButton.icon(
           icon: const Icon(Icons.check_rounded, size: 18),

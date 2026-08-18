@@ -63,11 +63,24 @@ class ShellLiteApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final security = context.watch<SecurityStore>();
+    final terminalSettings = context.watch<TerminalSettingsStore>();
+    final activePreset = terminalSettings.activeThemePreset;
+    final themeData = AppTheme.buildTheme(activePreset);
+
+    // Synchronize system navigation bar & status bar overlay styling with active preset
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: activePreset.palette.background,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
 
     return MaterialApp(
       title: 'ShellLite',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: themeData,
       home: security.isBiometricEnabled && !security.isAppUnlocked
           ? const AppLockScreen()
           : const ServerListScreen(),

@@ -96,11 +96,12 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
         _validateKey(generated.privateKeyPem);
       });
       if (mounted) {
+        final theme = context.appTheme;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Generated Ed25519 key applied!'),
-            backgroundColor: AppTheme.surface,
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: const Text('Generated Ed25519 key applied!'),
+            backgroundColor: theme.surface,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -168,6 +169,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existingProfile != null;
+    final theme = context.appTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -175,10 +177,10 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text(
+            child: Text(
               'Save',
               style: TextStyle(
-                color: AppTheme.terminalGreen,
+                color: theme.primaryAccent,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -187,14 +189,14 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
         ],
       ),
       body: _isLoadingCredential
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.terminalGreen))
+          ? Center(child: CircularProgressIndicator(color: theme.primaryAccent))
           : Form(
               key: _formKey,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
                   // ── Server Details Section ─────────────────────────────
-                  _buildSectionHeader('SERVER DETAILS'),
+                  _buildSectionHeader('SERVER DETAILS', theme),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _nameController,
@@ -262,7 +264,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                   const SizedBox(height: 24),
 
                   // ── Authentication Section ─────────────────────────────
-                  _buildSectionHeader('AUTHENTICATION'),
+                  _buildSectionHeader('AUTHENTICATION', theme),
                   const SizedBox(height: 10),
                   SegmentedButton<AuthType>(
                     segments: const [
@@ -285,7 +287,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                       });
                     },
                     style: SegmentedButton.styleFrom(
-                      selectedBackgroundColor: AppTheme.accentGreen,
+                      selectedBackgroundColor: theme.primaryAccent,
                       selectedForegroundColor: Colors.white,
                     ),
                   ),
@@ -319,9 +321,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'OpenSSH Private Key',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                          style: TextStyle(color: theme.textSecondary, fontSize: 13),
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -329,15 +331,15 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                             if (!_obscureKey && _credentialController.text.trim().isNotEmpty) ...[
                               TextButton.icon(
                                 onPressed: () => setState(() => _obscureKey = true),
-                                icon: const Icon(Icons.visibility_off_outlined, size: 15, color: AppTheme.accentBlue),
-                                label: const Text('Hide Key', style: TextStyle(fontSize: 12, color: AppTheme.accentBlue)),
+                                icon: Icon(Icons.visibility_off_outlined, size: 15, color: theme.secondaryAccent),
+                                label: Text('Hide Key', style: TextStyle(fontSize: 12, color: theme.secondaryAccent)),
                               ),
                               const SizedBox(width: 2),
                             ],
                             TextButton.icon(
                               onPressed: _generateNewKey,
-                              icon: const Icon(Icons.auto_awesome_rounded, size: 15, color: AppTheme.terminalGreen),
-                              label: const Text('Generate', style: TextStyle(fontSize: 12, color: AppTheme.terminalGreen)),
+                              icon: Icon(Icons.auto_awesome_rounded, size: 15, color: theme.primaryAccent),
+                              label: Text('Generate', style: TextStyle(fontSize: 12, color: theme.primaryAccent)),
                             ),
                             const SizedBox(width: 2),
                             TextButton.icon(
@@ -352,7 +354,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                     const SizedBox(height: 4),
                     if (_obscureKey && _credentialController.text.trim().isNotEmpty) ...[
                       Material(
-                        color: AppTheme.surface,
+                        color: theme.surface,
                         borderRadius: BorderRadius.circular(10),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(10),
@@ -362,13 +364,13 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
+                              border: Border.all(color: theme.border),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.lock_rounded, color: AppTheme.terminalGreen, size: 20),
+                                Icon(Icons.lock_rounded, color: theme.primaryAccent, size: 20),
                                 const SizedBox(width: 12),
-                                const Expanded(
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -377,16 +379,16 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
-                                          color: AppTheme.textPrimary,
+                                          color: theme.textPrimary,
                                         ),
                                       ),
-                                      SizedBox(height: 2),
+                                      const SizedBox(height: 2),
                                       Text(
                                         '••••••••••••••••••••••••••••••••••••',
                                         style: TextStyle(
                                           fontFamily: 'monospace',
                                           fontSize: 12,
-                                          color: AppTheme.textSecondary,
+                                          color: theme.textSecondary,
                                           letterSpacing: 2.0,
                                         ),
                                       ),
@@ -395,13 +397,13 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                                 ),
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.cardSurface,
-                                    foregroundColor: AppTheme.accentBlue,
+                                    backgroundColor: theme.cardSurface,
+                                    foregroundColor: theme.secondaryAccent,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(6),
-                                      side: const BorderSide(color: AppTheme.border),
+                                      side: BorderSide(color: theme.border),
                                     ),
                                   ),
                                   onPressed: () => setState(() => _obscureKey = false),
@@ -440,20 +442,20 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                       const SizedBox(height: 6),
                       Text(
                         _keyValidationError!,
-                        style: const TextStyle(color: AppTheme.errorRed, fontSize: 12),
+                        style: TextStyle(color: theme.error, fontSize: 12),
                       ),
                     ],
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Supports unencrypted OpenSSH keys (Ed25519, ECDSA, RSA). Encrypted keys with passphrases are not supported.',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(color: theme.textSecondary, fontSize: 12),
                     ),
                   ],
 
                   const SizedBox(height: 24),
 
                   // ── Startup Command Section ─────────────────────────────
-                  _buildSectionHeader('STARTUP (OPTIONAL)'),
+                  _buildSectionHeader('STARTUP (OPTIONAL)', theme),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _initialCommandController,
@@ -471,11 +473,11 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, AppThemeExtension theme) {
     return Text(
       title,
-      style: const TextStyle(
-        color: AppTheme.textSecondary,
+      style: TextStyle(
+        color: theme.textSecondary,
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.8,

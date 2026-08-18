@@ -20,12 +20,14 @@ class KeyboardAccessoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
       height: AccessoryBarConfig.barHeight,
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
+      decoration: BoxDecoration(
+        color: theme.surface,
         border: Border(
-          top: BorderSide(color: AppTheme.border, width: 1),
+          top: BorderSide(color: theme.border, width: 1),
         ),
       ),
       child: ListView(
@@ -34,7 +36,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
         children: [
           if (onSnippetTap != null) ...[
             Material(
-              color: AppTheme.accentGreen.withOpacity(0.18),
+              color: theme.primaryAccent.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(6),
               child: InkWell(
                 borderRadius: BorderRadius.circular(6),
@@ -43,18 +45,18 @@ class KeyboardAccessoryBar extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppTheme.accentGreen.withOpacity(0.6), width: 1),
+                    border: Border.all(color: theme.primaryAccent.withValues(alpha: 0.6), width: 1),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.bolt_rounded, size: 15, color: AppTheme.terminalGreen),
-                      SizedBox(width: 4),
+                      Icon(Icons.bolt_rounded, size: 15, color: theme.primaryAccent),
+                      const SizedBox(width: 4),
                       Text(
                         'Snippets',
                         style: TextStyle(
-                          color: AppTheme.terminalGreen,
+                          color: theme.primaryAccent,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -68,16 +70,16 @@ class KeyboardAccessoryBar extends StatelessWidget {
           ],
           ...keys.map((key) => Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: _buildKeyButton(key),
+                child: _buildKeyButton(key, theme),
               )),
         ],
       ),
     );
   }
 
-  Widget _buildKeyButton(TerminalKey key) {
+  Widget _buildKeyButton(TerminalKey key, AppThemeExtension theme) {
     return Material(
-      color: AppTheme.cardSurface,
+      color: theme.cardSurface,
       borderRadius: BorderRadius.circular(6),
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
@@ -86,13 +88,13 @@ class KeyboardAccessoryBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.border, width: 1),
+            border: Border.all(color: theme.border, width: 1),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             key.label,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: theme.textPrimary,
               fontSize: 13,
               fontFamily: 'monospace',
               fontWeight: FontWeight.w600,

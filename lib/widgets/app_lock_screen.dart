@@ -8,10 +8,11 @@ class AppLockScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final securityStore = context.watch<SecurityStore>();
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: theme.background,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -23,49 +24,49 @@ class AppLockScreen extends StatelessWidget {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
+                    color: theme.surface,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppTheme.terminalGreen.withOpacity(0.5),
+                      color: theme.primaryAccent.withValues(alpha: 0.5),
                       width: 2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.terminalGreen.withOpacity(0.15),
+                        color: theme.primaryAccent.withValues(alpha: 0.15),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.fingerprint_rounded,
-                    color: AppTheme.terminalGreen,
+                    color: theme.primaryAccent,
                     size: 44,
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'ShellLite Protected',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: theme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Biometric authentication is required to access your servers and credentials.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.textSecondary,
+                    color: theme.textSecondary,
                     height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 36),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentGreen,
+                    backgroundColor: theme.primaryAccent,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                     shape: RoundedRectangleBorder(

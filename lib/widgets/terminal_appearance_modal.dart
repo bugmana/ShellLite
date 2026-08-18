@@ -9,13 +9,14 @@ class TerminalAppearanceModal extends StatelessWidget {
   const TerminalAppearanceModal({super.key});
 
   static void show(BuildContext context) {
+    final theme = context.appTheme;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-        side: BorderSide(color: AppTheme.border, width: 1),
+      backgroundColor: theme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        side: BorderSide(color: theme.border, width: 1),
       ),
       builder: (_) => const TerminalAppearanceModal(),
     );
@@ -23,6 +24,7 @@ class TerminalAppearanceModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final settings = context.watch<TerminalSettingsStore>();
 
     return SafeArea(
@@ -36,19 +38,19 @@ class TerminalAppearanceModal extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Terminal Appearance',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: theme.textPrimary,
                   ),
                 ),
                 TextButton(
                   onPressed: () => settings.resetDefaults(),
-                  child: const Text(
+                  child: Text(
                     'Reset',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    style: TextStyle(color: theme.textSecondary, fontSize: 13),
                   ),
                 ),
               ],
@@ -62,7 +64,7 @@ class TerminalAppearanceModal extends StatelessWidget {
               decoration: BoxDecoration(
                 color: settings.activeTheme.background,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.border, width: 1),
+                border: Border.all(color: theme.border, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +80,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                       Text(
                         'Preview — ${settings.activeThemePreset.name}',
                         style: TextStyle(
-                          color: settings.activeTheme.foreground.withOpacity(0.6),
+                          color: settings.activeTheme.foreground.withValues(alpha: 0.6),
                           fontSize: 11,
                           fontFamily: settings.fontFamily,
                         ),
@@ -114,10 +116,10 @@ class TerminalAppearanceModal extends StatelessWidget {
             const SizedBox(height: 20),
 
             // Color Themes Section
-            const Text(
+            Text(
               'COLOR SCHEME',
               style: TextStyle(
-                color: AppTheme.textSecondary,
+                color: theme.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.8,
@@ -145,7 +147,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                         color: preset.previewPalette.first,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSelected ? AppTheme.terminalGreen : AppTheme.border,
+                          color: isSelected ? preset.palette.primaryAccent : theme.border,
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -169,9 +171,9 @@ class TerminalAppearanceModal extends StatelessWidget {
                                 ),
                               ),
                               if (isSelected)
-                                const Icon(
+                                Icon(
                                   Icons.check_circle_rounded,
-                                  color: AppTheme.terminalGreen,
+                                  color: preset.palette.primaryAccent,
                                   size: 14,
                                 ),
                             ],
@@ -202,10 +204,10 @@ class TerminalAppearanceModal extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'FONT SIZE',
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: theme.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
@@ -213,8 +215,8 @@ class TerminalAppearanceModal extends StatelessWidget {
                 ),
                 Text(
                   '${settings.fontSize.toStringAsFixed(1)} pt',
-                  style: const TextStyle(
-                    color: AppTheme.terminalGreen,
+                  style: TextStyle(
+                    color: theme.primaryAccent,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
@@ -226,7 +228,7 @@ class TerminalAppearanceModal extends StatelessWidget {
               children: [
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
-                  color: AppTheme.textSecondary,
+                  color: theme.textSecondary,
                   onPressed: settings.fontSize > 10
                       ? () => settings.setFontSize(settings.fontSize - 0.5)
                       : null,
@@ -234,10 +236,10 @@ class TerminalAppearanceModal extends StatelessWidget {
                 Expanded(
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: AppTheme.terminalGreen,
-                      inactiveTrackColor: AppTheme.border,
-                      thumbColor: AppTheme.terminalGreen,
-                      overlayColor: AppTheme.terminalGreen.withOpacity(0.2),
+                      activeTrackColor: theme.primaryAccent,
+                      inactiveTrackColor: theme.border,
+                      thumbColor: theme.primaryAccent,
+                      overlayColor: theme.primaryAccent.withValues(alpha: 0.2),
                     ),
                     child: Slider(
                       value: settings.fontSize,
@@ -250,7 +252,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
-                  color: AppTheme.textSecondary,
+                  color: theme.textSecondary,
                   onPressed: settings.fontSize < 22
                       ? () => settings.setFontSize(settings.fontSize + 0.5)
                       : null,
@@ -268,15 +270,15 @@ class TerminalAppearanceModal extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardSurface,
+                    color: theme.cardSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: theme.border),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.fingerprint_rounded, color: AppTheme.terminalGreen, size: 20),
+                      Icon(Icons.fingerprint_rounded, color: theme.primaryAccent, size: 20),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -285,19 +287,19 @@ class TerminalAppearanceModal extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
+                                color: theme.textPrimary,
                               ),
                             ),
                             Text(
                               'Require Face ID / Fingerprint on launch',
-                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                              style: TextStyle(fontSize: 11, color: theme.textSecondary),
                             ),
                           ],
                         ),
                       ),
                       Switch(
                         value: secStore.isBiometricEnabled,
-                        activeColor: AppTheme.terminalGreen,
+                        activeThumbColor: theme.primaryAccent,
                         onChanged: (val) => secStore.setBiometricsEnabled(val),
                       ),
                     ],

@@ -30,6 +30,7 @@ class ServerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final isKeyAuth = profile.authMethod is SSHKeyAuth;
     final telemetryStore = _tryWatch<TelemetryStore>(context);
     final sessionStore = _tryWatch<SessionStore>(context);
@@ -62,19 +63,20 @@ class ServerCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppTheme.surface,
+                      color: theme.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: hasActiveSession
-                            ? AppTheme.terminalGreen.withOpacity(0.5)
-                            : AppTheme.border,
+                            ? theme.primaryAccent.withValues(alpha: 0.6)
+                            : theme.border,
+                        width: hasActiveSession ? 1.5 : 1,
                       ),
                     ),
                     child: Icon(
                       Icons.terminal_rounded,
                       color: hasActiveSession
-                          ? AppTheme.terminalGreen
-                          : AppTheme.textSecondary,
+                          ? theme.primaryAccent
+                          : theme.textSecondary,
                       size: 22,
                     ),
                   ),
@@ -85,10 +87,10 @@ class ServerCard extends StatelessWidget {
                       children: [
                         Text(
                           profile.displayName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: theme.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -96,9 +98,9 @@ class ServerCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${profile.username}@${profile.host}:${profile.port}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.textSecondary,
+                            color: theme.textSecondary,
                             fontFamily: 'monospace',
                           ),
                           maxLines: 1,
@@ -111,9 +113,9 @@ class ServerCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.surface,
+                      color: theme.surface,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppTheme.border),
+                      border: Border.all(color: theme.border),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -121,14 +123,14 @@ class ServerCard extends StatelessWidget {
                         Icon(
                           isKeyAuth ? Icons.key_rounded : Icons.lock_outline_rounded,
                           size: 13,
-                          color: AppTheme.textSecondary,
+                          color: theme.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           isKeyAuth ? 'Key' : 'Pass',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppTheme.textSecondary,
+                            color: theme.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -137,10 +139,10 @@ class ServerCard extends StatelessWidget {
                   ),
                   PopupMenuButton<String>(
                     tooltip: '',
-                    icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textSecondary, size: 20),
-                    color: AppTheme.surface,
+                    icon: Icon(Icons.more_vert_rounded, color: theme.textSecondary, size: 20),
+                    color: theme.surface,
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppTheme.border),
+                      side: BorderSide(color: theme.border),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     onSelected: (action) {
@@ -153,33 +155,33 @@ class ServerCard extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'telemetry',
                         child: Row(
                           children: [
-                            Icon(Icons.monitor_heart_outlined, size: 18, color: AppTheme.accentBlue),
-                            SizedBox(width: 10),
-                            Text('Health Check', style: TextStyle(color: AppTheme.textPrimary)),
+                            Icon(Icons.monitor_heart_outlined, size: 18, color: theme.secondaryAccent),
+                            const SizedBox(width: 10),
+                            Text('Health Check', style: TextStyle(color: theme.textPrimary)),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit_outlined, size: 18, color: AppTheme.textPrimary),
-                            SizedBox(width: 10),
-                            Text('Edit', style: TextStyle(color: AppTheme.textPrimary)),
+                            Icon(Icons.edit_outlined, size: 18, color: theme.textPrimary),
+                            const SizedBox(width: 10),
+                            Text('Edit', style: TextStyle(color: theme.textPrimary)),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline_rounded, size: 18, color: AppTheme.errorRed),
-                            SizedBox(width: 10),
-                            Text('Delete', style: TextStyle(color: AppTheme.errorRed)),
+                            Icon(Icons.delete_outline_rounded, size: 18, color: theme.error),
+                            const SizedBox(width: 10),
+                            Text('Delete', style: TextStyle(color: theme.error)),
                           ],
                         ),
                       ),
@@ -189,11 +191,11 @@ class ServerCard extends StatelessWidget {
               ),
               if (isLoadingTelemetry) ...[
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   children: [
-                    SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppTheme.accentBlue)),
-                    SizedBox(width: 8),
-                    Text('Updating server metrics...', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                    SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: theme.secondaryAccent)),
+                    const SizedBox(width: 8),
+                    Text('Updating server metrics...', style: TextStyle(fontSize: 11, color: theme.textSecondary)),
                   ],
                 ),
               ] else if (telemetry != null) ...[
@@ -201,36 +203,36 @@ class ServerCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
+                    color: theme.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: theme.border),
                   ),
                   child: Row(
                     children: [
                       if (telemetry.memUsage != null) ...[
-                        const Icon(Icons.memory_rounded, size: 13, color: AppTheme.terminalGreen),
+                        Icon(Icons.memory_rounded, size: 13, color: theme.primaryAccent),
                         const SizedBox(width: 4),
                         Text(
                           'RAM: ${telemetry.memUsage}',
-                          style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: AppTheme.textPrimary),
+                          style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.textPrimary),
                         ),
                         const SizedBox(width: 12),
                       ],
                       if (telemetry.diskUsage != null) ...[
-                        const Icon(Icons.storage_rounded, size: 13, color: AppTheme.accentBlue),
+                        Icon(Icons.storage_rounded, size: 13, color: theme.secondaryAccent),
                         const SizedBox(width: 4),
                         Text(
                           'Disk: ${telemetry.diskUsage}',
-                          style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: AppTheme.textPrimary),
+                          style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: theme.textPrimary),
                         ),
                       ],
                       if (telemetry.uptime != null) ...[
                         const Spacer(),
-                        const Icon(Icons.schedule_rounded, size: 12, color: AppTheme.textSecondary),
+                        Icon(Icons.schedule_rounded, size: 12, color: theme.textSecondary),
                         const SizedBox(width: 4),
                         Text(
                           telemetry.uptime!,
-                          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                          style: TextStyle(fontSize: 10, color: theme.textSecondary),
                         ),
                       ],
                     ],

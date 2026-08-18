@@ -11,13 +11,14 @@ class SnippetRunnerSheet extends StatefulWidget {
   const SnippetRunnerSheet({super.key, required this.onExecute});
 
   static Future<void> show(BuildContext context, ValueChanged<String> onExecute) {
+    final theme = context.appTheme;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-        side: BorderSide(color: AppTheme.border),
+      backgroundColor: theme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        side: BorderSide(color: theme.border),
       ),
       builder: (_) => SnippetRunnerSheet(onExecute: onExecute),
     );
@@ -47,17 +48,18 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
 
     // Prompt for placeholder parameters
     final controllers = {for (var p in placeholders) p: TextEditingController()};
+    final theme = context.appTheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: theme.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppTheme.border),
+          side: BorderSide(color: theme.border),
           borderRadius: BorderRadius.circular(14),
         ),
         title: Text(
           'Fill Parameters — ${snippet.title}',
-          style: const TextStyle(fontSize: 16, color: AppTheme.textPrimary),
+          style: TextStyle(fontSize: 16, color: theme.textPrimary),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -78,7 +80,7 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -101,6 +103,7 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final store = context.watch<SnippetStore>();
     final categories = store.categories;
 
@@ -123,16 +126,16 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.bolt_rounded, color: AppTheme.terminalGreen, size: 22),
-                    SizedBox(width: 8),
+                    Icon(Icons.bolt_rounded, color: theme.primaryAccent, size: 22),
+                    const SizedBox(width: 8),
                     Text(
                       'Command Snippets',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
+                        color: theme.textPrimary,
                       ),
                     ),
                   ],
@@ -167,10 +170,10 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                 prefixIcon: const Icon(Icons.search_rounded, size: 18),
                 isDense: true,
                 filled: true,
-                fillColor: AppTheme.cardSurface,
+                fillColor: theme.cardSurface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppTheme.border),
+                  borderSide: BorderSide(color: theme.border),
                 ),
               ),
               onChanged: (val) => setState(() => _searchQuery = val),
@@ -189,11 +192,11 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                     final cat = categories[idx];
                     final isSelected = cat == _selectedCategory;
                     return ChoiceChip(
-                      label: Text(cat, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : AppTheme.textSecondary)),
+                      label: Text(cat, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : theme.textSecondary)),
                       selected: isSelected,
-                      selectedColor: AppTheme.accentGreen,
-                      backgroundColor: AppTheme.cardSurface,
-                      side: BorderSide(color: isSelected ? AppTheme.accentGreen : AppTheme.border),
+                      selectedColor: theme.primaryAccent,
+                      backgroundColor: theme.cardSurface,
+                      side: BorderSide(color: isSelected ? theme.primaryAccent : theme.border),
                       onSelected: (_) => setState(() => _selectedCategory = cat),
                     );
                   },
@@ -208,13 +211,13 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.code_off_rounded, size: 36, color: AppTheme.textSecondary),
+                          Icon(Icons.code_off_rounded, size: 36, color: theme.textSecondary),
                           const SizedBox(height: 8),
                           Text(
                             _searchQuery.isEmpty
                                 ? 'No snippets in this category'
                                 : 'No matching snippets found',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                            style: TextStyle(color: theme.textSecondary, fontSize: 13),
                           ),
                         ],
                       ),
@@ -227,7 +230,7 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                         final hasVars = _extractPlaceholders(snippet.command).isNotEmpty;
 
                         return Material(
-                          color: AppTheme.cardSurface,
+                          color: theme.cardSurface,
                           borderRadius: BorderRadius.circular(10),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(10),
@@ -236,7 +239,7 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.border, width: 1),
+                                border: Border.all(color: theme.border, width: 1),
                               ),
                               child: Row(
                                 children: [
@@ -248,10 +251,10 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                                           children: [
                                             Text(
                                               snippet.title,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
-                                                color: AppTheme.textPrimary,
+                                                color: theme.textPrimary,
                                               ),
                                             ),
                                             if (hasVars) ...[
@@ -259,14 +262,14 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                                 decoration: BoxDecoration(
-                                                  color: AppTheme.accentBlue.withOpacity(0.15),
+                                                  color: theme.secondaryAccent.withValues(alpha: 0.15),
                                                   borderRadius: BorderRadius.circular(4),
                                                 ),
-                                                child: const Text(
+                                                child: Text(
                                                   'params',
                                                   style: TextStyle(
                                                     fontSize: 10,
-                                                    color: AppTheme.accentBlue,
+                                                    color: theme.secondaryAccent,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
@@ -279,19 +282,19 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
                                           snippet.command.trimRight(),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontFamily: 'monospace',
                                             fontSize: 11,
-                                            color: AppTheme.terminalGreen,
+                                            color: theme.primaryAccent,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(
+                                  Icon(
                                     Icons.play_circle_fill_rounded,
-                                    color: AppTheme.terminalGreen,
+                                    color: theme.primaryAccent,
                                     size: 22,
                                   ),
                                 ],
