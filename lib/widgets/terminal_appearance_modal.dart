@@ -4,6 +4,7 @@ import '../providers/security_store.dart';
 import '../providers/terminal_settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/terminal_theme_presets.dart';
+import 'customize_accessory_keys_modal.dart';
 
 class TerminalAppearanceModal extends StatelessWidget {
   const TerminalAppearanceModal({super.key});
@@ -28,7 +29,7 @@ class TerminalAppearanceModal extends StatelessWidget {
     final settings = context.watch<TerminalSettingsStore>();
 
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -260,6 +261,91 @@ class TerminalAppearanceModal extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
+
+            // Keyboard & Haptic Preferences
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.cardSurface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: theme.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.vibration_rounded, color: theme.secondaryAccent, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Haptic Feedback',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: theme.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Tactile vibration on terminal key press',
+                          style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: settings.hapticFeedbackEnabled,
+                    activeThumbColor: theme.primaryAccent,
+                    onChanged: (val) => settings.setHapticFeedbackEnabled(val),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Customize Accessory Keys Tile
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                Navigator.of(context).pop();
+                CustomizeAccessoryKeysModal.show(context);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                decoration: BoxDecoration(
+                  color: theme.cardSurface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.tune_rounded, color: theme.primaryAccent, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Customize Accessory Keys',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: theme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Reorder, add custom macro keys, and toggle shortcuts',
+                            style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: theme.textSecondary, size: 20),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
 
             // Security & Biometrics
             Consumer<SecurityStore?>(

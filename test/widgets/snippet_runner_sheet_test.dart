@@ -31,13 +31,13 @@ void main() {
     );
 
     expect(find.text('Command Snippets'), findsOneWidget);
-    expect(find.text('Disk Usage (df -h)'), findsOneWidget);
-    expect(find.text('Memory Usage (free -h)'), findsOneWidget);
+    expect(find.text('Exit Vim (Force Quit)'), findsOneWidget);
+    expect(find.text('Save & Exit Vim'), findsOneWidget);
 
-    // Tap on Disk Usage (df -h)
-    await tester.tap(find.text('Disk Usage (df -h)'));
+    // Tap on Exit Vim (Force Quit)
+    await tester.tap(find.text('Exit Vim (Force Quit)'));
     await tester.pumpAndSettle();
 
-    expect(executedCmd, 'df -h\n');
+    expect(executedCmd, '\x1B:q!\n');
   });
 }

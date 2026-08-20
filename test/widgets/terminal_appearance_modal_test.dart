@@ -29,9 +29,12 @@ void main() {
     expect(find.text('Terminal Appearance'), findsOneWidget);
     expect(find.text('COLOR SCHEME'), findsOneWidget);
     expect(find.text('FONT SIZE'), findsOneWidget);
-    expect(find.text('ShellLite Obsidian'), findsWidgets);
+    expect(find.textContaining('Obsidian'), findsWidgets);
     expect(find.text('Catppuccin Mocha'), findsOneWidget);
     expect(find.text('Dracula'), findsOneWidget);
+
+    expect(find.text('Haptic Feedback'), findsOneWidget);
+    expect(find.text('Customize Accessory Keys'), findsOneWidget);
 
     // Tap on Dracula theme preset
     await tester.tap(find.text('Dracula'));
@@ -39,10 +42,18 @@ void main() {
 
     expect(store.themeId, 'dracula');
 
+    // Toggle Haptic Feedback switch
+    final hapticSwitch = find.byType(Switch).first;
+    expect(store.hapticFeedbackEnabled, isTrue);
+    await tester.tap(hapticSwitch);
+    await tester.pump();
+    expect(store.hapticFeedbackEnabled, isFalse);
+
     // Tap Reset
     await tester.tap(find.text('Reset'));
     await tester.pump();
 
     expect(store.themeId, 'obsidian');
+    expect(store.hapticFeedbackEnabled, isTrue);
   });
 }

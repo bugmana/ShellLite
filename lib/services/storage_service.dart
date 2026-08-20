@@ -69,43 +69,79 @@ class StorageService {
   }
 
   // ── Secure Credentials (Passwords & Private Keys) ──────────────────────────
- 
-   Future<void> saveCredential(String tag, String value) async {
-     _inMemoryCredentials[tag] = value;
-     if (kIsWeb) return;
-     try {
-       await _secureStorage
-           .write(key: tag, value: value)
-           .timeout(const Duration(milliseconds: 300));
-     } catch (e) {
-       debugPrint('StorageService.saveCredential secureStorage fallback to in-memory: $e');
-     }
-   }
 
-   Future<String?> retrieveCredential(String tag) async {
-     if (kIsWeb) return _inMemoryCredentials[tag];
-     try {
-       final val = await _secureStorage
-           .read(key: tag)
-           .timeout(const Duration(milliseconds: 300));
-       if (val != null) return val;
-     } catch (e) {
-       debugPrint('StorageService.retrieveCredential error: $e');
-     }
-     return _inMemoryCredentials[tag];
-   }
+  static const _webCredPrefix = 'shell_lite_wc_';
 
-   Future<void> deleteCredential(String tag) async {
-     _inMemoryCredentials.remove(tag);
-     if (kIsWeb) return;
-     try {
-       await _secureStorage
-           .delete(key: tag)
-           .timeout(const Duration(milliseconds: 300));
-     } catch (e) {
-       debugPrint('StorageService.deleteCredential error: $e');
-     }
-   }
+  Future<void> saveCredential(String tag, String value) async {
+    _inMemoryCredentials[tag] = value;
+    if (kIsWeb) {
+      try {
+        final prefs = await _sharedPrefs;
+        final encoded = base64Encode(utf8.encode(value));
+        await prefs.setString('$_webCredPrefix$tag', encoded);
+      } catch (e) {
+        debugPrint('StorageService.saveCredential web error: $e');
+      }
+      return;
+    }
+    try {
+      await _secureStorage
+          .write(key: tag, value: value)
+          .timeout(const Duration(milliseconds: 300));
+    } catch (e) {
+      debugPrint('StorageService.saveCredential secureStorage fallback to in-memory: $e');
+    }
+  }
+
+  Future<String?> retrieveCredential(String tag) async {
+    if (_inMemoryCredentials.containsKey(tag)) {
+      return _inMemoryCredentials[tag];
+    }
+    if (kIsWeb) {
+      try {
+        final prefs = await _sharedPrefs;
+        final raw = prefs.getString('$_webCredPrefix$tag');
+        if (raw != null && raw.isNotEmpty) {
+          final decoded = utf8.decode(base64Decode(raw));
+          _inMemoryCredentials[tag] = decoded;
+          return decoded;
+        }
+      } catch (e) {
+        debugPrint('StorageService.retrieveCredential web error: $e');
+      }
+      return null;
+    }
+    try {
+      final val = await _secureStorage
+          .read(key: tag)
+          .timeout(const Duration(milliseconds: 300));
+      if (val != null) {
+        _inMemoryCredentials[tag] = val;
+        return val;
+      }
+    } catch (e) {
+      debugPrint('StorageService.retrieveCredential error: $e');
+    }
+    return _inMemoryCredentials[tag];
+  }
+
+  Future<void> deleteCredential(String tag) async {
+    _inMemoryCredentials.remove(tag);
+    if (kIsWeb) {
+      try {
+        final prefs = await _sharedPrefs;
+        await prefs.remove('$_webCredPrefix$tag');
+      } catch (_) {}
+      return;
+    }
+    try {
+      await _secureStorage
+          .delete(key: tag)
+          .timeout(const Duration(milliseconds: 300));
+    } catch (e) {
+      debugPrint('StorageService.deleteCredential error: $e');
+    }
+  }
 
   // ── First-Run Gesture Tip Flag ─────────────────────────────────────────────
 
@@ -200,5 +236,50 @@ class StorageService {
     } catch (e) {
       debugPrint('StorageService.saveSnippets error: $e');
     }
+  }
+
+  // ── Accessory Bar Keys Persistence ─────────────────────────────────────────
+
+  Future<List<AccessoryKeyItem>> loadAccessoryKeys() async {
+    try {
+      final prefs = await _sharedPrefs;
+      final raw = prefs.getString(StorageConfig.accessoryKeysKey);
+      if (raw == null || raw.isEmpty) {
+        return AccessoryBarConfig.initialConfiguredKeys;
+      }
+      final List decoded = jsonDecode(raw);
+      return decoded.map((e) => AccessoryKeyItem.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('StorageService.loadAccessoryKeys error: $e');
+      return AccessoryBarConfig.initialConfiguredKeys;
+    }
+  }
+
+  Future<void> saveAccessoryKeys(List<AccessoryKeyItem> keys) async {
+    try {
+      final prefs = await _sharedPrefs;
+      final raw = jsonEncode(keys.map((k) => k.toJson()).toList());
+      await prefs.setString(StorageConfig.accessoryKeysKey, raw);
+    } catch (e) {
+      debugPrint('StorageService.saveAccessoryKeys error: $e');
+    }
+  }
+
+  // ── Haptic Feedback Setting ────────────────────────────────────────────────
+
+  Future<bool> getHapticFeedbackEnabled() async {
+    try {
+      final prefs = await _sharedPrefs;
+      return prefs.getBool(StorageConfig.hapticFeedbackKey) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> setHapticFeedbackEnabled(bool enabled) async {
+    try {
+      final prefs = await _sharedPrefs;
+      await prefs.setBool(StorageConfig.hapticFeedbackKey, enabled);
+    } catch (_) {}
   }
 }

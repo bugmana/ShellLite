@@ -29,7 +29,6 @@ class SnippetRunnerSheet extends StatefulWidget {
 }
 
 class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
-  String _selectedCategory = 'All';
   String _searchQuery = '';
 
   List<String> _extractPlaceholders(String cmd) {
@@ -105,14 +104,12 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final store = context.watch<SnippetStore>();
-    final categories = store.categories;
 
     final filtered = store.snippets.where((s) {
-      final matchesCategory = _selectedCategory == 'All' || s.category == _selectedCategory;
       final matchesQuery = _searchQuery.isEmpty ||
           s.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           s.command.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesCategory && matchesQuery;
+      return matchesQuery;
     }).toList();
 
     return SafeArea(
@@ -178,30 +175,6 @@ class _SnippetRunnerSheetState extends State<SnippetRunnerSheet> {
               ),
               onChanged: (val) => setState(() => _searchQuery = val),
             ),
-            const SizedBox(height: 10),
-
-            // Category filter chips
-            if (categories.length > 1)
-              SizedBox(
-                height: 34,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, idx) {
-                    final cat = categories[idx];
-                    final isSelected = cat == _selectedCategory;
-                    return ChoiceChip(
-                      label: Text(cat, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : theme.textSecondary)),
-                      selected: isSelected,
-                      selectedColor: theme.primaryAccent,
-                      backgroundColor: theme.cardSurface,
-                      side: BorderSide(color: isSelected ? theme.primaryAccent : theme.border),
-                      onSelected: (_) => setState(() => _selectedCategory = cat),
-                    );
-                  },
-                ),
-              ),
             const SizedBox(height: 12),
 
             // Snippet list

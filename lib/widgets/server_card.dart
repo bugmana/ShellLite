@@ -234,6 +234,7 @@ class ServerCard extends StatelessWidget {
               ] else if (telemetry != null) ...[
                 const SizedBox(height: 12),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: theme.surface,

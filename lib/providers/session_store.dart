@@ -55,7 +55,7 @@ class SessionStore extends ChangeNotifier {
 
     final terminal = Terminal(maxLines: TerminalConfig.maxScrollbackLines);
     final controller = TerminalController();
-    final sshService = SSHService();
+    final sshService = SSHService(storageService: _storageService);
 
     terminal.onOutput = (data) {
       sshService.sendInput(data);

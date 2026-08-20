@@ -14,7 +14,6 @@ import '../widgets/directional_hud.dart';
 import '../widgets/keyboard_accessory_bar.dart';
 import '../widgets/snippet_runner_sheet.dart';
 import '../widgets/terminal_appearance_modal.dart';
-import '../widgets/terminal_search_bar.dart';
 
 class TerminalScreen extends StatefulWidget {
   final ServerProfile profile;
@@ -31,7 +30,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
   late final SSHService _fallbackSSHService;
 
   bool _showGestureTip = false;
-  bool _isSearching = false;
   Timer? _tipDismissTimer;
 
   T? _tryWatch<T>(BuildContext context) {
@@ -124,31 +122,8 @@ class _TerminalScreenState extends State<TerminalScreen> {
     }
   }
 
-  void _copyBuffer() async {
-    final text = _readTerminal(context).buffer.getText();
-    if (text.isEmpty) return;
-
-    await Clipboard.setData(ClipboardData(text: text));
-    if (mounted) {
-      final theme = context.appTheme;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Copied ${text.length} characters of terminal output to clipboard'),
-          backgroundColor: theme.cardSurface,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
   void _clearTerminal() {
     _readTerminal(context).eraseDisplay();
-  }
-
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = !_isSearching;
-    });
   }
 
   Color _getStatusColor(SSHConnectionState state, AppThemeExtension theme) {
@@ -234,15 +209,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(
-              _isSearching ? Icons.search_off_rounded : Icons.search_rounded,
-              size: 20,
-              color: _isSearching ? theme.primaryAccent : null,
-            ),
-            tooltip: _isSearching ? 'Close Search' : 'Search Buffer',
-            onPressed: _toggleSearch,
-          ),
-          IconButton(
             icon: const Icon(Icons.palette_outlined, size: 20),
             tooltip: 'Appearance & Themes',
             onPressed: () => TerminalAppearanceModal.show(context),
@@ -259,9 +225,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
               switch (val) {
                 case 'snippets':
                   SnippetRunnerSheet.show(context, _handleKeyTap);
-                  break;
-                case 'copy':
-                  _copyBuffer();
                   break;
                 case 'paste':
                   _pasteClipboard();
@@ -294,17 +257,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   children: [
                     Icon(Icons.bolt_rounded, size: 18, color: theme.primaryAccent),
                     const SizedBox(width: 10),
-                    const Text('Command Snippets'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'copy',
-                child: Row(
-                  children: [
-                    Icon(Icons.copy_all_rounded, size: 18, color: theme.textSecondary),
-                    const SizedBox(width: 10),
-                    const Text('Copy Buffer Log'),
+                    const Expanded(child: Text('Command Snippets')),
                   ],
                 ),
               ),
@@ -314,7 +267,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   children: [
                     Icon(Icons.paste_rounded, size: 18, color: theme.textSecondary),
                     const SizedBox(width: 10),
-                    const Text('Paste'),
+                    const Expanded(child: Text('Paste')),
                   ],
                 ),
               ),
@@ -324,7 +277,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   children: [
                     Icon(Icons.clear_all_rounded, size: 18, color: theme.textSecondary),
                     const SizedBox(width: 10),
-                    const Text('Clear Screen'),
+                    const Expanded(child: Text('Clear Screen')),
                   ],
                 ),
               ),
@@ -334,7 +287,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   children: [
                     Icon(Icons.refresh_rounded, size: 18, color: theme.textSecondary),
                     const SizedBox(width: 10),
-                    const Text('Reconnect'),
+                    const Expanded(child: Text('Reconnect')),
                   ],
                 ),
               ),
@@ -344,7 +297,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   children: [
                     Icon(Icons.power_settings_new_rounded, size: 18, color: theme.error),
                     const SizedBox(width: 10),
-                    Text('Disconnect Session', style: TextStyle(color: theme.error)),
+                    Expanded(
+                      child: Text('Disconnect Session', style: TextStyle(color: theme.error)),
+                    ),
                   ],
                 ),
               ),
@@ -353,9 +308,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
                 value: 'guide',
                 child: Row(
                   children: [
-                    Icon(Icons.help_outline_rounded, size: 18, color: theme.textSecondary),
+                    Icon(Icons.help_outline_rounded, size: 18, color: theme.secondaryAccent),
                     const SizedBox(width: 10),
-                    const Text('Gestures Guide'),
+                    const Expanded(child: Text('Gesture Tips')),
                   ],
                 ),
               ),
@@ -383,18 +338,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                       ),
                     ),
                   ),
-                  if (_isSearching)
-                    Positioned(
-                      top: 8,
-                      left: 12,
-                      right: 12,
-                      child: TerminalSearchBar(
-                        terminal: terminal,
-                        controller: controller,
-                        onClose: _toggleSearch,
-                      ),
-                    ),
-                  if (_showGestureTip && !_isSearching)
+                  if (_showGestureTip)
                     Positioned(
                       top: 10,
                       left: 12,

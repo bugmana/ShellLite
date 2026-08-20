@@ -18,16 +18,6 @@ class SnippetStore extends ChangeNotifier {
   bool get canAddSnippet => _snippets.length < SnippetConfig.maxSnippets;
   int get maxSnippets => SnippetConfig.maxSnippets;
 
-  List<String> get categories {
-    final set = <String>{'All'};
-    for (final s in _snippets) {
-      if (s.category.isNotEmpty) {
-        set.add(s.category);
-      }
-    }
-    return set.toList();
-  }
-
   Future<void> load() async {
     _isLoading = true;
     notifyListeners();

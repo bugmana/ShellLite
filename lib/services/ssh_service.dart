@@ -6,6 +6,7 @@ import '../config/app_config.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import 'key_parser.dart';
+import 'ssh_socket_factory.dart';
 import 'storage_service.dart';
 
 enum SSHConnectionState {
@@ -63,9 +64,9 @@ class SSHService {
         keyPairs = SSHKeyParser.parse(pem);
       }
 
-      final socket = await SSHSocket.connect(
-        profile.host,
-        profile.port,
+      final socket = await SSHSocketFactory.connect(
+        host: profile.host,
+        port: profile.port,
         timeout: SSHConfig.connectTimeout,
       );
 

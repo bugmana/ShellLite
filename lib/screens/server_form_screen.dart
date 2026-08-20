@@ -26,13 +26,14 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   late final TextEditingController _hostController;
   late final TextEditingController _portController;
   late final TextEditingController _usernameController;
-  late final TextEditingController _credentialController;
+  late final TextEditingController _passwordController;
+  late final TextEditingController _keyController;
   late final TextEditingController _initialCommandController;
   late final TextEditingController _tmuxSessionNameController;
 
   AuthType _authType = AuthType.password;
   bool _obscurePassword = true;
-  bool _obscureKey = true;
+  bool _obscureKey = false;
   bool _isLoadingCredential = false;
   bool _persistSession = false;
   String? _keyValidationError;
@@ -45,13 +46,15 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     _hostController = TextEditingController(text: p?.host ?? '');
     _portController = TextEditingController(text: p?.port.toString() ?? '${SSHConfig.defaultPort}');
     _usernameController = TextEditingController(text: p?.username ?? '');
-    _credentialController = TextEditingController();
+    _passwordController = TextEditingController();
+    _keyController = TextEditingController();
     _initialCommandController = TextEditingController(text: p?.initialCommand ?? '');
     _tmuxSessionNameController = TextEditingController(text: p?.tmuxSessionName ?? '');
     _persistSession = p?.persistSession ?? false;
 
     if (p != null) {
       _authType = p.authMethod.type;
+      _obscureKey = p.authMethod.type == AuthType.sshKey;
       _loadExistingCredential(p);
     }
   }
@@ -60,7 +63,11 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     setState(() => _isLoadingCredential = true);
     final cred = await context.read<ServerStore>().getCredential(profile);
     if (mounted && cred != null) {
-      _credentialController.text = cred;
+      if (profile.authMethod.type == AuthType.password) {
+        _passwordController.text = cred;
+      } else {
+        _keyController.text = cred;
+      }
     }
     if (mounted) {
       setState(() => _isLoadingCredential = false);
@@ -73,31 +80,45 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     _hostController.dispose();
     _portController.dispose();
     _usernameController.dispose();
-    _credentialController.dispose();
+    _passwordController.dispose();
+    _keyController.dispose();
     _initialCommandController.dispose();
     _tmuxSessionNameController.dispose();
     super.dispose();
   }
 
+  String _cleanKey(String val) {
+    return val.trim().replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+  }
+
   void _validateKey(String val) {
-    if (val.trim().isEmpty) {
+    final clean = _cleanKey(val);
+    if (clean.isEmpty) {
       setState(() => _keyValidationError = null);
       return;
     }
     try {
-      SSHKeyParser.parse(val);
+      SSHKeyParser.parse(clean);
       setState(() => _keyValidationError = null);
     } catch (e) {
       setState(() => _keyValidationError = e.toString().replaceAll('SSHKeyException: ', ''));
     }
   }
 
+  void _clearKey() {
+    setState(() {
+      _keyController.clear();
+      _obscureKey = false;
+      _keyValidationError = null;
+    });
+  }
+
   Future<void> _generateNewKey() async {
     final generated = await SSHKeyGeneratorDialog.show(context);
     if (generated != null) {
       setState(() {
-        _credentialController.text = generated.privateKeyPem;
-        _obscureKey = true;
+        _keyController.text = generated.privateKeyPem;
+        _obscureKey = false;
         _validateKey(generated.privateKeyPem);
       });
       if (mounted) {
@@ -115,9 +136,13 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
 
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData('text/plain');
-    if (data != null && data.text != null) {
-      _credentialController.text = data.text!;
-      _validateKey(data.text!);
+    if (data != null && data.text != null && data.text!.isNotEmpty) {
+      final clean = _cleanKey(data.text!);
+      setState(() {
+        _keyController.text = clean;
+        _obscureKey = false;
+        _validateKey(clean);
+      });
     }
   }
 
@@ -125,7 +150,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_authType == AuthType.sshKey) {
-      final key = _credentialController.text.trim();
+      final key = _cleanKey(_keyController.text);
       try {
         SSHKeyParser.parse(key);
       } catch (e) {
@@ -158,14 +183,16 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
       tmuxSessionName: _persistSession && tmuxSession.isNotEmpty ? tmuxSession : null,
     );
 
+    final credential = _authType == AuthType.password
+        ? _passwordController.text.trim()
+        : _cleanKey(_keyController.text);
+
     if (widget.existingProfile == null) {
-      await store.addProfile(profile, credential: _credentialController.text.trim());
+      await store.addProfile(profile, credential: credential);
     } else {
       await store.updateProfile(
         profile,
-        newCredential: _credentialController.text.trim().isNotEmpty
-            ? _credentialController.text.trim()
-            : null,
+        newCredential: credential.isNotEmpty ? credential : null,
       );
     }
 
@@ -303,64 +330,124 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
 
                   if (_authType == AuthType.password) ...[
                     TextFormField(
-                      controller: _credentialController,
+                      controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        hintText: 'Enter SSH password',
+                        hintText: isEditing && _passwordController.text.isEmpty
+                            ? '•••••••• (Stored password)'
+                            : 'Enter password',
                         prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                            size: 20,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_passwordController.text.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                tooltip: 'Clear password',
+                                onPressed: () => setState(() => _passwordController.clear()),
+                              ),
+                            IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                size: 20,
+                              ),
+                              tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                              onPressed: () =>
+                                  setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ],
                         ),
                       ),
                       validator: (val) {
-                        if (!isEditing && (val == null || val.isEmpty)) {
+                        final hasStoredPass = isEditing &&
+                            widget.existingProfile!.authMethod.type == AuthType.password;
+                        if (!hasStoredPass && (val == null || val.isEmpty)) {
                           return 'Password is required';
                         }
                         return null;
                       },
                     ),
                   ] else ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
                         Text(
                           'OpenSSH Private Key',
-                          style: TextStyle(color: theme.textSecondary, fontSize: 13),
+                          style: TextStyle(
+                            color: theme.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            if (!_obscureKey && _credentialController.text.trim().isNotEmpty) ...[
+                            if (_keyController.text.trim().isNotEmpty) ...[
+                              if (_obscureKey)
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  onPressed: () => setState(() => _obscureKey = false),
+                                  icon: Icon(Icons.visibility_outlined, size: 14, color: theme.secondaryAccent),
+                                  label: Text('Show', style: TextStyle(fontSize: 12, color: theme.secondaryAccent)),
+                                )
+                              else
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  onPressed: () => setState(() => _obscureKey = true),
+                                  icon: Icon(Icons.visibility_off_outlined, size: 14, color: theme.secondaryAccent),
+                                  label: Text('Hide', style: TextStyle(fontSize: 12, color: theme.secondaryAccent)),
+                                ),
                               TextButton.icon(
-                                onPressed: () => setState(() => _obscureKey = true),
-                                icon: Icon(Icons.visibility_off_outlined, size: 15, color: theme.secondaryAccent),
-                                label: Text('Hide Key', style: TextStyle(fontSize: 12, color: theme.secondaryAccent)),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: _clearKey,
+                                icon: Icon(Icons.clear_rounded, size: 14, color: theme.error),
+                                label: Text('Clear', style: TextStyle(fontSize: 12, color: theme.error)),
                               ),
-                              const SizedBox(width: 2),
                             ],
                             TextButton.icon(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                               onPressed: _generateNewKey,
-                              icon: Icon(Icons.auto_awesome_rounded, size: 15, color: theme.primaryAccent),
+                              icon: Icon(Icons.auto_awesome_rounded, size: 14, color: theme.primaryAccent),
                               label: Text('Generate', style: TextStyle(fontSize: 12, color: theme.primaryAccent)),
                             ),
-                            const SizedBox(width: 2),
                             TextButton.icon(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                               onPressed: _pasteFromClipboard,
-                              icon: const Icon(Icons.paste_rounded, size: 15),
+                              icon: const Icon(Icons.paste_rounded, size: 14),
                               label: const Text('Paste', style: TextStyle(fontSize: 12)),
                             ),
                           ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    if (_obscureKey && _credentialController.text.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    if (_obscureKey && _keyController.text.trim().isNotEmpty) ...[
                       Material(
                         color: theme.surface,
                         borderRadius: BorderRadius.circular(10),
@@ -425,8 +512,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                       ),
                     ] else ...[
                       TextFormField(
-                        controller: _credentialController,
-                        maxLines: 6,
+                        controller: _keyController,
+                        maxLines: 8,
+                        minLines: 4,
                         style: const TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12,
@@ -439,7 +527,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                           setState(() {});
                         },
                         validator: (val) {
-                          if (!isEditing && (val == null || val.trim().isEmpty)) {
+                          final hasStoredKey = isEditing &&
+                              widget.existingProfile!.authMethod.type == AuthType.sshKey;
+                          if (!hasStoredKey && (val == null || val.trim().isEmpty)) {
                             return 'Private key is required';
                           }
                           return null;
@@ -465,11 +555,11 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                   // ── Persistent Session (tmux) Section ───────────────────
                   _buildSectionHeader('PERSISTENT SESSION (TMUX)', theme),
                   const SizedBox(height: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: theme.surface,
+                  Material(
+                    color: theme.surface,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
+                      side: BorderSide(
                         color: _persistSession ? theme.primaryAccent.withValues(alpha: 0.5) : theme.border,
                       ),
                     ),
@@ -479,7 +569,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                           title: Text(
-                            'Keep Session Alive (tmux)',
+                            'Persistent Session (tmux)',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -487,7 +577,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                             ),
                           ),
                           subtitle: Text(
-                            'Keeps background jobs & processes running when app is closed; auto-reattaches to the same session on connect.',
+                            'Keeps background processes running across reconnections.',
                             style: TextStyle(
                               fontSize: 12,
                               color: theme.textSecondary,
@@ -508,10 +598,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                             child: TextFormField(
                               controller: _tmuxSessionNameController,
                               decoration: const InputDecoration(
-                                labelText: 'tmux Session Name',
+                                labelText: 'Session Name (optional, defaults to "shelllite")',
                                 hintText: 'shelllite',
                                 prefixIcon: Icon(Icons.terminal_rounded, size: 20),
-                                helperText: 'Always targets this exact session name. Defaults to "shelllite".',
                               ),
                               autocorrect: false,
                             ),

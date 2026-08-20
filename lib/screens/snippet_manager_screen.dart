@@ -27,7 +27,6 @@ class SnippetManagerScreen extends StatelessWidget {
 
     final titleController = TextEditingController(text: existing?.title ?? '');
     final commandController = TextEditingController(text: existing?.command ?? '');
-    final categoryController = TextEditingController(text: existing?.category ?? 'General');
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -55,14 +54,6 @@ class SnippetManagerScreen extends StatelessWidget {
                     hintText: 'e.g. Restart Docker Container',
                   ),
                   validator: (v) => v == null || v.trim().isEmpty ? 'Title is required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    hintText: 'e.g. Docker, Monitoring, System',
-                  ),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -99,9 +90,6 @@ class SnippetManagerScreen extends StatelessWidget {
                   id: existing?.id ?? const Uuid().v4(),
                   title: titleController.text.trim(),
                   command: cmd,
-                  category: categoryController.text.trim().isNotEmpty
-                      ? categoryController.text.trim()
-                      : 'General',
                 );
 
                 if (existing == null) {
@@ -291,33 +279,13 @@ class SnippetManagerScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Text(
-                                  snippet.title,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: theme.surface,
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: theme.border),
-                                  ),
-                                  child: Text(
-                                    snippet.category,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: theme.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              snippet.title,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: theme.textPrimary,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(

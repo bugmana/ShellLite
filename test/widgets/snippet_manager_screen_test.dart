@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shell_lite/models/snippet.dart';
 import 'package:shell_lite/providers/snippet_store.dart';
 import 'package:shell_lite/screens/snippet_manager_screen.dart';
 import 'package:shell_lite/services/storage_service.dart';
@@ -30,26 +29,22 @@ void main() {
   }
 
   testWidgets('SnippetManagerScreen renders snippet list and count badge', (tester) async {
+    // Delete snippets until 2 remain so Add button is visible on screen
+    while (store.snippets.length > 2) {
+      await store.deleteSnippet(store.snippets.last.id);
+    }
+
     await tester.pumpWidget(createWidget());
 
     expect(find.text('Manage Snippets'), findsOneWidget);
-    expect(find.text('Disk Usage (df -h)'), findsOneWidget);
-    expect(find.text('Docker PS'), findsOneWidget);
+    expect(find.text('Exit Vim (Force Quit)'), findsOneWidget);
+    expect(find.text('Save & Exit Vim'), findsOneWidget);
     expect(find.text('Add Snippet'), findsOneWidget);
-    expect(find.text('(6/10)'), findsOneWidget);
+    expect(find.text('(2/10)'), findsOneWidget);
   });
 
   testWidgets('SnippetManagerScreen hides Add button when max 10 limit is reached', (tester) async {
-    for (int i = 1; i <= 4; i++) {
-      await store.addSnippet(
-        Snippet(
-          id: 'custom_$i',
-          title: 'Custom $i',
-          command: 'echo $i\n',
-        ),
-      );
-    }
-
+    // Default already has 10 snippets
     await tester.pumpWidget(createWidget());
 
     expect(store.snippets.length, 10);

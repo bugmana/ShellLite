@@ -16,22 +16,27 @@ void main() {
     store = SnippetStore(storageService: storage);
   });
 
-  test('SnippetStore loads default snippets when empty', () async {
+  test('SnippetStore loads curated default snippets when empty', () async {
     await store.load();
-    expect(store.snippets.isNotEmpty, isTrue);
-    expect(store.categories.contains('All'), isTrue);
-    expect(store.categories.contains('System'), isTrue);
-    expect(store.categories.contains('Docker'), isTrue);
+    expect(store.snippets.length, 10);
+    expect(store.snippets.any((s) => s.title == 'Exit Vim (Force Quit)'), isTrue);
+    expect(store.snippets.any((s) => s.title == 'Save & Exit Vim'), isTrue);
+    expect(store.snippets.any((s) => s.title == 'System Monitor (htop)'), isTrue);
+    expect(store.snippets.any((s) => s.title == 'Disk Space (df -h)'), isTrue);
+    expect(store.snippets.any((s) => s.title == 'Memory Usage (free -h)'), isTrue);
   });
 
   test('SnippetStore adds, updates, and deletes snippet', () async {
     await store.load();
 
+    // Delete one default snippet so there's room to add
+    await store.deleteSnippet(store.snippets.first.id);
+    expect(store.canAddSnippet, isTrue);
+
     const newSnippet = Snippet(
       id: 'custom_1',
       title: 'Custom Test',
       command: 'echo test\n',
-      category: 'Custom',
     );
 
     await store.addSnippet(newSnippet);
@@ -47,17 +52,7 @@ void main() {
 
   test('SnippetStore enforces maximum limit of 10 snippets', () async {
     await store.load();
-    // Default has 6 snippets, add 4 to reach 10
-    for (int i = 1; i <= 4; i++) {
-      await store.addSnippet(
-        Snippet(
-          id: 'extra_$i',
-          title: 'Extra $i',
-          command: 'echo $i\n',
-        ),
-      );
-    }
-
+    // Default already has 10 snippets
     expect(store.snippets.length, 10);
     expect(store.canAddSnippet, isFalse);
 
@@ -76,8 +71,10 @@ void main() {
   test('SnippetStore resetToDefaults restores defaults', () async {
     await store.load();
     await store.deleteSnippet(store.snippets.first.id);
+    expect(store.snippets.length, 9);
     await store.resetToDefaults();
 
     expect(store.snippets.length, DefaultSnippets.defaults.length);
+    expect(store.snippets.length, 10);
   });
 }

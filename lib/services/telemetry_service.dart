@@ -5,6 +5,7 @@ import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import '../models/server_telemetry.dart';
 import '../services/key_parser.dart';
+import '../services/ssh_socket_factory.dart';
 import '../services/storage_service.dart';
 
 class TelemetryService {
@@ -35,9 +36,9 @@ class TelemetryService {
       final storage = storageService ?? StorageService();
       final credential = await storage.retrieveCredential(profile.authMethod.credentialTag);
 
-      socket = await SSHSocket.connect(
-        profile.host,
-        profile.port,
+      socket = await SSHSocketFactory.connect(
+        host: profile.host,
+        port: profile.port,
         timeout: connectTimeout,
       );
 

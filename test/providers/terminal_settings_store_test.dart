@@ -20,7 +20,7 @@ void main() {
     await store.load();
     expect(store.themeId, 'obsidian');
     expect(store.fontSize, 13.5);
-    expect(store.fontFamily, 'monospace');
+    expect(store.fontFamily, 'JetBrains Mono');
     expect(store.activeThemePreset.id, 'obsidian');
   });
 
@@ -55,6 +55,46 @@ void main() {
     await store.resetDefaults();
     expect(store.themeId, 'obsidian');
     expect(store.fontSize, 13.5);
+  });
+
+  test('TerminalSettingsStore reorders, toggles, adds custom keys and resets', () async {
+    await store.load();
+    expect(store.hapticFeedbackEnabled, isTrue);
+    expect(store.accessoryKeys.first.label, 'Tab');
+
+    // Toggle haptic feedback
+    await store.setHapticFeedbackEnabled(false);
+    expect(store.hapticFeedbackEnabled, isFalse);
+
+    // Toggle key visibility
+    final initialCount = store.accessoryKeys.length;
+    await store.toggleAccessoryKeyVisibility(0); // disables 'Tab'
+    expect(store.accessoryKeys.length, initialCount - 1);
+    expect(store.accessoryKeys.first.label, '⇧Tab');
+
+    // Add custom key
+    await store.addCustomAccessoryKey(
+      label: 'sudo',
+      sequence: r'sudo \n',
+      description: 'Run as superuser',
+    );
+    expect(store.configuredAccessoryKeys.last.label, 'sudo');
+    expect(store.configuredAccessoryKeys.last.sequence, 'sudo \n');
+    expect(store.configuredAccessoryKeys.last.isCustom, isTrue);
+
+    // Reorder key
+    final lastIdx = store.configuredAccessoryKeys.length - 1;
+    await store.reorderAccessoryKeys(lastIdx, 0);
+    expect(store.configuredAccessoryKeys.first.label, 'sudo');
+
+    // Remove key
+    await store.removeAccessoryKey(0);
+    expect(store.configuredAccessoryKeys.first.label, 'Tab');
+
+    // Reset to defaults
+    await store.resetAccessoryKeysToDefault();
+    expect(store.configuredAccessoryKeys.length, 13);
+    expect(store.accessoryKeys.first.label, 'Tab');
   });
 
   test('TerminalThemePresets returns obsidian on unknown id', () {
