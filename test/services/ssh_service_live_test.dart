@@ -20,10 +20,10 @@ void main() {
     storageService = StorageService(prefs: prefs);
   });
 
-  bool isLocalSshReachable() {
+  Future<bool> isLocalSshReachable() async {
     try {
-      final socket = Socket.connect('127.0.0.1', 22, timeout: const Duration(seconds: 1));
-      socket.then((s) => s.destroy()).catchError((_) {});
+      final socket = await Socket.connect('127.0.0.1', 22, timeout: const Duration(milliseconds: 300));
+      socket.destroy();
       return true;
     } catch (_) {
       return false;
@@ -31,7 +31,7 @@ void main() {
   }
 
   test('SSHService connects with Password authentication and receives shell output', () async {
-    if (!isLocalSshReachable()) {
+    if (!await isLocalSshReachable()) {
       return;
     }
 
@@ -84,7 +84,7 @@ void main() {
   });
 
   test('SSHService connects with SSH Key authentication and receives shell output', () async {
-    if (!isLocalSshReachable()) {
+    if (!await isLocalSshReachable()) {
       return;
     }
 
