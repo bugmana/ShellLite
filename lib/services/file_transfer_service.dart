@@ -69,22 +69,27 @@ class FileTransferService {
 
   /// Proactively resolves the current remote directory for the given SSH session.
   static Future<String> resolveCurrentDirectory(SSHClient client) async {
+    // 1. Try pwd via SSH exec first (fast, reliable, and avoids SFTP uint64 accessors in dart2js)
     try {
-      final sftp = await client.sftp();
-      try {
-        final absPath = await sftp.absolute('.');
-        return absPath;
-      } finally {
-        await sftp.close();
+      final session = await client.execute('pwd');
+      final output = await utf8.decodeStream(session.stdout);
+      final trimmed = output.trim();
+      if (trimmed.isNotEmpty && trimmed.startsWith('/')) {
+        return trimmed;
       }
-    } catch (_) {
-      // Fallback via shell execution if SFTP absolute path is unsupported
+    } catch (_) {}
+
+    // 2. Try SFTP absolute if exec is unavailable on native platforms
+    if (!kIsWeb) {
       try {
-        final session = await client.execute('pwd');
-        final output = await utf8.decodeStream(session.stdout);
-        final trimmed = output.trim();
-        if (trimmed.isNotEmpty && trimmed.startsWith('/')) {
-          return trimmed;
+        final sftp = await client.sftp();
+        try {
+          final absPath = await sftp.absolute('.');
+          if (absPath.isNotEmpty && absPath.startsWith('/')) {
+            return absPath;
+          }
+        } finally {
+          await sftp.close();
         }
       } catch (_) {}
     }
@@ -92,8 +97,175 @@ class FileTransferService {
     return '~';
   }
 
-  /// Uploads a single file to [remoteDirectory] on the remote server via SFTP.
+  /// Uploads a single file to [remoteDirectory] on the remote server.
+  ///
+  /// On Web, we stream through an SSH channel (`cat > file`) to prevent
+  /// `dart2js` runtime errors with 64-bit integer accessors in SFTP packets.
+  /// On native platforms, SFTP is used with automatic fallback.
   static Future<void> uploadFile({
+    required SSHClient client,
+    required String remoteDirectory,
+    required FileTransferItem item,
+    void Function(int bytesUploaded, int totalBytes)? onProgress,
+    bool Function()? isCancelled,
+  }) async {
+    if (kIsWeb) {
+      await _uploadViaExec(
+        client: client,
+        remoteDirectory: remoteDirectory,
+        item: item,
+        onProgress: onProgress,
+        isCancelled: isCancelled,
+      );
+    } else {
+      try {
+        await _uploadViaSftp(
+          client: client,
+          remoteDirectory: remoteDirectory,
+          item: item,
+          onProgress: onProgress,
+          isCancelled: isCancelled,
+        );
+      } catch (e) {
+        if (e.toString().contains('Uint64') || e is UnsupportedError) {
+          await _uploadViaExec(
+            client: client,
+            remoteDirectory: remoteDirectory,
+            item: item,
+            onProgress: onProgress,
+            isCancelled: isCancelled,
+          );
+        } else {
+          rethrow;
+        }
+      }
+    }
+  }
+
+  /// Streams binary file data directly into an SSH execution process (`cat > file`).
+  static Future<void> _uploadViaExec({
+    required SSHClient client,
+    required String remoteDirectory,
+    required FileTransferItem item,
+    void Function(int bytesUploaded, int totalBytes)? onProgress,
+    bool Function()? isCancelled,
+  }) async {
+    var targetDir = remoteDirectory.trim();
+    if (targetDir.isEmpty || targetDir == '~') {
+      targetDir = await resolveCurrentDirectory(client);
+    }
+
+    if (targetDir.length > 1 && targetDir.endsWith('/')) {
+      targetDir = targetDir.substring(0, targetDir.length - 1);
+    }
+
+    final remotePath = targetDir == '/' ? '/${item.name}' : '$targetDir/${item.name}';
+    final escapedPath = remotePath.replaceAll("'", "'\\''");
+
+    if (isCancelled?.call() == true) {
+      throw Exception('Upload cancelled');
+    }
+
+    final session = await client.execute("cat > '$escapedPath'");
+    const maxChunkSize = 32 * 1024;
+
+    try {
+      if (item.bytes != null) {
+        final data = item.bytes!;
+        final total = data.length;
+        var bytesSent = 0;
+
+        if (total == 0) {
+          session.stdin.add(Uint8List(0));
+          onProgress?.call(0, 0);
+        } else {
+          while (bytesSent < total) {
+            if (isCancelled?.call() == true) {
+              session.close();
+              try {
+                await client.execute("rm -f '$escapedPath'");
+              } catch (_) {}
+              throw Exception('Upload cancelled');
+            }
+            final chunkSize = min(total - bytesSent, maxChunkSize);
+            final chunk = data.sublist(bytesSent, bytesSent + chunkSize);
+            session.stdin.add(chunk);
+            bytesSent += chunkSize;
+            onProgress?.call(bytesSent, total);
+            // Micro-yield to allow UI and websocket processing
+            await Future.delayed(Duration.zero);
+          }
+        }
+      } else if (!kIsWeb && item.localPath != null) {
+        final file = File(item.localPath!);
+        final raf = await file.open(mode: FileMode.read);
+        try {
+          final total = await file.length();
+          var bytesSent = 0;
+          if (total == 0) {
+            session.stdin.add(Uint8List(0));
+            onProgress?.call(0, 0);
+          } else {
+            while (bytesSent < total) {
+              if (isCancelled?.call() == true) {
+                session.close();
+                try {
+                  await client.execute("rm -f '$escapedPath'");
+                } catch (_) {}
+                throw Exception('Upload cancelled');
+              }
+              final chunkSize = min(total - bytesSent, maxChunkSize);
+              final chunk = await raf.read(chunkSize);
+              if (chunk.isEmpty) break;
+              session.stdin.add(chunk);
+              bytesSent += chunk.length;
+              onProgress?.call(bytesSent, total);
+              await Future.delayed(Duration.zero);
+            }
+          }
+        } finally {
+          await raf.close();
+        }
+      } else if (item.readStream != null) {
+        var bytesSent = 0;
+        final total = item.size;
+        await for (final rawChunk in item.readStream!) {
+          if (isCancelled?.call() == true) {
+            session.close();
+            try {
+              await client.execute("rm -f '$escapedPath'");
+            } catch (_) {}
+            throw Exception('Upload cancelled');
+          }
+          final chunk = rawChunk is Uint8List ? rawChunk : Uint8List.fromList(rawChunk);
+          if (chunk.isNotEmpty) {
+            session.stdin.add(chunk);
+            bytesSent += chunk.length;
+            onProgress?.call(bytesSent, total > 0 ? total : bytesSent);
+            await Future.delayed(Duration.zero);
+          }
+        }
+        if (total > 0 && bytesSent < total) {
+          onProgress?.call(total, total);
+        }
+      } else {
+        throw Exception('No valid data source for ${item.name}');
+      }
+
+      await session.stdin.close();
+      await session.done;
+
+      if (session.exitCode != null && session.exitCode != 0) {
+        throw Exception('Upload failed on server with exit code ${session.exitCode}');
+      }
+    } catch (e) {
+      session.close();
+      rethrow;
+    }
+  }
+
+  /// Uploads a single file using the SFTP protocol.
+  static Future<void> _uploadViaSftp({
     required SSHClient client,
     required String remoteDirectory,
     required FileTransferItem item,
@@ -115,7 +287,6 @@ class FileTransferService {
         }
       }
 
-      // Ensure no trailing slash unless root
       if (targetDir.length > 1 && targetDir.endsWith('/')) {
         targetDir = targetDir.substring(0, targetDir.length - 1);
       }
