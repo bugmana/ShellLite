@@ -179,9 +179,10 @@ class ExtendedKeysSheet extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
+              const SheetDragHandle(),
               // Header
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 12, 4),
+                padding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

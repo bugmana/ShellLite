@@ -11,7 +11,7 @@
 ## ✨ Features
 
 - **Pure Dart SSHv2 Engine**: Powered by [`dartssh2`](https://pub.dev/packages/dartssh2) with interactive PTY shell sessions.
-- **Hardware-Accelerated Terminal**: ANSI/VT100 rendering via [`xterm.dart`](https://pub.dev/packages/xterm) with custom cursor styling, scrollback buffer, search, and dynamic resizing.
+- **Hardware-Accelerated Terminal**: ANSI/VT100 rendering via [`xterm.dart`](https://pub.dev/packages/xterm) with custom cursor styling, scrollback buffer, and dynamic resizing.
 - **Multiple Theme Presets**: Pre-configured terminal and UI palettes (**Obsidian**, **Catppuccin Mocha**, **Dracula**, **Nord**, **Tokyo Night**, and **Solarized Dark**).
 - **Flexible Authentication & Key Generator**: Password auth, unencrypted OpenSSH keys (**Ed25519**, **ECDSA**, **RSA**), and a built-in **Ed25519 key generator**.
 - **Hardware-Backed Encryption**: Secure storage for server credentials via [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) (iOS Keychain / Android KeyStore / Linux Secret Service).

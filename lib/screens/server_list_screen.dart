@@ -56,12 +56,18 @@ class _ServerListScreenState extends State<ServerListScreen> {
         backgroundColor: theme.surface,
         shape: RoundedRectangleBorder(
           side: BorderSide(color: theme.border),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
-        title: Text('Delete Server', style: TextStyle(color: theme.textPrimary)),
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline_rounded, color: theme.error, size: 22),
+            const SizedBox(width: 8),
+            Text('Delete Server', style: TextStyle(color: theme.textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Text(
           'Are you sure you want to delete "${profile.displayName}"?',
-          style: TextStyle(color: theme.textSecondary),
+          style: TextStyle(color: theme.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
@@ -69,12 +75,16 @@ class _ServerListScreenState extends State<ServerListScreen> {
             child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: theme.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () {
               context.read<ServerStore>().deleteProfile(profile.id);
               Navigator.of(ctx).pop();
             },
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

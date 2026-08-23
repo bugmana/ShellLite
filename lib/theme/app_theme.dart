@@ -109,7 +109,7 @@ class AppTheme {
         elevation: 6,
         shape: RoundedRectangleBorder(
           side: BorderSide(color: p.border, width: 1),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
         ),
         titleTextStyle: TextStyle(
           color: p.textPrimary,
@@ -235,3 +235,25 @@ class AppTheme {
     );
   }
 }
+
+/// Standardized top grab handle for bottom sheet modals across the app.
+class SheetDragHandle extends StatelessWidget {
+  const SheetDragHandle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    return Center(
+      child: Container(
+        width: 36,
+        height: 4,
+        margin: const EdgeInsets.only(top: 8, bottom: 6),
+        decoration: BoxDecoration(
+          color: theme.textSecondary.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+}
+

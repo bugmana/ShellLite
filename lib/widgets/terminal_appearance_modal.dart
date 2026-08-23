@@ -30,11 +30,13 @@ class TerminalAppearanceModal extends StatelessWidget {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SheetDragHandle(),
+            const SizedBox(height: 8),
             // Header Bar
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -56,7 +58,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Live Preview Card
             Container(

@@ -49,38 +49,67 @@ class ServerCard extends StatelessWidget {
     }
 
     return Card(
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: hasActiveSession
+              ? theme.primaryAccent.withValues(alpha: 0.6)
+              : theme.border,
+          width: hasActiveSession ? 1.5 : 1,
+        ),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       color: theme.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: hasActiveSession
-                            ? theme.primaryAccent.withValues(alpha: 0.6)
+                            ? theme.primaryAccent.withValues(alpha: 0.5)
                             : theme.border,
                         width: hasActiveSession ? 1.5 : 1,
                       ),
                     ),
-                    child: Icon(
-                      Icons.terminal_rounded,
-                      color: hasActiveSession
-                          ? theme.primaryAccent
-                          : theme.textSecondary,
-                      size: 22,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.terminal_rounded,
+                          color: hasActiveSession
+                              ? theme.primaryAccent
+                              : theme.textSecondary,
+                          size: 22,
+                        ),
+                        if (hasActiveSession)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: theme.success,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,18 +117,18 @@ class ServerCard extends StatelessWidget {
                         Text(
                           profile.displayName,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: theme.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
                           '${profile.username}@${profile.host}:${profile.port}',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12.5,
                             color: theme.textSecondary,
                             fontFamily: 'monospace',
                           ),
@@ -111,7 +140,7 @@ class ServerCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                     decoration: BoxDecoration(
                       color: theme.surface,
                       borderRadius: BorderRadius.circular(6),
@@ -122,7 +151,7 @@ class ServerCard extends StatelessWidget {
                       children: [
                         Icon(
                           isKeyAuth ? Icons.key_rounded : Icons.lock_outline_rounded,
-                          size: 13,
+                          size: 12,
                           color: theme.textSecondary,
                         ),
                         const SizedBox(width: 4),
@@ -140,7 +169,7 @@ class ServerCard extends StatelessWidget {
                   if (profile.persistSession) ...[
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3.5),
                       decoration: BoxDecoration(
                         color: theme.primaryAccent.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
@@ -153,7 +182,7 @@ class ServerCard extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.all_inclusive_rounded,
-                            size: 12,
+                            size: 11,
                             color: theme.primaryAccent,
                           ),
                           const SizedBox(width: 3),
@@ -171,12 +200,12 @@ class ServerCard extends StatelessWidget {
                     ),
                   ],
                   PopupMenuButton<String>(
-                    tooltip: '',
+                    tooltip: 'Server options',
                     icon: Icon(Icons.more_vert_rounded, color: theme.textSecondary, size: 20),
                     color: theme.surface,
                     shape: RoundedRectangleBorder(
                       side: BorderSide(color: theme.border),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     onSelected: (action) {
                       if (action == 'telemetry') {
@@ -223,7 +252,7 @@ class ServerCard extends StatelessWidget {
                 ],
               ),
               if (isLoadingTelemetry) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: theme.secondaryAccent)),
@@ -232,10 +261,10 @@ class ServerCard extends StatelessWidget {
                   ],
                 ),
               ] else if (telemetry != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
                     color: theme.surface,
                     borderRadius: BorderRadius.circular(8),

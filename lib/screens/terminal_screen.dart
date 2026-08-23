@@ -11,6 +11,7 @@ import '../services/ssh_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/directional_hud.dart';
+import '../widgets/file_upload_modal.dart';
 import '../widgets/keyboard_accessory_bar.dart';
 import '../widgets/terminal_appearance_modal.dart';
 
@@ -125,6 +126,21 @@ class _TerminalScreenState extends State<TerminalScreen> {
     _readTerminal(context).eraseDisplay();
   }
 
+  void _openFileUpload(BuildContext context) {
+    final session = _readSession(context);
+    if (session == null || !session.sshService.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Terminal session is not connected'),
+          backgroundColor: context.appTheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    FileUploadModal.show(context, session: session);
+  }
+
   Color _getStatusColor(SSHConnectionState state, AppThemeExtension theme) {
     switch (state) {
       case SSHConnectionState.connected:
@@ -208,6 +224,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.upload_file_rounded, size: 20),
+            tooltip: 'Upload File to Server',
+            onPressed: () => _openFileUpload(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.palette_outlined, size: 20),
             tooltip: 'Appearance & Themes',
             onPressed: () => TerminalAppearanceModal.show(context),
@@ -222,6 +243,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
             ),
             onSelected: (val) {
               switch (val) {
+                case 'upload':
+                  _openFileUpload(context);
+                  break;
                 case 'paste':
                   _pasteClipboard();
                   break;
@@ -247,6 +271,16 @@ class _TerminalScreenState extends State<TerminalScreen> {
               }
             },
             itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'upload',
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_upload_rounded, size: 18, color: theme.primaryAccent),
+                    const SizedBox(width: 10),
+                    const Expanded(child: Text('Upload File')),
+                  ],
+                ),
+              ),
               PopupMenuItem(
                 value: 'paste',
                 child: Row(

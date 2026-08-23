@@ -126,6 +126,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify paste, clear screen, reconnect, disconnect, gesture tips are in menu
+    expect(find.text('Upload File'), findsOneWidget);
     expect(find.text('Paste'), findsOneWidget);
     expect(find.text('Clear Screen'), findsOneWidget);
     expect(find.text('Reconnect'), findsOneWidget);
@@ -135,6 +136,19 @@ void main() {
     // Tap Clear Screen
     await tester.tap(find.text('Clear Screen'));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('TerminalScreen shows Upload File action button in AppBar', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final uploadButton = find.byIcon(Icons.upload_file_rounded);
+    expect(uploadButton, findsOneWidget);
+
+    // Tapping when disconnected shows disconnected snackbar
+    await tester.tap(uploadButton);
+    await tester.pump();
+    expect(find.text('Terminal session is not connected'), findsOneWidget);
   });
 
   testWidgets('TerminalScreen opens Terminal Appearance modal', (tester) async {

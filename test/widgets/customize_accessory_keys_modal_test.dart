@@ -97,10 +97,9 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('test_del'), 200, scrollable: find.byType(Scrollable));
-    expect(find.text('test_del'), findsOneWidget);
-
     final deleteButton = find.byIcon(Icons.delete_outline_rounded);
+    await tester.scrollUntilVisible(deleteButton, 200, scrollable: find.byType(Scrollable));
+    expect(find.text('test_del'), findsOneWidget);
     expect(deleteButton, findsOneWidget);
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();

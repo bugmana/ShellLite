@@ -219,7 +219,7 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.primaryAccent,
-              foregroundColor: Colors.black,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
@@ -310,7 +310,7 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.warning,
-              foregroundColor: Colors.black,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
@@ -331,7 +331,7 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
     final keys = store.configuredAccessoryKeys;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: theme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
@@ -340,9 +340,10 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
+            const SheetDragHandle(),
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 8),
+              padding: const EdgeInsets.fromLTRB(16, 6, 12, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

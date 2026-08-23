@@ -5,6 +5,7 @@ import 'package:dartssh2/dartssh2.dart';
 import '../config/app_config.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
+import 'file_transfer_service.dart';
 import 'key_parser.dart';
 import 'ssh_socket_factory.dart';
 import 'storage_service.dart';
@@ -32,6 +33,12 @@ class SSHService {
   SSHConnectionState get state => _state;
   String? get lastError => _lastError;
   bool get isConnected => _state == SSHConnectionState.connected;
+  SSHClient? get client => _client;
+
+  Future<String> resolveRemoteCurrentDirectory() async {
+    if (_client == null || !isConnected) return '~';
+    return FileTransferService.resolveRemoteCurrentDirectory(_client!);
+  }
 
   Future<void> connect({
     required ServerProfile profile,
