@@ -247,4 +247,33 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     expect(storedKey, encryptedKey.trim());
     expect(storedPass, validPassphrase);
   });
+
+  testWidgets('ServerFormScreen disables Startup Command box when tmux is toggled on', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Scroll down in ListView to reveal Persistent Session and Startup Command sections
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    final initialCmdFinder = find.byKey(const Key('initialCommandField'));
+    expect(initialCmdFinder, findsOneWidget);
+    expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isTrue);
+
+    // Toggle on Persistent Session (tmux)
+    final tmuxSwitch = find.widgetWithText(SwitchListTile, 'Persistent Session (tmux)');
+    expect(tmuxSwitch, findsOneWidget);
+    await tester.tap(tmuxSwitch);
+    await tester.pumpAndSettle();
+
+    // Initial Command box should be disabled / grayed out
+    expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isFalse);
+
+    // Toggle off Persistent Session (tmux)
+    await tester.tap(tmuxSwitch);
+    await tester.pumpAndSettle();
+
+    // Initial Command box should be enabled again
+    expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isTrue);
+  });
 }

@@ -205,7 +205,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
       port: port,
       username: _usernameController.text.trim(),
       authMethod: authMethod,
-      initialCommand: initialCmd.isNotEmpty ? initialCmd : null,
+      initialCommand: (!_persistSession && initialCmd.isNotEmpty) ? initialCmd : null,
       persistSession: _persistSession,
       tmuxSessionName: _persistSession && tmuxSession.isNotEmpty ? tmuxSession : null,
     );
@@ -694,14 +694,13 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                   _buildSectionHeader('STARTUP (OPTIONAL)', theme),
                   const SizedBox(height: 8),
                   TextFormField(
+                    key: const Key('initialCommandField'),
                     controller: _initialCommandController,
-                    decoration: InputDecoration(
+                    enabled: !_persistSession,
+                    decoration: const InputDecoration(
                       labelText: 'Initial Command',
                       hintText: 'e.g. htop or cd /var/www',
-                      helperText: _persistSession
-                          ? 'Initial command is skipped when tmux mode is enabled'
-                          : null,
-                      prefixIcon: const Icon(Icons.play_arrow_outlined, size: 20),
+                      prefixIcon: Icon(Icons.play_arrow_outlined, size: 20),
                     ),
                   ),
 
