@@ -128,11 +128,6 @@ class SSHService {
             'printf "\\r\\n\\033[33m[ShellLite] Notice: tmux is not installed on this host. Falling back to default shell.\\033[0m\\r\\n"; '
             'fi';
         sendInput('$tmuxCmd\n');
-
-        if (profile.initialCommand != null && profile.initialCommand!.trim().isNotEmpty) {
-          final cmd = profile.initialCommand!.trim();
-          sendInput('$cmd\n');
-        }
       } else if (profile.initialCommand != null && profile.initialCommand!.trim().isNotEmpty) {
         final cmd = profile.initialCommand!.trim();
         sendInput('$cmd\n');

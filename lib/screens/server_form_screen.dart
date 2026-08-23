@@ -695,10 +695,13 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _initialCommandController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Initial Command',
                       hintText: 'e.g. htop or cd /var/www',
-                      prefixIcon: Icon(Icons.play_arrow_outlined, size: 20),
+                      helperText: _persistSession
+                          ? 'Initial command is skipped when tmux mode is enabled'
+                          : null,
+                      prefixIcon: const Icon(Icons.play_arrow_outlined, size: 20),
                     ),
                   ),
 
