@@ -142,7 +142,7 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    final uploadButton = find.byIcon(Icons.upload_file_rounded);
+    final uploadButton = find.byIcon(Icons.cloud_upload_outlined);
     expect(uploadButton, findsOneWidget);
 
     // Tapping when disconnected shows disconnected snackbar

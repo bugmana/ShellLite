@@ -438,50 +438,66 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
 
   Widget _buildHeader(AppThemeExtension theme) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 8, 10, 12),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(18, 10, 10, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: _uploadComplete
-                  ? theme.success.withValues(alpha: 0.18)
-                  : theme.primaryAccent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              _uploadComplete
-                  ? Icons.check_circle_rounded
-                  : Icons.cloud_upload_outlined,
-              size: 20,
-              color: _uploadComplete ? theme.success : theme.primaryAccent,
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: theme.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _uploadComplete ? 'Upload Successful' : 'Upload Files to Server',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: theme.textPrimary,
-                  ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: _uploadComplete
+                      ? theme.success.withValues(alpha: 0.18)
+                      : theme.primaryAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Text(
+                child: Icon(
                   _uploadComplete
-                      ? '${_completedFiles.length} file(s) transferred'
-                      : '${widget.session.profile.displayName} (${widget.session.profile.username}@${widget.session.profile.host})',
-                  style: TextStyle(fontSize: 12, color: theme.textSecondary),
+                      ? Icons.check_circle_rounded
+                      : Icons.cloud_upload_outlined,
+                  size: 20,
+                  color: _uploadComplete ? theme.success : theme.primaryAccent,
                 ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.close, size: 20, color: theme.textSecondary),
-            onPressed: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _uploadComplete ? 'Upload Successful' : 'Upload Files to Server',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      _uploadComplete
+                          ? '${_completedFiles.length} file(s) transferred'
+                          : '${widget.session.profile.displayName} (${widget.session.profile.username}@${widget.session.profile.host})',
+                      style: TextStyle(fontSize: 12, color: theme.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, size: 20, color: theme.textSecondary),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
           ),
         ],
       ),

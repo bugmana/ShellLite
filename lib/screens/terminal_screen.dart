@@ -224,7 +224,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.upload_file_rounded, size: 20),
+            icon: const Icon(Icons.cloud_upload_outlined, size: 20),
             tooltip: 'Upload File to Server',
             onPressed: () => _openFileUpload(context),
           ),
