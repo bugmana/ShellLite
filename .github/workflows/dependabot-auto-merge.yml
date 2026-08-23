@@ -1,31 +1,29 @@
 name: Dependabot Auto-Merge
 
 on:
-  workflow_dispatch:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  enable-auto-merge:
-    name: Enable Auto-Merge
+  dependabot-auto-merge:
+    name: Enable Dependabot Auto-Merge
     runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
-    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Fetch Dependabot Metadata
+        if: github.event_name == 'pull_request'
         id: metadata
         uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Approve & Enable Native Auto-Merge
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+      - name: Approve & Enable Auto-Merge for PR
+        if: github.event_name == 'pull_request' && steps.metadata.outputs.update-type != 'version-update:semver-major'
         run: |
           gh pr review --approve "$PR_URL" || true
           gh pr merge --auto --squash "$PR_URL" || true
@@ -34,29 +32,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
 
-  merge-on-ci-success:
-    name: Merge On CI Success
-    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
-    steps:
-      - name: Merge Validated Dependabot PRs
+      - name: Process Open Dependabot PRs (Manual Dispatch)
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Searching for open Dependabot PRs..."
-            PRS=$(gh pr list --app dependabot --json number --jq '.[].number')
+          echo "Checking for open Dependabot PRs..."
+          PRS=$(gh pr list --app dependabot --json number --jq '.[].number')
+          if [ -z "$PRS" ]; then
+            echo "No open Dependabot PRs found."
+          else
             for PR in $PRS; do
               echo "Processing Dependabot PR #$PR..."
-              gh pr merge "$PR" --squash --delete-branch || true
+              gh pr review --approve "$PR" || true
+              gh pr merge --auto --squash "$PR" || true
             done
-          else
-            PR_NUMBER=$(gh pr list --search "${{ github.event.workflow_run.head_sha }}" --json number --jq '.[0].number')
-            if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
-              AUTHOR=$(gh pr view "$PR_NUMBER" --json author --jq '.author.login')
-              if [ "$AUTHOR" = "app/dependabot" ] || [ "$AUTHOR" = "dependabot[bot]" ]; then
-                echo "==> CI succeeded! Auto-merging Dependabot PR #$PR_NUMBER..."
-                gh pr merge "$PR_NUMBER" --squash --delete-branch || true
-              fi
-            fi
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
