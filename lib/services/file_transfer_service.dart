@@ -29,7 +29,7 @@ class FileUploadProgress {
   final String fileName;
   final int bytesUploaded;
   final int totalBytes;
-  final double percentage;
+  final double percentage; // 0.0 to 1.0
   final bool isComplete;
   final String? error;
 
@@ -41,76 +41,52 @@ class FileUploadProgress {
     this.isComplete = false,
     this.error,
   });
+
+  double get progress => percentage;
 }
 
-/// Service handling SFTP file uploads and remote current directory resolution.
 class FileTransferService {
-  /// Formats byte count into human-readable strings (e.g. 1.2 MB, 450 KB).
+  /// Alias for backward compatibility
+  static Future<String> resolveRemoteCurrentDirectory(SSHClient client) =>
+      resolveCurrentDirectory(client);
+
+  /// Format a byte count into a human-readable string (B, KB, MB, GB).
   static String formatBytes(int bytes) {
     if (bytes <= 0) return '0 B';
     const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
     final i = (log(bytes) / log(1024)).floor();
-    final index = min(i, suffixes.length - 1);
-    final value = bytes / pow(1024, index);
-    if (index == 0) {
+    final clampedIndex = i.clamp(0, suffixes.length - 1);
+    final value = bytes / pow(1024, clampedIndex);
+    if (clampedIndex == 0) {
       return '$bytes B';
     }
-    return '${value.toStringAsFixed(value < 10 ? 1 : 0)} ${suffixes[index]}';
+    final formatted = value.toStringAsFixed(1);
+    if (formatted.endsWith('.0') && value >= 10) {
+      return '${value.toInt()} ${suffixes[clampedIndex]}';
+    }
+    return '$formatted ${suffixes[clampedIndex]}';
   }
 
-  /// Attempts to resolve the current remote directory of the active SSH shell.
-  ///
-  /// Uses a multi-tiered fallback hierarchy:
-  /// 1. Tmux active pane path (if tmux session is active)
-  /// 2. Active PTS shell process `/proc/<pid>/cwd` or `pwdx`
-  /// 3. SFTP canonicalized home directory
-  /// 4. Fallback to '~'
-  static Future<String> resolveRemoteCurrentDirectory(SSHClient client) async {
+  /// Proactively resolves the current remote directory for the given SSH session.
+  static Future<String> resolveCurrentDirectory(SSHClient client) async {
     try {
-      const probeCmd =
-          'if command -v tmux >/dev/null 2>&1 && tmux display-message -p -F "#{pane_current_path}" 2>/dev/null; then '
-          'exit 0; '
-          'fi; '
-          'PTS_PID=\$((ps -o pid,tty,cmd -u "\$USER" 2>/dev/null || ps -ef 2>/dev/null) | grep -E "pts/|pts\\b" | grep -E "bash|zsh|sh|fish|ash" | grep -v "grep" | tail -n 1 | awk \'{print \$1}\'); '
-          'if [ -n "\$PTS_PID" ] && [ -e "/proc/\$PTS_PID/cwd" ]; then '
-          'readlink -f "/proc/\$PTS_PID/cwd" 2>/dev/null && exit 0; '
-          'fi; '
-          'if [ -n "\$PTS_PID" ] && command -v pwdx >/dev/null 2>&1; then '
-          'pwdx "\$PTS_PID" 2>/dev/null | awk \'{print \$2}\' && exit 0; '
-          'fi; '
-          'pwd';
-
-      final outputBytes = await client.run(probeCmd).timeout(
-            const Duration(seconds: 3),
-            onTimeout: () => Uint8List(0),
-          );
-
-      if (outputBytes.isNotEmpty) {
-        final lines = utf8.decode(outputBytes).split('\n');
-        for (final line in lines) {
-          final trimmed = line.trim();
-          if (trimmed.isNotEmpty && trimmed.startsWith('/')) {
-            return trimmed;
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('FileTransferService: CWD probe exec failed ($e), falling back to SFTP');
-    }
-
-    // Fallback: SFTP canonical real path of home / root
-    try {
-      final sftp = await client.sftp().timeout(const Duration(seconds: 3));
+      final sftp = await client.sftp();
       try {
-        final canonical = await sftp.absolute('.').timeout(const Duration(seconds: 2));
-        if (canonical.isNotEmpty) {
-          return canonical;
-        }
+        final absPath = await sftp.absolute('.');
+        return absPath;
       } finally {
         await sftp.close();
       }
-    } catch (e) {
-      debugPrint('FileTransferService: SFTP canonicalize failed: $e');
+    } catch (_) {
+      // Fallback via shell execution if SFTP absolute path is unsupported
+      try {
+        final session = await client.execute('pwd');
+        final output = await utf8.decodeStream(session.stdout);
+        final trimmed = output.trim();
+        if (trimmed.isNotEmpty && trimmed.startsWith('/')) {
+          return trimmed;
+        }
+      } catch (_) {}
     }
 
     return '~';
@@ -132,7 +108,6 @@ class FileTransferService {
 
       var targetDir = remoteDirectory.trim();
       if (targetDir.isEmpty || targetDir == '~') {
-        // Resolve ~ to absolute home if possible
         try {
           targetDir = await sftp.absolute('.');
         } catch (_) {
@@ -153,33 +128,72 @@ class FileTransferService {
       );
 
       try {
-        Stream<Uint8List> dataStream;
-        if (item.bytes != null) {
-          dataStream = Stream.value(item.bytes!);
-        } else if (item.localPath != null) {
-          dataStream = File(item.localPath!).openRead().map(Uint8List.fromList);
-        } else if (item.readStream != null) {
-          dataStream = item.readStream!.map(Uint8List.fromList);
-        } else {
-          throw Exception('No valid data source for ${item.name}');
-        }
+        const maxChunkSize = 32 * 1024;
 
-        var totalSent = 0;
-        final writer = remoteFile.write(
-          dataStream,
-          onProgress: (bytesWritten) {
+        if (item.bytes != null) {
+          final data = item.bytes!;
+          final total = data.length;
+          var bytesSent = 0;
+
+          if (total == 0) {
+            await remoteFile.writeBytes(Uint8List(0), offset: 0);
+            onProgress?.call(0, 0);
+          } else {
+            while (bytesSent < total) {
+              if (isCancelled?.call() == true) {
+                throw Exception('Upload cancelled');
+              }
+              final chunkSize = min(total - bytesSent, maxChunkSize);
+              final chunk = Uint8List.sublistView(data, bytesSent, bytesSent + chunkSize);
+              await remoteFile.writeBytes(chunk, offset: bytesSent);
+              bytesSent += chunkSize;
+              onProgress?.call(bytesSent, total);
+            }
+          }
+        } else if (!kIsWeb && item.localPath != null) {
+          final file = File(item.localPath!);
+          final raf = await file.open(mode: FileMode.read);
+          try {
+            final total = await file.length();
+            var bytesSent = 0;
+            if (total == 0) {
+              await remoteFile.writeBytes(Uint8List(0), offset: 0);
+              onProgress?.call(0, 0);
+            } else {
+              while (bytesSent < total) {
+                if (isCancelled?.call() == true) {
+                  throw Exception('Upload cancelled');
+                }
+                final chunkSize = min(total - bytesSent, maxChunkSize);
+                final chunk = await raf.read(chunkSize);
+                if (chunk.isEmpty) break;
+                await remoteFile.writeBytes(chunk, offset: bytesSent);
+                bytesSent += chunk.length;
+                onProgress?.call(bytesSent, total);
+              }
+            }
+          } finally {
+            await raf.close();
+          }
+        } else if (item.readStream != null) {
+          var bytesSent = 0;
+          final total = item.size;
+          await for (final rawChunk in item.readStream!) {
             if (isCancelled?.call() == true) {
               throw Exception('Upload cancelled');
             }
-            totalSent = bytesWritten;
-            onProgress?.call(bytesWritten, item.size);
-          },
-        );
-
-        await writer.done;
-        // Ensure 100% callback if completed
-        if (item.size > 0 && totalSent < item.size) {
-          onProgress?.call(item.size, item.size);
+            final chunk = rawChunk is Uint8List ? rawChunk : Uint8List.fromList(rawChunk);
+            if (chunk.isNotEmpty) {
+              await remoteFile.writeBytes(chunk, offset: bytesSent);
+              bytesSent += chunk.length;
+              onProgress?.call(bytesSent, total > 0 ? total : bytesSent);
+            }
+          }
+          if (total > 0 && bytesSent < total) {
+            onProgress?.call(total, total);
+          }
+        } else {
+          throw Exception('No valid data source for ${item.name}');
         }
       } finally {
         await remoteFile.close();

@@ -72,53 +72,60 @@ class CelebrationBurstPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final paint = Paint()..style = PaintingStyle.fill;
 
-    for (final p in particles) {
-      final distance = p.speed * Curves.easeOutCubic.transform(progress) * 95;
-      final gravity = progress * progress * 45;
-      final x = center.dx + cos(p.angle) * distance;
-      final y = center.dy + sin(p.angle) * distance + gravity;
+    for (var i = 0; i < particles.length; i++) {
+      final p = particles[i];
+      // Ease out movement with gravity curve
+      final distance = p.speed * 85.0 * sin(progress * pi / 2);
+      final dx = center.dx + cos(p.angle) * distance;
+      final dy = center.dy + sin(p.angle) * distance + (progress * progress * 35.0);
+
+      // Fade out opacity towards the end
       final alpha = (1.0 - progress).clamp(0.0, 1.0);
+      paint.color = p.color.withValues(alpha: alpha * 0.95);
 
-      paint.color = p.color.withValues(alpha: alpha);
+      final currentSize = p.size * (1.0 - progress * 0.4);
 
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(p.rotationSpeed * progress * pi * 2);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: Offset.zero, width: p.size, height: p.size * 0.55),
-          const Radius.circular(2),
-        ),
-        paint,
-      );
-      canvas.restore();
+      // Draw alternating shapes (sparkle circles and confetti rectangles)
+      if (i % 2 == 0) {
+        canvas.drawCircle(Offset(dx, dy), currentSize, paint);
+      } else {
+        canvas.save();
+        canvas.translate(dx, dy);
+        canvas.rotate(progress * p.rotationSpeed);
+        canvas.drawRect(
+          Rect.fromCenter(center: Offset.zero, width: currentSize * 2.2, height: currentSize * 1.2),
+          paint,
+        );
+        canvas.restore();
+      }
     }
   }
 
   @override
-  bool shouldRepaint(covariant CelebrationBurstPainter oldDelegate) =>
-      oldDelegate.progress != progress;
+  bool shouldRepaint(covariant CelebrationBurstPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
 }
 
-class _FileUploadModalState extends State<FileUploadModal>
-    with TickerProviderStateMixin {
-  late final TextEditingController _dirController;
-  bool _isLoadingDirectory = false;
+class _FileUploadModalState extends State<FileUploadModal> with TickerProviderStateMixin {
+  final TextEditingController _dirController = TextEditingController();
   final List<FileTransferItem> _selectedFiles = [];
 
+  bool _isLoadingDirectory = false;
   bool _isUploading = false;
+  bool _uploadComplete = false;
   bool _isCancelled = false;
+  String? _errorMessage;
+
   int _currentFileIndex = 0;
   int _currentFileUploadedBytes = 0;
   int _currentFileTotalBytes = 0;
   final List<String> _completedFiles = [];
-  String? _errorMessage;
-  bool _uploadComplete = false;
 
   late final AnimationController _successAnimController;
   late final Animation<double> _scaleAnimation;
+  late final Animation<double> _glowAnimation;
   late final Animation<double> _fadeAnimation;
-  late final Animation<double> _rippleAnimation;
 
   late final AnimationController _particleController;
   final List<CelebrationParticle> _particles = [];
@@ -126,36 +133,37 @@ class _FileUploadModalState extends State<FileUploadModal>
   @override
   void initState() {
     super.initState();
-    _dirController = TextEditingController(
-      text: widget.initialDirectory?.trim().isNotEmpty == true
-          ? widget.initialDirectory!.trim()
-          : '',
-    );
+    _initCelebrationAnimations();
+    _initDirectory();
+  }
 
-    if (_dirController.text.isEmpty) {
-      _resolveRemoteDirectory();
-    }
-
+  void _initCelebrationAnimations() {
     _successAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
 
-    _scaleAnimation = CurvedAnimation(
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.25)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 60,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.25, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 40,
+      ),
+    ]).animate(_successAnimController);
+
+    _glowAnimation = CurvedAnimation(
       parent: _successAnimController,
-      curve: Curves.elasticOut,
+      curve: const Interval(0.2, 0.9, curve: Curves.easeOut),
     );
 
     _fadeAnimation = CurvedAnimation(
       parent: _successAnimController,
-      curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
-    );
-
-    _rippleAnimation = Tween<double>(begin: 0.8, end: 1.8).animate(
-      CurvedAnimation(
-        parent: _successAnimController,
-        curve: const Interval(0.0, 0.8, curve: Curves.easeOutCubic),
-      ),
+      curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
     );
 
     _particleController = AnimationController(
@@ -163,36 +171,31 @@ class _FileUploadModalState extends State<FileUploadModal>
       duration: const Duration(milliseconds: 1400),
     );
 
-    _generateCelebrationParticles();
-  }
-
-  void _generateCelebrationParticles() {
-    final rng = Random(42);
+    // Initialize 36 confetti/burst particles
+    final random = Random(42);
     final colors = [
-      const Color(0xFF3FB950), // Green
-      const Color(0xFF38BDF8), // Cyan
-      const Color(0xFFFBBF24), // Amber
-      const Color(0xFFA855F7), // Purple
-      const Color(0xFFF43F5E), // Coral
-      const Color(0xFF22C55E), // Emerald
+      const Color(0xFF3FB950), // Emerald
+      const Color(0xFF58A6FF), // Cyan/Blue
+      const Color(0xFFF2CC60), // Amber
+      const Color(0xFFBC8CFF), // Purple
+      const Color(0xFFFF7B72), // Coral
+      const Color(0xFF39D353), // Bright Green
     ];
 
-    for (int i = 0; i < 36; i++) {
-      final angle = (i / 36) * 2 * pi + (rng.nextDouble() - 0.5) * 0.25;
-      final speed = 0.5 + rng.nextDouble() * 0.8;
-      final size = 6.0 + rng.nextDouble() * 6.0;
-      final color = colors[rng.nextInt(colors.length)];
-      final rotationSpeed = (rng.nextDouble() - 0.5) * 3.0;
+    for (var i = 0; i < 36; i++) {
+      final angle = (i * (2 * pi / 36)) + (random.nextDouble() * 0.2 - 0.1);
+      final speed = 0.5 + random.nextDouble() * 0.65;
+      final size = 2.5 + random.nextDouble() * 3.0;
+      final color = colors[random.nextInt(colors.length)];
+      final rotationSpeed = (random.nextDouble() - 0.5) * 8.0;
 
-      _particles.add(
-        CelebrationParticle(
-          angle: angle,
-          speed: speed,
-          size: size,
-          color: color,
-          rotationSpeed: rotationSpeed,
-        ),
-      );
+      _particles.add(CelebrationParticle(
+        angle: angle,
+        speed: speed,
+        size: size,
+        color: color,
+        rotationSpeed: rotationSpeed,
+      ));
     }
   }
 
@@ -204,25 +207,32 @@ class _FileUploadModalState extends State<FileUploadModal>
     super.dispose();
   }
 
-  Future<void> _resolveRemoteDirectory() async {
-    if (!mounted) return;
+  Future<void> _initDirectory() async {
+    if (widget.initialDirectory != null && widget.initialDirectory!.isNotEmpty) {
+      _dirController.text = widget.initialDirectory!;
+      return;
+    }
+
+    final client = widget.session.sshService.client;
+    if (client == null || !widget.session.sshService.isConnected) {
+      _dirController.text = '~';
+      return;
+    }
+
     setState(() {
       _isLoadingDirectory = true;
+      _errorMessage = null;
     });
 
     try {
-      final client = widget.session.sshService.client;
-      String path = '~';
-      if (client != null && widget.session.sshService.isConnected) {
-        path = await FileTransferService.resolveRemoteCurrentDirectory(client);
-      }
+      final resolved = await FileTransferService.resolveCurrentDirectory(client);
       if (mounted) {
         setState(() {
-          _dirController.text = path;
+          _dirController.text = resolved;
           _isLoadingDirectory = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           if (_dirController.text.isEmpty) {
@@ -282,32 +292,30 @@ class _FileUploadModalState extends State<FileUploadModal>
     setState(() {
       _isUploading = true;
       _isCancelled = false;
-      _currentFileIndex = 0;
-      _currentFileUploadedBytes = 0;
-      _currentFileTotalBytes = _selectedFiles[0].size;
-      _completedFiles.clear();
       _errorMessage = null;
       _uploadComplete = false;
+      _completedFiles.clear();
+      _currentFileIndex = 0;
+      _currentFileUploadedBytes = 0;
+      _currentFileTotalBytes = _selectedFiles.first.size;
     });
 
     try {
-      for (int i = 0; i < _selectedFiles.length; i++) {
+      for (var i = 0; i < _selectedFiles.length; i++) {
         if (_isCancelled) break;
 
         final item = _selectedFiles[i];
-        if (mounted) {
-          setState(() {
-            _currentFileIndex = i;
-            _currentFileTotalBytes = item.size;
-            _currentFileUploadedBytes = 0;
-          });
-        }
+
+        setState(() {
+          _currentFileIndex = i;
+          _currentFileTotalBytes = item.size;
+          _currentFileUploadedBytes = 0;
+        });
 
         await FileTransferService.uploadFile(
           client: client,
           remoteDirectory: targetDir,
           item: item,
-          isCancelled: () => _isCancelled,
           onProgress: (uploaded, total) {
             if (mounted && !_isCancelled) {
               setState(() {
@@ -316,6 +324,7 @@ class _FileUploadModalState extends State<FileUploadModal>
               });
             }
           },
+          isCancelled: () => _isCancelled,
         );
 
         if (!_isCancelled) {
@@ -381,12 +390,12 @@ class _FileUploadModalState extends State<FileUploadModal>
       child: SafeArea(
         child: Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.88,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SheetDragHandle(),
               _buildHeader(theme),
               const Divider(height: 1),
               Flexible(
@@ -443,12 +452,12 @@ class _FileUploadModalState extends State<FileUploadModal>
             child: Icon(
               _uploadComplete
                   ? Icons.check_circle_rounded
-                  : Icons.cloud_upload_rounded,
-              color: _uploadComplete ? theme.success : theme.primaryAccent,
+                  : Icons.cloud_upload_outlined,
               size: 20,
+              color: _uploadComplete ? theme.success : theme.primaryAccent,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,22 +470,17 @@ class _FileUploadModalState extends State<FileUploadModal>
                     color: theme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
                 Text(
-                  '${widget.session.profile.displayName} • ${widget.session.profile.username}@${widget.session.profile.host}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  _uploadComplete
+                      ? '${_completedFiles.length} file(s) transferred'
+                      : '${widget.session.profile.displayName} (${widget.session.profile.username}@${widget.session.profile.host})',
+                  style: TextStyle(fontSize: 12, color: theme.textSecondary),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, size: 20),
-            tooltip: 'Close',
+            icon: Icon(Icons.close, size: 20, color: theme.textSecondary),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -494,46 +498,21 @@ class _FileUploadModalState extends State<FileUploadModal>
             Text(
               'Remote Destination Folder',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: theme.textPrimary,
+                color: theme.textSecondary,
               ),
             ),
-            if (!_isUploading)
-              InkWell(
-                onTap: _isLoadingDirectory ? null : _resolveRemoteDirectory,
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  child: Row(
-                    children: [
-                      if (_isLoadingDirectory)
-                        SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: theme.secondaryAccent,
-                          ),
-                        )
-                      else
-                        Icon(
-                          Icons.refresh_rounded,
-                          size: 14,
-                          color: theme.secondaryAccent,
-                        ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Re-detect',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.secondaryAccent,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            if (_isLoadingDirectory)
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              GestureToRefresh(
+                onTap: _initDirectory,
+                theme: theme,
               ),
           ],
         ),
@@ -547,16 +526,9 @@ class _FileUploadModalState extends State<FileUploadModal>
             fontFamily: 'monospace',
           ),
           decoration: InputDecoration(
-            prefixIcon: Icon(
-              Icons.folder_open_rounded,
-              color: theme.primaryAccent,
-              size: 20,
-            ),
-            hintText: 'e.g. /home/user/project or ~',
-            hintStyle: TextStyle(
-              color: theme.textSecondary.withValues(alpha: 0.6),
-              fontSize: 13,
-            ),
+            hintText: '/home/user or ~',
+            hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.6)),
+            prefixIcon: Icon(Icons.folder_open_rounded, size: 18, color: theme.primaryAccent),
             filled: true,
             fillColor: theme.cardSurface,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -574,92 +546,45 @@ class _FileUploadModalState extends State<FileUploadModal>
             ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Target directory on the remote server where files will be uploaded.',
-          style: TextStyle(
-            fontSize: 11,
-            color: theme.textSecondary.withValues(alpha: 0.8),
-          ),
-        ),
       ],
     );
   }
 
   Widget _buildFilePickerSection(AppThemeExtension theme) {
-    if (_selectedFiles.isEmpty) {
-      return Material(
-        color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
+    return InkWell(
+      onTap: _pickFiles,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.cardSurface,
           borderRadius: BorderRadius.circular(10),
-          onTap: _pickFiles,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: theme.primaryAccent.withValues(alpha: 0.4),
-                width: 1.5,
+          border: Border.all(
+            color: theme.primaryAccent.withValues(alpha: 0.35),
+            style: BorderStyle.solid,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.file_upload_outlined, size: 36, color: theme.primaryAccent),
+            const SizedBox(height: 8),
+            Text(
+              'Select Files to Upload',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
+                fontSize: 14,
               ),
             ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.upload_file_rounded,
-                  size: 36,
-                  color: theme.primaryAccent,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Select Files to Upload',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: theme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tap to choose one or more files from your device',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.textSecondary,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 4),
+            Text(
+              'Tap to choose one or more files from your device',
+              style: TextStyle(color: theme.textSecondary, fontSize: 12),
             ),
-          ),
+          ],
         ),
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Selected Files (${_selectedFiles.length})',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: theme.textPrimary,
-          ),
-        ),
-        TextButton.icon(
-          onPressed: _pickFiles,
-          icon: Icon(Icons.add_rounded, size: 16, color: theme.primaryAccent),
-          label: Text(
-            'Add More',
-            style: TextStyle(fontSize: 12, color: theme.primaryAccent),
-          ),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -667,7 +592,7 @@ class _FileUploadModalState extends State<FileUploadModal>
     return Container(
       decoration: BoxDecoration(
         color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: theme.border),
       ),
       child: ListView.separated(
@@ -677,52 +602,22 @@ class _FileUploadModalState extends State<FileUploadModal>
         separatorBuilder: (_, __) => Divider(height: 1, color: theme.border),
         itemBuilder: (context, index) {
           final file = _selectedFiles[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.insert_drive_file_outlined,
-                  size: 20,
-                  color: theme.secondaryAccent,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        file.name,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: theme.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        file.formattedSize,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.close_rounded,
-                    size: 18,
-                    color: theme.textSecondary,
-                  ),
-                  tooltip: 'Remove',
-                  onPressed: () => _removeFile(index),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                ),
-              ],
+          return ListTile(
+            dense: true,
+            leading: Icon(Icons.insert_drive_file_outlined, size: 20, color: theme.primaryAccent),
+            title: Text(
+              file.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13, color: theme.textPrimary, fontWeight: FontWeight.w500),
+            ),
+            subtitle: Text(
+              file.formattedSize,
+              style: TextStyle(fontSize: 11, color: theme.textSecondary),
+            ),
+            trailing: IconButton(
+              icon: Icon(Icons.close, size: 16, color: theme.textSecondary),
+              onPressed: () => _removeFile(index),
             ),
           );
         },
@@ -731,27 +626,21 @@ class _FileUploadModalState extends State<FileUploadModal>
   }
 
   Widget _buildProgressView(AppThemeExtension theme) {
-    final currentFile = _selectedFiles.isNotEmpty && _currentFileIndex < _selectedFiles.length
-        ? _selectedFiles[_currentFileIndex]
-        : null;
-
-    final progress = _currentFileTotalBytes > 0
+    final currentFile = _selectedFiles[_currentFileIndex];
+    final fileProgress = _currentFileTotalBytes > 0
         ? (_currentFileUploadedBytes / _currentFileTotalBytes).clamp(0.0, 1.0)
         : 0.0;
-
-    final isAlmostDone = progress >= 0.99;
-    final progressColor = isAlmostDone ? theme.success : theme.primaryAccent;
+    final totalFiles = _selectedFiles.length;
+    final overallProgress = (totalFiles > 0)
+        ? ((_currentFileIndex + fileProgress) / totalFiles).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardSurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isAlmostDone
-              ? theme.success.withValues(alpha: 0.5)
-              : theme.border,
-        ),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,53 +648,29 @@ class _FileUploadModalState extends State<FileUploadModal>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Uploading file ${_currentFileIndex + 1} of ${_selectedFiles.length}...',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textPrimary,
+              Expanded(
+                child: Text(
+                  'Uploading (${_currentFileIndex + 1}/$totalFiles): ${currentFile.name}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: theme.textPrimary, fontSize: 13),
                 ),
               ),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: progressColor,
-                  fontFamily: 'monospace',
-                ),
-                child: Text('${(progress * 100).toInt()}%'),
+              const SizedBox(width: 8),
+              Text(
+                '${(overallProgress * 100).toStringAsFixed(0)}%',
+                style: TextStyle(fontWeight: FontWeight.bold, color: theme.primaryAccent, fontSize: 13),
               ),
             ],
           ),
-          if (currentFile != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              currentFile.name,
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.textSecondary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0.0, end: progress),
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOut,
-              builder: (context, animValue, _) {
-                return LinearProgressIndicator(
-                  value: animValue,
-                  backgroundColor: theme.surface,
-                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                  minHeight: 8,
-                );
-              },
+            child: LinearProgressIndicator(
+              value: overallProgress,
+              minHeight: 8,
+              backgroundColor: theme.border,
+              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryAccent),
             ),
           ),
           const SizedBox(height: 8),
@@ -813,36 +678,22 @@ class _FileUploadModalState extends State<FileUploadModal>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${FileTransferService.formatBytes(_currentFileUploadedBytes)} / ${FileTransferService.formatBytes(_currentFileTotalBytes)}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.textSecondary,
-                  fontFamily: 'monospace',
-                ),
+                '${FileTransferService.formatBytes(_currentFileUploadedBytes)} of ${FileTransferService.formatBytes(_currentFileTotalBytes)}',
+                style: TextStyle(fontSize: 11, color: theme.textSecondary),
               ),
-              Text(
-                'Total files: ${_selectedFiles.length}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.textSecondary,
+              TextButton(
+                onPressed: _cancelUpload,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(50, 24),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: theme.error, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: OutlinedButton.icon(
-              onPressed: _cancelUpload,
-              icon: Icon(Icons.cancel_outlined, size: 16, color: theme.error),
-              label: Text(
-                'Cancel Upload',
-                style: TextStyle(color: theme.error, fontSize: 13),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: theme.error.withValues(alpha: 0.5)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-            ),
           ),
         ],
       ),
@@ -872,131 +723,106 @@ class _FileUploadModalState extends State<FileUploadModal>
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Celebratory Particle Burst + Expanding Ripples + Bouncing Checkmark
+              // Custom Confetti & Checkmark Canvas Stack
               SizedBox(
-                height: 110,
+                width: 120,
+                height: 120,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Confetti Particles
+                    // Confetti Particles Canvas
                     CustomPaint(
-                      size: const Size(220, 110),
+                      size: const Size(120, 120),
                       painter: CelebrationBurstPainter(
                         progress: _particleController.value,
                         particles: _particles,
                       ),
                     ),
-                    // Outer Ripple
-                    Transform.scale(
-                      scale: _rippleAnimation.value,
+                    // Outer Ripple Ring 1
+                    Opacity(
+                      opacity: (1.0 - _glowAnimation.value).clamp(0.0, 1.0),
                       child: Container(
-                        width: 60,
-                        height: 60,
+                        width: 70 + (_glowAnimation.value * 35),
+                        height: 70 + (_glowAnimation.value * 35),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: theme.success.withValues(
-                              alpha: (0.7 * (1.0 - _successAnimController.value)).clamp(0.0, 0.7),
-                            ),
+                            color: theme.success.withValues(alpha: 0.4),
                             width: 2,
                           ),
                         ),
                       ),
                     ),
-                    // Inner Soft Glow
-                    Transform.scale(
-                      scale: 1.0 + (_rippleAnimation.value - 1.0) * 0.5,
+                    // Outer Ripple Ring 2
+                    Opacity(
+                      opacity: (1.0 - _glowAnimation.value * 0.8).clamp(0.0, 1.0),
                       child: Container(
-                        width: 60,
-                        height: 60,
+                        width: 60 + (_glowAnimation.value * 20),
+                        height: 60 + (_glowAnimation.value * 20),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: theme.success.withValues(
-                            alpha: (0.25 * (1.0 - _successAnimController.value)).clamp(0.0, 0.25),
+                          border: Border.all(
+                            color: theme.success.withValues(alpha: 0.6),
+                            width: 1.5,
                           ),
                         ),
                       ),
                     ),
-                    // Bouncing Checkmark Icon Badge
-                    ScaleTransition(
-                      scale: _scaleAnimation,
+                    // Bouncing Glowing Circle with Checkmark
+                    Transform.scale(
+                      scale: _scaleAnimation.value,
                       child: Container(
-                        width: 68,
-                        height: 68,
+                        width: 64,
+                        height: 64,
                         decoration: BoxDecoration(
-                          color: theme.success.withValues(alpha: 0.2),
+                          color: theme.success,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: theme.success,
-                            width: 2.5,
-                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: theme.success.withValues(alpha: 0.35),
+                              color: theme.success.withValues(alpha: 0.45),
                               blurRadius: 18,
-                              spreadRadius: 3,
+                              spreadRadius: 4,
                             ),
                           ],
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.check_rounded,
-                          color: theme.success,
-                          size: 40,
+                          size: 38,
+                          color: Colors.black,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Text(
-                  'Upload Complete!',
+                  'Upload Completed!',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: theme.textPrimary,
-                    letterSpacing: -0.2,
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              // Pill info badge
+              const SizedBox(height: 6),
               FadeTransition(
                 opacity: _fadeAnimation,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: theme.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.folder_rounded, size: 14, color: theme.secondaryAccent),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _dirController.text.trim(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.textSecondary,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  'Destination: ${_dirController.text.trim()}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    color: theme.textSecondary,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              // File chips summary
+              const SizedBox(height: 14),
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Wrap(
@@ -1126,6 +952,34 @@ class _FileUploadModalState extends State<FileUploadModal>
           ),
         ),
       ],
+    );
+  }
+}
+
+class GestureToRefresh extends StatelessWidget {
+  final VoidCallback onTap;
+  final AppThemeExtension theme;
+
+  const GestureToRefresh({super.key, required this.onTap, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          children: [
+            Icon(Icons.refresh_rounded, size: 13, color: theme.primaryAccent),
+            const SizedBox(width: 3),
+            Text(
+              'Re-detect',
+              style: TextStyle(fontSize: 11, color: theme.primaryAccent, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
