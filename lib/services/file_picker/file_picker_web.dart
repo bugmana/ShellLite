@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:typed_data';
 import 'package:web/web.dart' as web;
 import '../file_transfer_service.dart';
 
@@ -33,7 +34,9 @@ Future<List<FileTransferItem>> platformPickFiles() async {
 
           // Directly read binary ArrayBuffer from the browser File/Blob Promise
           final jsBuffer = await file.arrayBuffer().toDart;
-          final bytes = jsBuffer.toDart.asUint8List();
+          final jsList = jsBuffer.toDart.asUint8List();
+          // Create pure Dart Uint8List copy to ensure compatibility across all JS runtime accessors
+          final bytes = Uint8List.fromList(jsList);
 
           items.add(FileTransferItem(
             name: file.name,

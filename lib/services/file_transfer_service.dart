@@ -144,7 +144,7 @@ class FileTransferService {
                 throw Exception('Upload cancelled');
               }
               final chunkSize = min(total - bytesSent, maxChunkSize);
-              final chunk = Uint8List.sublistView(data, bytesSent, bytesSent + chunkSize);
+              final chunk = data.sublist(bytesSent, bytesSent + chunkSize);
               await remoteFile.writeBytes(chunk, offset: bytesSent);
               bytesSent += chunkSize;
               onProgress?.call(bytesSent, total);
