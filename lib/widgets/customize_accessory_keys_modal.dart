@@ -24,17 +24,17 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
     final descriptionController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
-    void insertSnippet(String snippet) {
+    void insertCode(String code) {
       final text = sequenceController.text;
       final sel = sequenceController.selection;
       if (sel.isValid && sel.start >= 0 && sel.end >= 0) {
-        final newText = text.replaceRange(sel.start, sel.end, snippet);
+        final newText = text.replaceRange(sel.start, sel.end, code);
         sequenceController.value = TextEditingValue(
           text: newText,
-          selection: TextSelection.collapsed(offset: sel.start + snippet.length),
+          selection: TextSelection.collapsed(offset: sel.start + code.length),
         );
       } else {
-        sequenceController.text = text + snippet;
+        sequenceController.text = text + code;
       }
     }
 
@@ -165,13 +165,13 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    _buildCodeChip(dialogCtx, theme, r'\e', 'Esc', insertSnippet),
-                    _buildCodeChip(dialogCtx, theme, r'\t', 'Tab', insertSnippet),
-                    _buildCodeChip(dialogCtx, theme, r'\n', 'Enter', insertSnippet),
-                    _buildCodeChip(dialogCtx, theme, '^C', 'SIGINT', insertSnippet),
-                    _buildCodeChip(dialogCtx, theme, '^D', 'EOF', insertSnippet),
-                    _buildCodeChip(dialogCtx, theme, '^Z', 'SIGTSTP', insertSnippet),
-                    _buildCodeChip(dialogCtx, theme, '^R', 'Reverse', insertSnippet),
+                    _buildCodeChip(dialogCtx, theme, r'\e', 'Esc', insertCode),
+                    _buildCodeChip(dialogCtx, theme, r'\t', 'Tab', insertCode),
+                    _buildCodeChip(dialogCtx, theme, r'\n', 'Enter', insertCode),
+                    _buildCodeChip(dialogCtx, theme, '^C', 'SIGINT', insertCode),
+                    _buildCodeChip(dialogCtx, theme, '^D', 'EOF', insertCode),
+                    _buildCodeChip(dialogCtx, theme, '^Z', 'SIGTSTP', insertCode),
+                    _buildCodeChip(dialogCtx, theme, '^R', 'Reverse', insertCode),
                   ],
                 ),
                 const SizedBox(height: 14),

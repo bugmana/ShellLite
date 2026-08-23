@@ -8,7 +8,6 @@ import 'customize_accessory_keys_modal.dart';
 
 class KeyboardAccessoryBar extends StatelessWidget {
   final ValueChanged<String> onKeyTap;
-  final VoidCallback? onSnippetTap;
   final VoidCallback? onExtendedKeysTap;
   final List<TerminalKeyShortcut>? keys;
 
@@ -17,7 +16,6 @@ class KeyboardAccessoryBar extends StatelessWidget {
   const KeyboardAccessoryBar({
     super.key,
     required this.onKeyTap,
-    this.onSnippetTap,
     this.onExtendedKeysTap,
     this.keys,
   });
@@ -76,22 +74,13 @@ class KeyboardAccessoryBar extends StatelessWidget {
               itemBuilder: (context, index) => _buildKeyButton(context, activeKeys[index], theme),
             ),
           ),
-          // Pinned right action area (Extended Keys & Snippet button)
+          // Pinned right action area (Extended Keys button)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             decoration: BoxDecoration(
               border: Border(left: BorderSide(color: theme.border, width: 1)),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildExtendedKeysButton(context, theme),
-                if (onSnippetTap != null) ...[
-                  const SizedBox(width: 6),
-                  _buildSnippetIconButton(theme),
-                ],
-              ],
-            ),
+            child: _buildExtendedKeysButton(context, theme),
           ),
         ],
       ),
@@ -151,34 +140,6 @@ class KeyboardAccessoryBar extends StatelessWidget {
               size: 18,
               color: theme.secondaryAccent,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSnippetIconButton(AppThemeExtension theme) {
-    return Material(
-      color: theme.primaryAccent.withValues(alpha: 0.18),
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(6),
-        onTap: onSnippetTap,
-        child: Container(
-          width: 34,
-          height: 34,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: theme.primaryAccent.withValues(alpha: 0.6),
-              width: 1,
-            ),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(
-            Icons.bolt_rounded,
-            size: 19,
-            color: theme.primaryAccent,
           ),
         ),
       ),

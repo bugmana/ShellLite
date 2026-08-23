@@ -12,7 +12,6 @@ import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/directional_hud.dart';
 import '../widgets/keyboard_accessory_bar.dart';
-import '../widgets/snippet_runner_sheet.dart';
 import '../widgets/terminal_appearance_modal.dart';
 
 class TerminalScreen extends StatefulWidget {
@@ -223,9 +222,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
             ),
             onSelected: (val) {
               switch (val) {
-                case 'snippets':
-                  SnippetRunnerSheet.show(context, _handleKeyTap);
-                  break;
                 case 'paste':
                   _pasteClipboard();
                   break;
@@ -251,16 +247,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
               }
             },
             itemBuilder: (ctx) => [
-              PopupMenuItem(
-                value: 'snippets',
-                child: Row(
-                  children: [
-                    Icon(Icons.bolt_rounded, size: 18, color: theme.primaryAccent),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Command Snippets')),
-                  ],
-                ),
-              ),
               PopupMenuItem(
                 value: 'paste',
                 child: Row(
@@ -350,7 +336,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
             ),
             KeyboardAccessoryBar(
               onKeyTap: _handleKeyTap,
-              onSnippetTap: () => SnippetRunnerSheet.show(context, _handleKeyTap),
             ),
           ],
         ),

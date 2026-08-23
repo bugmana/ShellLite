@@ -28,12 +28,15 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   late final TextEditingController _usernameController;
   late final TextEditingController _passwordController;
   late final TextEditingController _keyController;
+  late final TextEditingController _keyPassphraseController;
   late final TextEditingController _initialCommandController;
   late final TextEditingController _tmuxSessionNameController;
 
   AuthType _authType = AuthType.password;
   bool _obscurePassword = true;
   bool _obscureKey = false;
+  bool _obscureKeyPassphrase = true;
+  bool _isKeyEncrypted = false;
   bool _isLoadingCredential = false;
   bool _persistSession = false;
   String? _keyValidationError;
@@ -48,6 +51,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     _usernameController = TextEditingController(text: p?.username ?? '');
     _passwordController = TextEditingController();
     _keyController = TextEditingController();
+    _keyPassphraseController = TextEditingController();
     _initialCommandController = TextEditingController(text: p?.initialCommand ?? '');
     _tmuxSessionNameController = TextEditingController(text: p?.tmuxSessionName ?? '');
     _persistSession = p?.persistSession ?? false;
@@ -61,12 +65,18 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
 
   Future<void> _loadExistingCredential(ServerProfile profile) async {
     setState(() => _isLoadingCredential = true);
-    final cred = await context.read<ServerStore>().getCredential(profile);
+    final store = context.read<ServerStore>();
+    final cred = await store.getCredential(profile);
     if (mounted && cred != null) {
       if (profile.authMethod.type == AuthType.password) {
         _passwordController.text = cred;
       } else {
         _keyController.text = cred;
+        _isKeyEncrypted = SSHKeyParser.isEncrypted(cred);
+        final pass = await store.getKeyPassphrase(profile);
+        if (pass != null) {
+          _keyPassphraseController.text = pass;
+        }
       }
     }
     if (mounted) {
@@ -82,6 +92,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     _keyController.dispose();
+    _keyPassphraseController.dispose();
     _initialCommandController.dispose();
     _tmuxSessionNameController.dispose();
     super.dispose();
@@ -91,14 +102,22 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     return val.trim().replaceAll('\r\n', '\n').replaceAll('\r', '\n');
   }
 
-  void _validateKey(String val) {
+  void _validateKey(String val, [String? passphrase]) {
     final clean = _cleanKey(val);
     if (clean.isEmpty) {
-      setState(() => _keyValidationError = null);
+      setState(() {
+        _isKeyEncrypted = false;
+        _keyValidationError = null;
+      });
       return;
     }
+    final isEnc = SSHKeyParser.isEncrypted(clean);
+    setState(() {
+      _isKeyEncrypted = isEnc;
+    });
     try {
-      SSHKeyParser.parse(clean);
+      final pass = passphrase ?? _keyPassphraseController.text;
+      SSHKeyParser.parse(clean, passphrase: pass.isNotEmpty ? pass : null);
       setState(() => _keyValidationError = null);
     } catch (e) {
       setState(() => _keyValidationError = e.toString().replaceAll('SSHKeyException: ', ''));
@@ -108,7 +127,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   void _clearKey() {
     setState(() {
       _keyController.clear();
+      _keyPassphraseController.clear();
       _obscureKey = false;
+      _isKeyEncrypted = false;
       _keyValidationError = null;
     });
   }
@@ -118,6 +139,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     if (generated != null) {
       setState(() {
         _keyController.text = generated.privateKeyPem;
+        _keyPassphraseController.clear();
         _obscureKey = false;
         _validateKey(generated.privateKeyPem);
       });
@@ -149,10 +171,12 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    String? keyPassphrase;
     if (_authType == AuthType.sshKey) {
       final key = _cleanKey(_keyController.text);
+      keyPassphrase = _keyPassphraseController.text;
       try {
-        SSHKeyParser.parse(key);
+        SSHKeyParser.parse(key, passphrase: keyPassphrase.isNotEmpty ? keyPassphrase : null);
       } catch (e) {
         setState(() => _keyValidationError = e.toString().replaceAll('SSHKeyException: ', ''));
         return;
@@ -163,10 +187,13 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     final port = int.tryParse(_portController.text.trim()) ?? SSHConfig.defaultPort;
     final id = widget.existingProfile?.id ?? const Uuid().v4();
     final tag = StorageConfig.buildCredentialTag(id);
+    final passphraseTag = (keyPassphrase != null && keyPassphrase.isNotEmpty)
+        ? StorageConfig.buildKeyPassphraseTag(id)
+        : null;
 
     final authMethod = _authType == AuthType.password
         ? PasswordAuth(credentialTag: tag)
-        : SSHKeyAuth(privateKeyTag: tag);
+        : SSHKeyAuth(privateKeyTag: tag, passphraseTag: passphraseTag);
 
     final initialCmd = _initialCommandController.text.trim();
     final tmuxSession = _tmuxSessionNameController.text.trim();
@@ -188,11 +215,17 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
         : _cleanKey(_keyController.text);
 
     if (widget.existingProfile == null) {
-      await store.addProfile(profile, credential: credential);
+      await store.addProfile(
+        profile,
+        credential: credential,
+        keyPassphrase: keyPassphrase,
+      );
     } else {
       await store.updateProfile(
         profile,
         newCredential: credential.isNotEmpty ? credential : null,
+        newKeyPassphrase: keyPassphrase,
+        clearKeyPassphrase: keyPassphrase == null || keyPassphrase.isEmpty,
       );
     }
 
@@ -536,6 +569,51 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                         },
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _keyPassphraseController,
+                      obscureText: _obscureKeyPassphrase,
+                      decoration: InputDecoration(
+                        labelText: _isKeyEncrypted
+                            ? 'Key Passphrase (Required)'
+                            : 'Key Passphrase (Optional)',
+                        hintText: isEditing &&
+                                _keyPassphraseController.text.isEmpty &&
+                                widget.existingProfile?.authMethod is SSHKeyAuth &&
+                                (widget.existingProfile!.authMethod as SSHKeyAuth).isPassphraseProtected
+                            ? '•••••••• (Stored passphrase)'
+                            : 'Enter passphrase if key is encrypted',
+                        prefixIcon: const Icon(Icons.password_rounded, size: 20),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_keyPassphraseController.text.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                tooltip: 'Clear passphrase',
+                                onPressed: () {
+                                  setState(() => _keyPassphraseController.clear());
+                                  _validateKey(_keyController.text);
+                                },
+                              ),
+                            IconButton(
+                              icon: Icon(
+                                _obscureKeyPassphrase
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                size: 20,
+                              ),
+                              tooltip: _obscureKeyPassphrase ? 'Show passphrase' : 'Hide passphrase',
+                              onPressed: () =>
+                                  setState(() => _obscureKeyPassphrase = !_obscureKeyPassphrase),
+                            ),
+                          ],
+                        ),
+                      ),
+                      onChanged: (val) {
+                        _validateKey(_keyController.text, val);
+                      },
+                    ),
                     if (_keyValidationError != null) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -545,7 +623,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                     ],
                     const SizedBox(height: 6),
                     Text(
-                      'Supports unencrypted OpenSSH keys (Ed25519, ECDSA, RSA). Encrypted keys with passphrases are not supported.',
+                      'Supports OpenSSH keys (Ed25519, ECDSA, RSA) and password-protected / encrypted private keys.',
                       style: TextStyle(color: theme.textSecondary, fontSize: 12),
                     ),
                   ],

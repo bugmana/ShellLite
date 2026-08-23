@@ -17,10 +17,9 @@
 - **Hardware-Backed Encryption**: Secure storage for server credentials via [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) (iOS Keychain / Android KeyStore / Linux Secret Service).
 - **Biometric Security**: Protect your servers and sessions with Face ID, Touch ID, or Android Biometric Prompt.
 - **Directional Navigation HUD**: Press-and-hold virtual joystick overlay for effortless cursor navigation and command history scrolling on mobile touchscreens.
-- **Command Snippet Manager**: Save, organize, parameterize (`{{variable}}`), and run frequent SSH commands with one tap.
 - **Live Server Telemetry**: Background health dashboard monitoring CPU load, memory usage, disk utilization, and uptime.
 - **Persistent Sessions (tmux)**: Automatic tmux session attach and reconnection resilience.
-- **Touch Keyboard Accessory Bar**: Dedicated tactile shortcuts for `⇥ Tab`, `^C`, `^D`, `↑`, `↓`, `←`, `→`, `Esc`, `|`, `~`, `/`, and `-`.
+- **Customizable Keyboard Accessory Bar**: Dedicated tactile shortcuts (`⇥ Tab`, `^C`, `^D`, `↑`, `↓`, `←`, `→`, `Esc`, macros) with drag-and-drop reordering and custom keys.
 
 ---
 
@@ -71,9 +70,9 @@ flutter analyze
 ShellLite/
 ├── lib/
 │   ├── config/                         # App constants, terminal, accessory & storage configs
-│   ├── models/                         # ServerProfile, AuthMethod, Snippet, ServerTelemetry
-│   ├── providers/                      # ServerStore, SessionStore, SnippetStore, TelemetryStore, SecurityStore
-│   ├── screens/                        # ServerListScreen, ServerFormScreen, TerminalScreen, SnippetManagerScreen
+│   ├── models/                         # ServerProfile, AuthMethod, ServerTelemetry
+│   ├── providers/                      # ServerStore, SessionStore, TelemetryStore, SecurityStore, TerminalSettingsStore
+│   ├── screens/                        # ServerListScreen, ServerFormScreen, TerminalScreen
 │   ├── services/                       # KeyParser, KeyGenerator, SSHService, StorageService, TelemetryService
 │   ├── theme/                          # Dynamic multi-theme palettes & TerminalThemePresets
 │   └── widgets/                        # AccessoryBar, DirectionalHUD, SearchBar, Modals, AppLockScreen

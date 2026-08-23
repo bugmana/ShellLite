@@ -7,7 +7,6 @@ import '../theme/app_theme.dart';
 import '../widgets/server_card.dart';
 import '../widgets/terminal_appearance_modal.dart';
 import 'server_form_screen.dart';
-import 'snippet_manager_screen.dart';
 import 'terminal_screen.dart';
 
 class ServerListScreen extends StatefulWidget {
@@ -114,13 +113,6 @@ class _ServerListScreenState extends State<ServerListScreen> {
             icon: const Icon(Icons.palette_outlined),
             tooltip: 'Appearance & Themes',
             onPressed: () => TerminalAppearanceModal.show(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.bolt_rounded),
-            tooltip: 'Command Snippets',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SnippetManagerScreen()),
-            ),
           ),
         ],
       ),

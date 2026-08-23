@@ -65,5 +65,45 @@ void main() {
       final cred = await store.getCredential(updated);
       expect(cred, 'pass2');
     });
+
+    test('Add, retrieve key passphrase, update passphrase, and delete profile', () async {
+      await store.load();
+
+      final profile = ServerProfile(
+        displayName: 'Protected SSH Node',
+        host: '10.0.0.20',
+        username: 'ubuntu',
+        authMethod: const SSHKeyAuth(
+          privateKeyTag: 'cred_node_ssh',
+          passphraseTag: 'key_pass_node_ssh',
+        ),
+      );
+
+      await store.addProfile(
+        profile,
+        credential: '-----BEGIN OPENSSH PRIVATE KEY-----...',
+        keyPassphrase: 'mypassphrase123',
+      );
+
+      expect(store.profiles.length, 1);
+      final savedKey = await store.getCredential(profile);
+      final savedPass = await store.getKeyPassphrase(profile);
+      expect(savedKey, '-----BEGIN OPENSSH PRIVATE KEY-----...');
+      expect(savedPass, 'mypassphrase123');
+
+      // Update passphrase
+      await store.updateProfile(
+        profile,
+        newKeyPassphrase: 'newpassphrase456',
+      );
+      final updatedPass = await store.getKeyPassphrase(profile);
+      expect(updatedPass, 'newpassphrase456');
+
+      // Delete profile and ensure both key and passphrase credentials are deleted
+      await store.deleteProfile(profile.id);
+      expect(store.isEmpty, isTrue);
+      expect(await store.getCredential(profile), isNull);
+      expect(await store.getKeyPassphrase(profile), isNull);
+    });
   });
 }

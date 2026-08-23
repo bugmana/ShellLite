@@ -4,7 +4,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/server_profile.dart';
-import '../models/snippet.dart';
 
 /// Handles persistence for ServerProfiles and encrypted credentials.
 class StorageService {
@@ -209,33 +208,6 @@ class StorageService {
       final prefs = await _sharedPrefs;
       await prefs.setString(StorageConfig.terminalFontFamilyKey, fontFamily);
     } catch (_) {}
-  }
-
-  // ── Snippets Persistence ───────────────────────────────────────────────────
-
-  Future<List<Snippet>> loadSnippets() async {
-    try {
-      final prefs = await _sharedPrefs;
-      final raw = prefs.getString(StorageConfig.snippetsKey);
-      if (raw == null || raw.isEmpty) {
-        return DefaultSnippets.defaults;
-      }
-      final List decoded = jsonDecode(raw);
-      return decoded.map((e) => Snippet.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (e) {
-      debugPrint('StorageService.loadSnippets error: $e');
-      return DefaultSnippets.defaults;
-    }
-  }
-
-  Future<void> saveSnippets(List<Snippet> snippets) async {
-    try {
-      final prefs = await _sharedPrefs;
-      final raw = jsonEncode(snippets.map((s) => s.toJson()).toList());
-      await prefs.setString(StorageConfig.snippetsKey, raw);
-    } catch (e) {
-      debugPrint('StorageService.saveSnippets error: $e');
-    }
   }
 
   // ── Accessory Bar Keys Persistence ─────────────────────────────────────────

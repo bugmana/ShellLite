@@ -61,7 +61,11 @@ class SSHService {
         if (pem == null || pem.isEmpty) {
           throw Exception('No private key found for server profile.');
         }
-        keyPairs = SSHKeyParser.parse(pem);
+        String? keyPassphrase;
+        if (auth.passphraseTag != null) {
+          keyPassphrase = await storage.retrieveCredential(auth.passphraseTag!);
+        }
+        keyPairs = SSHKeyParser.parse(pem, passphrase: keyPassphrase);
       }
 
       final socket = await SSHSocketFactory.connect(

@@ -59,6 +59,30 @@ void main() {
 
       expect(decoded.authMethod, isA<SSHKeyAuth>());
       expect((decoded.authMethod as SSHKeyAuth).privateKeyTag, 'key-xyz');
+      expect((decoded.authMethod as SSHKeyAuth).passphraseTag, isNull);
+      expect((decoded.authMethod as SSHKeyAuth).isPassphraseProtected, isFalse);
+      expect(decoded, original);
+    });
+
+    test('SSHKey auth with passphraseTag JSON round-trip', () {
+      final original = ServerProfile(
+        displayName: 'Protected Bastion',
+        host: 'bastion2.internal',
+        port: 2222,
+        username: 'ops',
+        authMethod: const SSHKeyAuth(
+          privateKeyTag: 'key-abc',
+          passphraseTag: 'pass-abc',
+        ),
+      );
+      final jsonStr = json.encode(original.toJson());
+      final decoded = ServerProfile.fromJson(json.decode(jsonStr) as Map<String, dynamic>);
+
+      expect(decoded.authMethod, isA<SSHKeyAuth>());
+      final auth = decoded.authMethod as SSHKeyAuth;
+      expect(auth.privateKeyTag, 'key-abc');
+      expect(auth.passphraseTag, 'pass-abc');
+      expect(auth.isPassphraseProtected, isTrue);
       expect(decoded, original);
     });
 

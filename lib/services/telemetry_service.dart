@@ -45,7 +45,12 @@ class TelemetryService {
       List<SSHKeyPair>? keyPairs;
       if (profile.authMethod is SSHKeyAuth && credential != null && credential.isNotEmpty) {
         try {
-          keyPairs = SSHKeyParser.parse(credential);
+          String? keyPassphrase;
+          final sshAuth = profile.authMethod as SSHKeyAuth;
+          if (sshAuth.passphraseTag != null) {
+            keyPassphrase = await storage.retrieveCredential(sshAuth.passphraseTag!);
+          }
+          keyPairs = SSHKeyParser.parse(credential, passphrase: keyPassphrase);
         } catch (e) {
           debugPrint('TelemetryService key parse error: $e');
         }

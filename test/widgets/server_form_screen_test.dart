@@ -176,4 +176,75 @@ void main() {
     expect(find.textContaining('Key must be wrapped in PEM headers'), findsOneWidget);
     expect(serverStore.profiles, isEmpty);
   });
+
+  testWidgets('ServerFormScreen creates server with passphrase-protected SSH key', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const encryptedKey = '''
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABC0l9Iobg
+dIkpFRXIVcSMo9AAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIDl6gJA/mTwGajQU
+GysVNxbg5DLxNkxNMr1N6nMqmILLAAAAoAheLDCmikMrd30h6Z3ug4h7WsK8TjBYToUkhO
+1fu5qRd6pgCCeQt0C5eeJMkCSNTP+HZyWT9Vc67VCvzaECjFfXYJUsRYdknAXEO4oFc9fg
+v8qGMQTFoIajXQk8Gk9QLqGQ0nupn4fZ3BhHhMoDIx7DWLhlvHddSJzgkORIt4bV8ntzh8
+AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
+-----END OPENSSH PRIVATE KEY-----
+''';
+    const validPassphrase = '123456';
+
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Display Name'), 'Encrypted Key Server');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Host / IP Address'), '10.0.0.99');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'arch');
+
+    // Switch to SSH Key mode
+    await tester.tap(find.text('SSH Key'));
+    await tester.pumpAndSettle();
+
+    final keyFieldFinder = find.byWidgetPredicate(
+      (w) => w is TextField && (w.decoration?.hintText?.contains('BEGIN OPENSSH') ?? false),
+    );
+    await tester.enterText(keyFieldFinder, encryptedKey);
+    await tester.pumpAndSettle();
+
+    // Verify passphrase field indicates required
+    final passFieldFinder = find.widgetWithText(TextFormField, 'Key Passphrase (Required)');
+    expect(passFieldFinder, findsOneWidget);
+
+    // Enter wrong passphrase first
+    await tester.ensureVisible(passFieldFinder);
+    await tester.enterText(passFieldFinder, 'wrongpassword');
+    await tester.pumpAndSettle();
+
+    // Tap Save - Should fail validation
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Incorrect passphrase'), findsOneWidget);
+    expect(serverStore.profiles, isEmpty);
+
+    // Enter correct passphrase
+    await tester.enterText(passFieldFinder, validPassphrase);
+    await tester.pumpAndSettle();
+
+    // Tap Save - Should succeed
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(serverStore.profiles.length, 1);
+    final savedProfile = serverStore.profiles.first;
+    expect(savedProfile.displayName, 'Encrypted Key Server');
+    expect(savedProfile.authMethod, isA<SSHKeyAuth>());
+    final auth = savedProfile.authMethod as SSHKeyAuth;
+    expect(auth.isPassphraseProtected, isTrue);
+
+    final storedKey = await serverStore.getCredential(savedProfile);
+    final storedPass = await serverStore.getKeyPassphrase(savedProfile);
+    expect(storedKey, encryptedKey.trim());
+    expect(storedPass, validPassphrase);
+  });
 }

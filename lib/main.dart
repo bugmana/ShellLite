@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'providers/security_store.dart';
 import 'providers/server_store.dart';
 import 'providers/session_store.dart';
-import 'providers/snippet_store.dart';
 import 'providers/telemetry_store.dart';
 import 'providers/terminal_settings_store.dart';
 import 'screens/server_list_screen.dart';
@@ -30,14 +29,12 @@ void main() async {
 
   final store = ServerStore(storageService: storageService);
   final terminalSettings = TerminalSettingsStore(storageService: storageService);
-  final snippetStore = SnippetStore(storageService: storageService);
   final telemetryStore = TelemetryStore(storageService: storageService);
   final sessionStore = SessionStore(storageService: storageService);
   final securityStore = SecurityStore(securityService: securityService);
 
   await store.load();
   await terminalSettings.load();
-  await snippetStore.load();
   await securityStore.load();
 
   runApp(
@@ -46,7 +43,6 @@ void main() async {
         Provider<StorageService>.value(value: storageService),
         ChangeNotifierProvider<ServerStore>.value(value: store),
         ChangeNotifierProvider<TerminalSettingsStore>.value(value: terminalSettings),
-        ChangeNotifierProvider<SnippetStore>.value(value: snippetStore),
         ChangeNotifierProvider<TelemetryStore>.value(value: telemetryStore),
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         ChangeNotifierProvider<SecurityStore>.value(value: securityStore),

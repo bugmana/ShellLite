@@ -78,26 +78,18 @@ void main() {
     expect(find.text('Extended Keys & Shortcuts'), findsNothing);
   });
 
-  testWidgets('KeyboardAccessoryBar renders icon-only snippets button and triggers callback', (tester) async {
-    bool snippetTapped = false;
-
+  testWidgets('KeyboardAccessoryBar renders pinned extended keys button and no snippet button', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: KeyboardAccessoryBar(
             onKeyTap: (_) {},
-            onSnippetTap: () => snippetTapped = true,
           ),
         ),
       ),
     );
 
-    final snippetIcon = find.byIcon(Icons.bolt_rounded);
-    expect(snippetIcon, findsOneWidget);
-
-    await tester.tap(snippetIcon);
-    await tester.pump();
-
-    expect(snippetTapped, isTrue);
+    expect(find.byIcon(Icons.keyboard_double_arrow_up_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.bolt_rounded), findsNothing);
   });
 }

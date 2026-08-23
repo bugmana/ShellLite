@@ -15,7 +15,10 @@ sealed class AuthMethod {
       case 'password':
         return PasswordAuth(credentialTag: json['credentialTag'] as String);
       case 'sshKey':
-        return SSHKeyAuth(privateKeyTag: json['privateKeyTag'] as String);
+        return SSHKeyAuth(
+          privateKeyTag: json['privateKeyTag'] as String,
+          passphraseTag: json['passphraseTag'] as String?,
+        );
       default:
         throw ArgumentError('Unknown auth type: $type');
     }
@@ -53,8 +56,14 @@ class PasswordAuth extends AuthMethod {
 
 class SSHKeyAuth extends AuthMethod {
   final String privateKeyTag;
+  final String? passphraseTag;
 
-  const SSHKeyAuth({required this.privateKeyTag});
+  const SSHKeyAuth({
+    required this.privateKeyTag,
+    this.passphraseTag,
+  });
+
+  bool get isPassphraseProtected => passphraseTag != null;
 
   @override
   AuthType get type => AuthType.sshKey;
@@ -66,6 +75,7 @@ class SSHKeyAuth extends AuthMethod {
   Map<String, dynamic> toJson() => {
         'type': 'sshKey',
         'privateKeyTag': privateKeyTag,
+        if (passphraseTag != null) 'passphraseTag': passphraseTag,
       };
 
   @override
@@ -73,11 +83,13 @@ class SSHKeyAuth extends AuthMethod {
       identical(this, other) ||
       other is SSHKeyAuth &&
           runtimeType == other.runtimeType &&
-          privateKeyTag == other.privateKeyTag;
+          privateKeyTag == other.privateKeyTag &&
+          passphraseTag == other.passphraseTag;
 
   @override
-  int get hashCode => privateKeyTag.hashCode;
+  int get hashCode => Object.hash(privateKeyTag, passphraseTag);
 
   @override
-  String toString() => 'SSHKeyAuth(privateKeyTag: $privateKeyTag)';
+  String toString() =>
+      'SSHKeyAuth(privateKeyTag: $privateKeyTag, passphraseTag: $passphraseTag)';
 }

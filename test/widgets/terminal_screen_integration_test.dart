@@ -5,9 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shell_lite/models/auth_method.dart';
 import 'package:shell_lite/models/server_profile.dart';
-import 'package:shell_lite/models/snippet.dart';
 import 'package:shell_lite/providers/session_store.dart';
-import 'package:shell_lite/providers/snippet_store.dart';
 import 'package:shell_lite/providers/terminal_settings_store.dart';
 import 'package:shell_lite/screens/terminal_screen.dart';
 import 'package:shell_lite/services/storage_service.dart';
@@ -21,7 +19,6 @@ void main() {
   late StorageService storageService;
   late SessionStore sessionStore;
   late TerminalSettingsStore terminalSettingsStore;
-  late SnippetStore snippetStore;
   late ServerProfile testProfile;
 
   setUp(() async {
@@ -31,10 +28,8 @@ void main() {
     storageService = StorageService(prefs: prefs);
     sessionStore = SessionStore(storageService: storageService);
     terminalSettingsStore = TerminalSettingsStore(storageService: storageService);
-    snippetStore = SnippetStore(storageService: storageService);
 
     await terminalSettingsStore.load();
-    await snippetStore.load();
 
     testProfile = ServerProfile(
       id: 'test-server-1',
@@ -55,7 +50,6 @@ void main() {
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         ChangeNotifierProvider<TerminalSettingsStore>.value(value: terminalSettingsStore),
-        ChangeNotifierProvider<SnippetStore>.value(value: snippetStore),
         Provider<StorageService>.value(value: storageService),
       ],
       child: MaterialApp(
@@ -162,39 +156,5 @@ void main() {
     await tester.pump();
 
     expect(terminalSettingsStore.themeId, 'catppuccin');
-  });
-
-  testWidgets('TerminalScreen opens Snippet Runner Sheet from More Actions menu', (tester) async {
-    await snippetStore.deleteSnippet(snippetStore.snippets.first.id);
-    await snippetStore.addSnippet(
-      const Snippet(
-        id: 'unique_snip_1',
-        title: 'Custom Snippet For Test',
-        command: 'echo custom_test\n',
-      ),
-    );
-
-    await tester.pumpWidget(createTestWidget());
-    await tester.pumpAndSettle();
-
-    // Tap More Actions popup menu in app bar
-    final moreButton = find.byTooltip('More actions');
-    expect(moreButton, findsOneWidget);
-    await tester.tap(moreButton);
-    await tester.pumpAndSettle();
-
-    // Tap Command Snippets in menu
-    final snippetsMenuItem = find.text('Command Snippets');
-    expect(snippetsMenuItem, findsOneWidget);
-    await tester.tap(snippetsMenuItem);
-    await tester.pumpAndSettle();
-
-    // Snippet sheet should display
-    expect(find.text('Custom Snippet For Test'), findsOneWidget);
-    expect(find.text('echo custom_test'), findsOneWidget);
-
-    // Tap the snippet to execute
-    await tester.tap(find.text('Custom Snippet For Test'));
-    await tester.pumpAndSettle();
   });
 }

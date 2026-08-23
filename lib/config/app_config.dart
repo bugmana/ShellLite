@@ -35,11 +35,6 @@ class ServerConfig {
   static const int maxServers = 10;
 }
 
-/// Snippet limits and defaults.
-class SnippetConfig {
-  static const int maxSnippets = 10;
-}
-
 /// SSH Connection and Networking defaults.
 class SSHConfig {
   static const int defaultPort = 22;
@@ -51,15 +46,16 @@ class SSHConfig {
 class StorageConfig {
   static const String profilesKey = 'shell_lite_server_profiles_v1';
   static const String credentialPrefix = 'cred_';
+  static const String keyPassphrasePrefix = 'key_pass_';
   static const String hasSeenGestureTipKey = 'shell_lite_has_seen_gesture_tip_v1';
   static const String terminalThemeKey = 'shell_lite_terminal_theme_id_v1';
   static const String terminalFontSizeKey = 'shell_lite_terminal_font_size_v1';
   static const String terminalFontFamilyKey = 'shell_lite_terminal_font_family_v1';
-  static const String snippetsKey = 'shell_lite_snippets_v1';
   static const String accessoryKeysKey = 'shell_lite_accessory_keys_v1';
   static const String hapticFeedbackKey = 'shell_lite_haptic_feedback_v1';
 
   static String buildCredentialTag(String profileId) => '$credentialPrefix$profileId';
+  static String buildKeyPassphraseTag(String profileId) => '$keyPassphrasePrefix$profileId';
 }
 
 /// Helper to decode escape codes from user input into terminal sequences.
