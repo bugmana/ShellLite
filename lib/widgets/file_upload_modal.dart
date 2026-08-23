@@ -1,7 +1,6 @@
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../providers/session_store.dart';
+import '../services/file_picker/file_picker_service.dart';
 import '../services/file_transfer_service.dart';
 import '../theme/app_theme.dart';
 
@@ -106,26 +105,14 @@ class _FileUploadModalState extends State<FileUploadModal> {
 
   Future<void> _pickFiles() async {
     try {
-      final result = await FilePicker.pickFiles(
-        allowMultiple: true,
-        withData: kIsWeb,
-        withReadStream: !kIsWeb,
-      );
+      final items = await AppFilePicker.pickFiles();
 
-      if (result != null && result.files.isNotEmpty && mounted) {
+      if (items.isNotEmpty && mounted) {
         setState(() {
-          for (final file in result.files) {
+          for (final item in items) {
             // Avoid duplicates by name
-            if (!_selectedFiles.any((f) => f.name == file.name)) {
-              _selectedFiles.add(
-                FileTransferItem(
-                  name: file.name,
-                  size: file.size,
-                  localPath: file.path,
-                  bytes: file.bytes,
-                  readStream: file.readStream,
-                ),
-              );
+            if (!_selectedFiles.any((f) => f.name == item.name)) {
+              _selectedFiles.add(item);
             }
           }
           _errorMessage = null;

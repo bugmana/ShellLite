@@ -22,6 +22,7 @@ dependencies:
   local_auth: ^2.3.0
   web_socket_channel: ^3.0.3
   file_picker: ^11.0.3
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:
