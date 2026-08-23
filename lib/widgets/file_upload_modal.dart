@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../providers/session_store.dart';
 import '../services/file_picker/file_picker_service.dart';
@@ -39,7 +40,68 @@ class FileUploadModal extends StatefulWidget {
   State<FileUploadModal> createState() => _FileUploadModalState();
 }
 
-class _FileUploadModalState extends State<FileUploadModal> {
+class CelebrationParticle {
+  final double angle;
+  final double speed;
+  final double size;
+  final Color color;
+  final double rotationSpeed;
+
+  const CelebrationParticle({
+    required this.angle,
+    required this.speed,
+    required this.size,
+    required this.color,
+    required this.rotationSpeed,
+  });
+}
+
+class CelebrationBurstPainter extends CustomPainter {
+  final double progress;
+  final List<CelebrationParticle> particles;
+
+  CelebrationBurstPainter({
+    required this.progress,
+    required this.particles,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0.0 || progress >= 1.0) return;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (final p in particles) {
+      final distance = p.speed * Curves.easeOutCubic.transform(progress) * 95;
+      final gravity = progress * progress * 45;
+      final x = center.dx + cos(p.angle) * distance;
+      final y = center.dy + sin(p.angle) * distance + gravity;
+      final alpha = (1.0 - progress).clamp(0.0, 1.0);
+
+      paint.color = p.color.withValues(alpha: alpha);
+
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(p.rotationSpeed * progress * pi * 2);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset.zero, width: p.size, height: p.size * 0.55),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CelebrationBurstPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+class _FileUploadModalState extends State<FileUploadModal>
+    with TickerProviderStateMixin {
   late final TextEditingController _dirController;
   bool _isLoadingDirectory = false;
   final List<FileTransferItem> _selectedFiles = [];
@@ -53,6 +115,14 @@ class _FileUploadModalState extends State<FileUploadModal> {
   String? _errorMessage;
   bool _uploadComplete = false;
 
+  late final AnimationController _successAnimController;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _rippleAnimation;
+
+  late final AnimationController _particleController;
+  final List<CelebrationParticle> _particles = [];
+
   @override
   void initState() {
     super.initState();
@@ -65,11 +135,72 @@ class _FileUploadModalState extends State<FileUploadModal> {
     if (_dirController.text.isEmpty) {
       _resolveRemoteDirectory();
     }
+
+    _successAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _successAnimController,
+      curve: Curves.elasticOut,
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _successAnimController,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+    );
+
+    _rippleAnimation = Tween<double>(begin: 0.8, end: 1.8).animate(
+      CurvedAnimation(
+        parent: _successAnimController,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _particleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    _generateCelebrationParticles();
+  }
+
+  void _generateCelebrationParticles() {
+    final rng = Random(42);
+    final colors = [
+      const Color(0xFF3FB950), // Green
+      const Color(0xFF38BDF8), // Cyan
+      const Color(0xFFFBBF24), // Amber
+      const Color(0xFFA855F7), // Purple
+      const Color(0xFFF43F5E), // Coral
+      const Color(0xFF22C55E), // Emerald
+    ];
+
+    for (int i = 0; i < 36; i++) {
+      final angle = (i / 36) * 2 * pi + (rng.nextDouble() - 0.5) * 0.25;
+      final speed = 0.5 + rng.nextDouble() * 0.8;
+      final size = 6.0 + rng.nextDouble() * 6.0;
+      final color = colors[rng.nextInt(colors.length)];
+      final rotationSpeed = (rng.nextDouble() - 0.5) * 3.0;
+
+      _particles.add(
+        CelebrationParticle(
+          angle: angle,
+          speed: speed,
+          size: size,
+          color: color,
+          rotationSpeed: rotationSpeed,
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
     _dirController.dispose();
+    _successAnimController.dispose();
+    _particleController.dispose();
     super.dispose();
   }
 
@@ -110,7 +241,6 @@ class _FileUploadModalState extends State<FileUploadModal> {
       if (items.isNotEmpty && mounted) {
         setState(() {
           for (final item in items) {
-            // Avoid duplicates by name
             if (!_selectedFiles.any((f) => f.name == item.name)) {
               _selectedFiles.add(item);
             }
@@ -200,18 +330,29 @@ class _FileUploadModalState extends State<FileUploadModal> {
             _errorMessage = 'Upload cancelled by user.';
           });
         } else {
+          // Snap progress to 100% smoothly before celebratory switch
           setState(() {
-            _isUploading = false;
-            _uploadComplete = true;
+            _currentFileUploadedBytes = _currentFileTotalBytes;
           });
+          await Future.delayed(const Duration(milliseconds: 150));
 
-          // Print success message in the terminal scrollback
-          final count = _completedFiles.length;
-          final dirDisplay = targetDir == '.' ? 'current directory' : targetDir;
-          final names = _completedFiles.join(', ');
-          widget.session.terminal.write(
-            '\r\n\x1b[38;2;63;185;80m✔ Uploaded $count file(s) to $dirDisplay: $names\x1b[0m\r\n',
-          );
+          if (mounted) {
+            setState(() {
+              _isUploading = false;
+              _uploadComplete = true;
+            });
+
+            _successAnimController.forward(from: 0.0);
+            _particleController.forward(from: 0.0);
+
+            // Print success message in the terminal scrollback
+            final count = _completedFiles.length;
+            final dirDisplay = targetDir == '.' ? 'current directory' : targetDir;
+            final names = _completedFiles.join(', ');
+            widget.session.terminal.write(
+              '\r\n\x1b[38;2;63;185;80m✔ Uploaded $count file(s) to $dirDisplay: $names\x1b[0m\r\n',
+            );
+          }
         }
       }
     } catch (e) {
@@ -240,7 +381,7 @@ class _FileUploadModalState extends State<FileUploadModal> {
       child: SafeArea(
         child: Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxHeight: MediaQuery.of(context).size.height * 0.88,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -254,8 +395,10 @@ class _FileUploadModalState extends State<FileUploadModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDirectorySection(theme),
-                      const SizedBox(height: 16),
+                      if (!_uploadComplete) ...[
+                        _buildDirectorySection(theme),
+                        const SizedBox(height: 16),
+                      ],
                       if (_uploadComplete)
                         _buildCompleteView(theme)
                       else if (_isUploading)
@@ -292,12 +435,16 @@ class _FileUploadModalState extends State<FileUploadModal> {
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: theme.primaryAccent.withValues(alpha: 0.15),
+              color: _uploadComplete
+                  ? theme.success.withValues(alpha: 0.18)
+                  : theme.primaryAccent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              Icons.cloud_upload_rounded,
-              color: theme.primaryAccent,
+              _uploadComplete
+                  ? Icons.check_circle_rounded
+                  : Icons.cloud_upload_rounded,
+              color: _uploadComplete ? theme.success : theme.primaryAccent,
               size: 20,
             ),
           ),
@@ -307,7 +454,7 @@ class _FileUploadModalState extends State<FileUploadModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Upload Files to Server',
+                  _uploadComplete ? 'Upload Successful' : 'Upload Files to Server',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -592,12 +739,19 @@ class _FileUploadModalState extends State<FileUploadModal> {
         ? (_currentFileUploadedBytes / _currentFileTotalBytes).clamp(0.0, 1.0)
         : 0.0;
 
+    final isAlmostDone = progress >= 0.99;
+    final progressColor = isAlmostDone ? theme.success : theme.primaryAccent;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardSurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.border),
+        border: Border.all(
+          color: isAlmostDone
+              ? theme.success.withValues(alpha: 0.5)
+              : theme.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -613,14 +767,15 @@ class _FileUploadModalState extends State<FileUploadModal> {
                   color: theme.textPrimary,
                 ),
               ),
-              Text(
-                '${(progress * 100).toInt()}%',
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: theme.primaryAccent,
+                  color: progressColor,
                   fontFamily: 'monospace',
                 ),
+                child: Text('${(progress * 100).toInt()}%'),
               ),
             ],
           ),
@@ -639,11 +794,18 @@ class _FileUploadModalState extends State<FileUploadModal> {
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: theme.surface,
-              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryAccent),
-              minHeight: 8,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: progress),
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOut,
+              builder: (context, animValue, _) {
+                return LinearProgressIndicator(
+                  value: animValue,
+                  backgroundColor: theme.surface,
+                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                  minHeight: 8,
+                );
+              },
             ),
           ),
           const SizedBox(height: 8),
@@ -688,67 +850,213 @@ class _FileUploadModalState extends State<FileUploadModal> {
   }
 
   Widget _buildCompleteView(AppThemeExtension theme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.success.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.success.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+    return AnimatedBuilder(
+      animation: Listenable.merge([_successAnimController, _particleController]),
+      builder: (context, child) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+          decoration: BoxDecoration(
+            color: theme.cardSurface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: theme.success.withValues(alpha: 0.6),
+              width: 1.5,
             ),
-            child: Icon(
-              Icons.check_circle_rounded,
-              color: theme.success,
-              size: 36,
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.success.withValues(alpha: 0.15),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Upload Complete!',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: theme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Successfully uploaded ${_completedFiles.length} file(s) to ${_dirController.text.trim()}',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: theme.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.primaryAccent,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          child: Column(
+            children: [
+              // Celebratory Particle Burst + Expanding Ripples + Bouncing Checkmark
+              SizedBox(
+                height: 110,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Confetti Particles
+                    CustomPaint(
+                      size: const Size(220, 110),
+                      painter: CelebrationBurstPainter(
+                        progress: _particleController.value,
+                        particles: _particles,
+                      ),
+                    ),
+                    // Outer Ripple
+                    Transform.scale(
+                      scale: _rippleAnimation.value,
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: theme.success.withValues(
+                              alpha: (0.7 * (1.0 - _successAnimController.value)).clamp(0.0, 0.7),
+                            ),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Inner Soft Glow
+                    Transform.scale(
+                      scale: 1.0 + (_rippleAnimation.value - 1.0) * 0.5,
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.success.withValues(
+                            alpha: (0.25 * (1.0 - _successAnimController.value)).clamp(0.0, 0.25),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Bouncing Checkmark Icon Badge
+                    ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: Container(
+                        width: 68,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          color: theme.success.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: theme.success,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.success.withValues(alpha: 0.35),
+                              blurRadius: 18,
+                              spreadRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.check_rounded,
+                          color: theme.success,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: const Text(
-                'Done',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              const SizedBox(height: 10),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Text(
+                  'Upload Complete!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textPrimary,
+                    letterSpacing: -0.2,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              // Pill info badge
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: theme.border),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.folder_rounded, size: 14, color: theme.secondaryAccent),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _dirController.text.trim(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.textSecondary,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // File chips summary
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _completedFiles.map((name) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: theme.success.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: theme.success.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle_outline_rounded, size: 12, color: theme.success),
+                          const SizedBox(width: 4),
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.textPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.done_all_rounded, size: 18),
+                  label: const Text(
+                    'Done',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primaryAccent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
