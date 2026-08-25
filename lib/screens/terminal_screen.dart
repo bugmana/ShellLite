@@ -28,6 +28,8 @@ class _TerminalScreenState extends State<TerminalScreen> {
   late final Terminal _fallbackTerminal;
   late final TerminalController _fallbackController;
   late final SSHService _fallbackSSHService;
+  late final FocusNode _terminalFocusNode;
+  final GlobalKey<TerminalViewState> _terminalViewKey = GlobalKey<TerminalViewState>();
 
   bool _showGestureTip = false;
   Timer? _tipDismissTimer;
@@ -55,6 +57,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
     _fallbackTerminal = Terminal(maxLines: TerminalConfig.maxScrollbackLines);
     _fallbackController = TerminalController();
     _fallbackSSHService = SSHService();
+    _terminalFocusNode = FocusNode();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkGestureTip();
@@ -62,6 +65,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
       if (sessionStore != null) {
         sessionStore.getOrCreateSession(widget.profile);
       }
+      _focusTerminal();
     });
   }
 
@@ -93,6 +97,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   @override
   void dispose() {
     _tipDismissTimer?.cancel();
+    _terminalFocusNode.dispose();
     _fallbackController.dispose();
     _fallbackSSHService.disconnect();
     super.dispose();
@@ -106,6 +111,14 @@ class _TerminalScreenState extends State<TerminalScreen> {
   Terminal _readTerminal(BuildContext context) =>
       _readSession(context)?.terminal ?? _fallbackTerminal;
 
+  void _focusTerminal() {
+    if (!mounted) return;
+    if (!_terminalFocusNode.hasFocus) {
+      _terminalFocusNode.requestFocus();
+    }
+    _terminalViewKey.currentState?.requestKeyboard();
+  }
+
   void _handleKeyTap(String sequence) {
     final session = _readSession(context);
     if (session != null) {
@@ -113,6 +126,12 @@ class _TerminalScreenState extends State<TerminalScreen> {
     } else {
       _fallbackSSHService.sendInput(sequence);
     }
+    _focusTerminal();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusTerminal();
+      }
+    });
   }
 
   Future<void> _pasteClipboard() async {
@@ -120,10 +139,12 @@ class _TerminalScreenState extends State<TerminalScreen> {
     if (data != null && data.text != null) {
       _handleKeyTap(data.text!);
     }
+    _focusTerminal();
   }
 
   void _clearTerminal() {
     _readTerminal(context).eraseDisplay();
+    _focusTerminal();
   }
 
   void _openFileUpload(BuildContext context) {
@@ -138,7 +159,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
       );
       return;
     }
-    FileUploadModal.show(context, session: session);
+    FileUploadModal.show(context, session: session).then((_) {
+      _focusTerminal();
+    });
   }
 
   Color _getStatusColor(SSHConnectionState state, AppThemeExtension theme) {
@@ -231,7 +254,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
           IconButton(
             icon: const Icon(Icons.palette_outlined, size: 20),
             tooltip: 'Appearance & Themes',
-            onPressed: () => TerminalAppearanceModal.show(context),
+            onPressed: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, size: 20),
@@ -253,6 +276,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   if (session != null) {
                     sessionStore?.reconnectSession(session.id);
                   }
+                  _focusTerminal();
                   break;
                 case 'disconnect':
                   if (session != null) {
@@ -267,6 +291,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   setState(() => _showGestureTip = true);
                   _tipDismissTimer?.cancel();
                   _tipDismissTimer = Timer(const Duration(seconds: 7), _dismissGestureTip);
+                  _focusTerminal();
                   break;
               }
             },
@@ -351,8 +376,10 @@ class _TerminalScreenState extends State<TerminalScreen> {
                       onAction: _handleKeyTap,
                       child: TerminalView(
                         terminal,
+                        key: _terminalViewKey,
                         controller: controller,
                         theme: activeTheme,
+                        focusNode: _terminalFocusNode,
                         autofocus: true,
                         textStyle: textStyle,
                       ),
@@ -370,6 +397,17 @@ class _TerminalScreenState extends State<TerminalScreen> {
             ),
             KeyboardAccessoryBar(
               onKeyTap: _handleKeyTap,
+              onInteraction: _focusTerminal,
+              onExtendedKeysTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => ExtendedKeysSheet(onKeyTap: _handleKeyTap),
+                ).then((_) {
+                  _focusTerminal();
+                });
+              },
             ),
           ],
         ),

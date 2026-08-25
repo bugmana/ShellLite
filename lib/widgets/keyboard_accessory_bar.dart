@@ -9,6 +9,7 @@ import 'customize_accessory_keys_modal.dart';
 class KeyboardAccessoryBar extends StatelessWidget {
   final ValueChanged<String> onKeyTap;
   final VoidCallback? onExtendedKeysTap;
+  final VoidCallback? onInteraction;
   final List<TerminalKeyShortcut>? keys;
 
   static const List<TerminalKeyShortcut> defaultKeys = AccessoryBarConfig.defaultKeys;
@@ -17,6 +18,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
     super.key,
     required this.onKeyTap,
     this.onExtendedKeysTap,
+    this.onInteraction,
     this.keys,
   });
 
@@ -54,35 +56,43 @@ class KeyboardAccessoryBar extends StatelessWidget {
 
     final activeKeys = keys ?? settingsStore?.accessoryKeys ?? defaultKeys;
 
-    return Container(
-      height: AccessoryBarConfig.barHeight,
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border(
-          top: BorderSide(color: theme.border, width: 1),
+    return Focus(
+      canRequestFocus: false,
+      descendantsAreFocusable: false,
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => onInteraction?.call(),
+        child: Container(
+          height: AccessoryBarConfig.barHeight,
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border(
+              top: BorderSide(color: theme.border, width: 1),
+            ),
+          ),
+          child: Row(
+          children: [
+            // Scrollable keys list (Starts with Tab, ⇧Tab on far left)
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                scrollDirection: Axis.horizontal,
+                itemCount: activeKeys.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (context, index) => _buildKeyButton(context, activeKeys[index], theme),
+              ),
+            ),
+            // Pinned right action area (Extended Keys button)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: theme.border, width: 1)),
+              ),
+              child: _buildExtendedKeysButton(context, theme),
+            ),
+          ],
         ),
       ),
-      child: Row(
-        children: [
-          // Scrollable keys list (Starts with Tab, ⇧Tab on far left)
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              scrollDirection: Axis.horizontal,
-              itemCount: activeKeys.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
-              itemBuilder: (context, index) => _buildKeyButton(context, activeKeys[index], theme),
-            ),
-          ),
-          // Pinned right action area (Extended Keys button)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: theme.border, width: 1)),
-            ),
-            child: _buildExtendedKeysButton(context, theme),
-          ),
-        ],
       ),
     );
   }
@@ -92,9 +102,13 @@ class KeyboardAccessoryBar extends StatelessWidget {
       color: theme.cardSurface,
       borderRadius: BorderRadius.circular(6),
       child: InkWell(
+        canRequestFocus: false,
         borderRadius: BorderRadius.circular(6),
-        onTap: () {
+        onTapDown: (_) {
           _triggerHaptic(context);
+          onInteraction?.call();
+        },
+        onTap: () {
           onKeyTap(key.sequence);
         },
         child: Container(
@@ -125,6 +139,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
         color: theme.cardSurface,
         borderRadius: BorderRadius.circular(6),
         child: InkWell(
+          canRequestFocus: false,
           borderRadius: BorderRadius.circular(6),
           onTap: () => _openExtendedKeysModal(context),
           child: Container(
@@ -261,6 +276,7 @@ class ExtendedKeysSheet extends StatelessWidget {
           color: theme.cardSurface,
           borderRadius: BorderRadius.circular(8),
           child: InkWell(
+            canRequestFocus: false,
             borderRadius: BorderRadius.circular(8),
             onTap: () {
               _triggerHaptic(context);

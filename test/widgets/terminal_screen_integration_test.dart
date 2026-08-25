@@ -12,6 +12,7 @@ import 'package:shell_lite/services/storage_service.dart';
 import 'package:shell_lite/theme/app_theme.dart';
 import 'package:shell_lite/theme/terminal_theme_presets.dart';
 import 'package:shell_lite/widgets/keyboard_accessory_bar.dart';
+import 'package:xterm/xterm.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -96,20 +97,32 @@ void main() {
     expect(ctrlDKey, findsOneWidget);
     expect(escKey, findsOneWidget);
 
+    // Verify TerminalView has a focusNode attached
+    final terminalViewFinder = find.byType(TerminalView);
+    expect(terminalViewFinder, findsOneWidget);
+    final terminalView = tester.widget<TerminalView>(terminalViewFinder);
+    expect(terminalView.focusNode, isNotNull);
+    expect(terminalView.focusNode!.hasFocus, isTrue);
+
     await tester.tap(tabKey);
     await tester.pump();
+    expect(terminalView.focusNode!.hasFocus, isTrue);
 
     await tester.tap(shiftTabKey);
     await tester.pump();
+    expect(terminalView.focusNode!.hasFocus, isTrue);
 
     await tester.tap(ctrlCKey);
     await tester.pump();
+    expect(terminalView.focusNode!.hasFocus, isTrue);
 
     await tester.tap(ctrlDKey);
     await tester.pump();
+    expect(terminalView.focusNode!.hasFocus, isTrue);
 
     await tester.tap(escKey);
     await tester.pump();
+    expect(terminalView.focusNode!.hasFocus, isTrue);
   });
 
   testWidgets('TerminalScreen handles paste and clear screen from menu', (tester) async {

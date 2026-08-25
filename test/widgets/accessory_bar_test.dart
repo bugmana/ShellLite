@@ -92,4 +92,28 @@ void main() {
     expect(find.byIcon(Icons.keyboard_double_arrow_up_rounded), findsOneWidget);
     expect(find.byIcon(Icons.bolt_rounded), findsNothing);
   });
+
+  testWidgets('KeyboardAccessoryBar and buttons have canRequestFocus disabled to prevent dropping virtual keyboard', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyboardAccessoryBar(
+            onKeyTap: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    // Verify Focus wrapper has canRequestFocus false
+    final focusWidgets = tester.widgetList<Focus>(find.byType(Focus));
+    final nonFocusable = focusWidgets.where((f) => !f.canRequestFocus && !f.descendantsAreFocusable);
+    expect(nonFocusable.isNotEmpty, isTrue);
+
+    // Verify InkWells in accessory bar have canRequestFocus false
+    final inkWells = tester.widgetList<InkWell>(find.byType(InkWell));
+    expect(inkWells.isNotEmpty, isTrue);
+    for (final inkWell in inkWells) {
+      expect(inkWell.canRequestFocus, isFalse);
+    }
+  });
 }

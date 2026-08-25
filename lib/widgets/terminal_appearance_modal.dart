@@ -9,9 +9,9 @@ import 'customize_accessory_keys_modal.dart';
 class TerminalAppearanceModal extends StatelessWidget {
   const TerminalAppearanceModal({super.key});
 
-  static void show(BuildContext context) {
+  static Future<void> show(BuildContext context) {
     final theme = context.appTheme;
-    showModalBottomSheet(
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: theme.surface,

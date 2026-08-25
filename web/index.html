@@ -150,6 +150,71 @@
     }, 3500);
   </script>
 
+  <script>
+    // Keep virtual keyboard active on mobile web browsers (Safari / Chrome)
+    // when tapping on-screen shortcut keys, accessory buttons, or UI controls.
+    (function() {
+      var lastActiveInput = null;
+      var isTouching = false;
+
+      document.addEventListener('focusin', function(e) {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+          lastActiveInput = e.target;
+        }
+      }, true);
+
+      // Prevent browser default focus change / blur when tapping toolbar shortcuts
+      document.addEventListener('pointerdown', function(e) {
+        isTouching = true;
+        if (lastActiveInput && lastActiveInput.isConnected) {
+          if (e.target !== lastActiveInput && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            try {
+              lastActiveInput.focus({ preventScroll: true });
+            } catch (_) {}
+          }
+        }
+      }, { capture: true, passive: false });
+
+      document.addEventListener('mousedown', function(e) {
+        if (lastActiveInput && lastActiveInput.isConnected) {
+          if (e.target !== lastActiveInput && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            try {
+              lastActiveInput.focus({ preventScroll: true });
+            } catch (_) {}
+          }
+        }
+      }, { capture: true, passive: false });
+
+      document.addEventListener('pointerup', function(e) {
+        isTouching = false;
+        if (lastActiveInput && lastActiveInput.isConnected && document.activeElement !== lastActiveInput) {
+          try {
+            lastActiveInput.focus({ preventScroll: true });
+          } catch (_) {}
+        }
+      }, { capture: true, passive: true });
+
+      document.addEventListener('touchend', function(e) {
+        isTouching = false;
+        if (lastActiveInput && lastActiveInput.isConnected && document.activeElement !== lastActiveInput) {
+          try {
+            lastActiveInput.focus({ preventScroll: true });
+          } catch (_) {}
+        }
+      }, { capture: true, passive: true });
+
+      document.addEventListener('focusout', function(e) {
+        if (isTouching && lastActiveInput && lastActiveInput.isConnected && e.target === lastActiveInput) {
+          try {
+            lastActiveInput.focus({ preventScroll: true });
+          } catch (_) {}
+        }
+      }, true);
+    })();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
