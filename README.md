@@ -132,16 +132,18 @@ Sample systemd unit files are provided in [`systemd/`](systemd/):
 
 ```text
 ShellLite/
-├── lib/
-│   ├── config/                         # App constants, terminal, accessory & storage configs
-│   ├── models/                         # ServerProfile, AuthMethod, ServerTelemetry
-│   ├── providers/                      # ServerStore, SessionStore, TelemetryStore, SecurityStore, TerminalSettingsStore
-│   ├── screens/                        # ServerListScreen, ServerFormScreen, TerminalScreen
-│   ├── services/                       # KeyParser, KeyGenerator, SSHService, StorageService, TelemetryService
-│   ├── theme/                          # Dynamic multi-theme palettes & TerminalThemePresets
-│   └── widgets/                        # AccessoryBar, DirectionalHUD, SearchBar, Modals, AppLockScreen
-├── test/                               # Comprehensive unit & widget test suites
-└── .github/workflows/                  # Automated CI/CD & Multi-Platform Release workflows
+├── docs/                           # Publishing, deployment & handover guides
+│   └── GOOGLE_PLAY_HANDOVER.md     # Google Play Store publishing & release guide
+├── lib/                            # Application source code
+│   ├── config/                     # App constants, terminal, accessory & storage configs
+│   ├── models/                     # ServerProfile, AuthMethod, ServerTelemetry
+│   ├── providers/                  # ServerStore, SessionStore, TelemetryStore, SecurityStore, TerminalSettingsStore
+│   ├── screens/                    # ServerListScreen, ServerFormScreen, TerminalScreen
+│   ├── services/                   # KeyParser, KeyGenerator, SSHService, StorageService, TelemetryService
+│   ├── theme/                      # Dynamic multi-theme palettes & TerminalThemePresets
+│   └── widgets/                    # AccessoryBar, DirectionalHUD, SearchBar, Modals, AppLockScreen
+├── test/                           # Comprehensive unit & widget test suites
+└── .github/workflows/              # Automated CI/CD & Multi-Platform Release workflows
 ```
 
 ---

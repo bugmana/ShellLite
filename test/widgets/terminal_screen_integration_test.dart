@@ -125,7 +125,18 @@ void main() {
     expect(terminalView.focusNode!.hasFocus, isTrue);
   });
 
-  testWidgets('TerminalScreen handles paste and clear screen from menu', (tester) async {
+  testWidgets('TerminalScreen shows Paste action button in AppBar and handles paste', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final pasteButton = find.byIcon(Icons.paste_rounded);
+    expect(pasteButton, findsOneWidget);
+
+    await tester.tap(pasteButton);
+    await tester.pump();
+  });
+
+  testWidgets('TerminalScreen handles popup menu actions and does not contain duplicate upload or paste', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -138,13 +149,15 @@ void main() {
     await tester.tap(moreButton);
     await tester.pumpAndSettle();
 
-    // Verify paste, clear screen, reconnect, disconnect, gesture tips are in menu
-    expect(find.text('Upload File'), findsOneWidget);
-    expect(find.text('Paste'), findsOneWidget);
+    // Verify clear screen, reconnect, disconnect, gesture tips are in menu
     expect(find.text('Clear Screen'), findsOneWidget);
     expect(find.text('Reconnect'), findsOneWidget);
     expect(find.text('Disconnect Session'), findsOneWidget);
     expect(find.text('Gesture Tips'), findsOneWidget);
+
+    // Verify duplicate upload and paste are removed from menu
+    expect(find.text('Upload File'), findsNothing);
+    expect(find.text('Paste'), findsNothing);
 
     // Tap Clear Screen
     await tester.tap(find.text('Clear Screen'));
@@ -183,5 +196,29 @@ void main() {
     await tester.pump();
 
     expect(terminalSettingsStore.themeId, 'catppuccin');
+  });
+
+  testWidgets('TerminalScreen close keyboard button closes keyboard and tapping terminal keeps/regains focus', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final terminalViewFinder = find.byType(TerminalView);
+    expect(terminalViewFinder, findsOneWidget);
+    final terminalView = tester.widget<TerminalView>(terminalViewFinder);
+    expect(terminalView.focusNode!.hasFocus, isTrue);
+
+    // Verify close keyboard button is rendered on the far right of accessory bar
+    final closeKeyboardButton = find.byIcon(Icons.keyboard_hide_rounded);
+    expect(closeKeyboardButton, findsOneWidget);
+
+    // Tap close keyboard
+    await tester.tap(closeKeyboardButton);
+    await tester.pump();
+
+    // Tap terminal area to regain/keep focus and keyboard
+    await tester.tap(terminalViewFinder);
+    await tester.pumpAndSettle();
+
+    expect(terminalView.focusNode!.hasFocus, isTrue);
   });
 }

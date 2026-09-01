@@ -116,4 +116,26 @@ void main() {
       expect(inkWell.canRequestFocus, isFalse);
     }
   });
+
+  testWidgets('KeyboardAccessoryBar renders close keyboard button on far right when onCloseKeyboard provided', (tester) async {
+    bool closeKeyboardCalled = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyboardAccessoryBar(
+            onKeyTap: (_) {},
+            onCloseKeyboard: () => closeKeyboardCalled = true,
+          ),
+        ),
+      ),
+    );
+
+    final hideKeyboardButton = find.byIcon(Icons.keyboard_hide_rounded);
+    expect(hideKeyboardButton, findsOneWidget);
+
+    await tester.tap(hideKeyboardButton);
+    await tester.pump();
+    expect(closeKeyboardCalled, isTrue);
+  });
 }

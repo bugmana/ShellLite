@@ -62,7 +62,7 @@ class SessionStore extends ChangeNotifier {
     };
 
     terminal.onResize = (width, height, pw, ph) {
-      sshService.resizeTerminal(width, height);
+      sshService.resizeTerminal(width, height, pw, ph);
     };
 
     final session = OpenSession(

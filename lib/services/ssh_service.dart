@@ -24,8 +24,13 @@ class SSHService {
   SSHConnectionState _state = SSHConnectionState.disconnected;
   String? _lastError;
 
-  StreamSubscription<Uint8List>? _stdoutSub;
-  StreamSubscription<Uint8List>? _stderrSub;
+  StreamSubscription<String>? _stdoutSub;
+  StreamSubscription<String>? _stderrSub;
+
+  int _terminalWidth = TerminalConfig.defaultWidth;
+  int _terminalHeight = TerminalConfig.defaultHeight;
+  int _pixelWidth = 0;
+  int _pixelHeight = 0;
 
   SSHService({StorageService? storageService})
       : _storageService = storageService ?? StorageService();
@@ -34,6 +39,8 @@ class SSHService {
   String? get lastError => _lastError;
   bool get isConnected => _state == SSHConnectionState.connected;
   SSHClient? get client => _client;
+  int get terminalWidth => _terminalWidth;
+  int get terminalHeight => _terminalHeight;
 
   Future<String> resolveRemoteCurrentDirectory() async {
     if (_client == null || !isConnected) return '~';
@@ -44,10 +51,16 @@ class SSHService {
     required ServerProfile profile,
     required int terminalWidth,
     required int terminalHeight,
+    int pixelWidth = 0,
+    int pixelHeight = 0,
     required void Function(String output) onOutput,
     required void Function(SSHConnectionState state, String? error) onStateChange,
     StorageService? storageService,
   }) async {
+    _terminalWidth = terminalWidth > 0 ? terminalWidth : _terminalWidth;
+    _terminalHeight = terminalHeight > 0 ? terminalHeight : _terminalHeight;
+    _pixelWidth = pixelWidth >= 0 ? pixelWidth : 0;
+    _pixelHeight = pixelHeight >= 0 ? pixelHeight : 0;
     _state = SSHConnectionState.connecting;
     _lastError = null;
     onStateChange(_state, null);
@@ -94,23 +107,44 @@ class SSHService {
 
       await _client!.authenticated;
 
-      // Start PTY shell
+      // Start PTY shell with latest resolved dimensions
       _shellSession = await _client!.shell(
         pty: SSHPtyConfig(
-          width: terminalWidth > 0 ? terminalWidth : TerminalConfig.defaultWidth,
-          height: terminalHeight > 0 ? terminalHeight : TerminalConfig.defaultHeight,
+          type: 'xterm-256color',
+          width: _terminalWidth,
+          height: _terminalHeight,
+          pixelWidth: _pixelWidth,
+          pixelHeight: _pixelHeight,
         ),
       );
 
       _state = SSHConnectionState.connected;
       onStateChange(_state, null);
 
-      _stdoutSub = _shellSession!.stdout.listen((data) {
-        onOutput(utf8.decode(data, allowMalformed: true));
+      // Explicitly synchronize terminal dimensions to avoid any race condition with early layouts
+      try {
+        _shellSession!.resizeTerminal(
+          _terminalWidth,
+          _terminalHeight,
+          _pixelWidth,
+          _pixelHeight,
+        );
+      } catch (_) {}
+
+      // Decode stream using stateful Utf8Decoder to prevent multi-byte UTF-8 character
+      // truncation/corruption across packet boundaries in long sessions and TUI apps
+      _stdoutSub = _shellSession!.stdout
+          .cast<List<int>>()
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .listen((data) {
+        onOutput(data);
       });
 
-      _stderrSub = _shellSession!.stderr.listen((data) {
-        onOutput(utf8.decode(data, allowMalformed: true));
+      _stderrSub = _shellSession!.stderr
+          .cast<List<int>>()
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .listen((data) {
+        onOutput(data);
       });
 
       _shellSession!.done.then((_) {
@@ -153,10 +187,20 @@ class SSHService {
     }
   }
 
-  void resizeTerminal(int width, int height) {
+  void resizeTerminal(int width, int height, [int pixelWidth = 0, int pixelHeight = 0]) {
+    if (width > 0) _terminalWidth = width;
+    if (height > 0) _terminalHeight = height;
+    if (pixelWidth >= 0) _pixelWidth = pixelWidth;
+    if (pixelHeight >= 0) _pixelHeight = pixelHeight;
+
     if (_shellSession != null && isConnected) {
       try {
-        _shellSession!.resizeTerminal(width, height);
+        _shellSession!.resizeTerminal(
+          _terminalWidth,
+          _terminalHeight,
+          _pixelWidth,
+          _pixelHeight,
+        );
       } catch (_) {}
     }
   }

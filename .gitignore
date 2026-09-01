@@ -92,6 +92,9 @@ symbols/
 *.p8
 *.jks
 *.keystore
+*.properties.local
+key.properties
+**/android/key.properties
 *.mobileprovision
 service-account*.json
 credentials.json

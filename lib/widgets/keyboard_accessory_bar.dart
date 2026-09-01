@@ -10,6 +10,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
   final ValueChanged<String> onKeyTap;
   final VoidCallback? onExtendedKeysTap;
   final VoidCallback? onInteraction;
+  final VoidCallback? onCloseKeyboard;
   final List<TerminalKeyShortcut>? keys;
 
   static const List<TerminalKeyShortcut> defaultKeys = AccessoryBarConfig.defaultKeys;
@@ -19,6 +20,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
     required this.onKeyTap,
     this.onExtendedKeysTap,
     this.onInteraction,
+    this.onCloseKeyboard,
     this.keys,
   });
 
@@ -82,13 +84,22 @@ class KeyboardAccessoryBar extends StatelessWidget {
                 itemBuilder: (context, index) => _buildKeyButton(context, activeKeys[index], theme),
               ),
             ),
-            // Pinned right action area (Extended Keys button)
+            // Pinned right action area (Extended Keys + Close Keyboard button)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
                 border: Border(left: BorderSide(color: theme.border, width: 1)),
               ),
-              child: _buildExtendedKeysButton(context, theme),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildExtendedKeysButton(context, theme),
+                  if (onCloseKeyboard != null) ...[
+                    const SizedBox(width: 6),
+                    _buildCloseKeyboardButton(context, theme),
+                  ],
+                ],
+              ),
             ),
           ],
         ),
@@ -154,6 +165,38 @@ class KeyboardAccessoryBar extends StatelessWidget {
               Icons.keyboard_double_arrow_up_rounded,
               size: 18,
               color: theme.secondaryAccent,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloseKeyboardButton(BuildContext context, AppThemeExtension theme) {
+    return Tooltip(
+      message: 'Close keyboard',
+      child: Material(
+        color: theme.cardSurface,
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          canRequestFocus: false,
+          borderRadius: BorderRadius.circular(6),
+          onTap: () {
+            _triggerHaptic(context);
+            onCloseKeyboard?.call();
+          },
+          child: Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.border, width: 1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              Icons.keyboard_hide_rounded,
+              size: 18,
+              color: theme.textSecondary,
             ),
           ),
         ),

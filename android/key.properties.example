@@ -1,0 +1,8 @@
+# Android Signing Key Configuration
+# Copy this file to `android/key.properties` and fill in your credentials.
+# NEVER commit `key.properties` or your `.jks` keystore file to Git!
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=/absolute/or/relative/path/to/upload-keystore.jks

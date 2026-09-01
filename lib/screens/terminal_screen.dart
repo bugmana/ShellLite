@@ -119,6 +119,13 @@ class _TerminalScreenState extends State<TerminalScreen> {
     _terminalViewKey.currentState?.requestKeyboard();
   }
 
+  void _closeKeyboard() {
+    if (!mounted) return;
+    _terminalViewKey.currentState?.closeKeyboard();
+    _terminalFocusNode.unfocus();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+  }
+
   void _handleKeyTap(String sequence) {
     final session = _readSession(context);
     if (session != null) {
@@ -137,7 +144,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   Future<void> _pasteClipboard() async {
     final data = await Clipboard.getData('text/plain');
     if (data != null && data.text != null) {
-      _handleKeyTap(data.text!);
+      _readTerminal(context).paste(data.text!);
     }
     _focusTerminal();
   }
@@ -252,6 +259,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
             onPressed: () => _openFileUpload(context),
           ),
           IconButton(
+            icon: const Icon(Icons.paste_rounded, size: 20),
+            tooltip: 'Paste',
+            onPressed: _pasteClipboard,
+          ),
+          IconButton(
             icon: const Icon(Icons.palette_outlined, size: 20),
             tooltip: 'Appearance & Themes',
             onPressed: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
@@ -266,11 +278,8 @@ class _TerminalScreenState extends State<TerminalScreen> {
             ),
             onSelected: (val) {
               switch (val) {
-                case 'upload':
-                  _openFileUpload(context);
-                  break;
-                case 'paste':
-                  _pasteClipboard();
+                case 'clear':
+                  _clearTerminal();
                   break;
                 case 'reconnect':
                   if (session != null) {
@@ -284,9 +293,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   }
                   Navigator.of(context).maybePop();
                   break;
-                case 'clear':
-                  _clearTerminal();
-                  break;
                 case 'guide':
                   setState(() => _showGestureTip = true);
                   _tipDismissTimer?.cancel();
@@ -296,26 +302,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
               }
             },
             itemBuilder: (ctx) => [
-              PopupMenuItem(
-                value: 'upload',
-                child: Row(
-                  children: [
-                    Icon(Icons.cloud_upload_rounded, size: 18, color: theme.primaryAccent),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Upload File')),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'paste',
-                child: Row(
-                  children: [
-                    Icon(Icons.paste_rounded, size: 18, color: theme.textSecondary),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Paste')),
-                  ],
-                ),
-              ),
               PopupMenuItem(
                 value: 'clear',
                 child: Row(
@@ -371,7 +357,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
                 children: [
                   Container(
                     color: activeTheme.background,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: DirectionalHUDOverlay(
                       onAction: _handleKeyTap,
                       child: TerminalView(
@@ -382,6 +367,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
                         focusNode: _terminalFocusNode,
                         autofocus: true,
                         textStyle: textStyle,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        deleteDetection: true,
+                        onTapUp: (details, offset) => _focusTerminal(),
                       ),
                     ),
                   ),
@@ -398,6 +386,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
             KeyboardAccessoryBar(
               onKeyTap: _handleKeyTap,
               onInteraction: _focusTerminal,
+              onCloseKeyboard: _closeKeyboard,
               onExtendedKeysTap: () {
                 showModalBottomSheet(
                   context: context,
