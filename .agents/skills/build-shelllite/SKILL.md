@@ -116,23 +116,37 @@ ShellLite releases are automated via GitHub Actions [`.github/workflows/release.
    ```
 
 ### Triggering a Release
-Trigger the release workflow using the GitHub CLI (`gh`):
+ShellLite uses automated semantic versioning powered by Conventional Commits (`scripts/resolve_version.sh`).
 
-- **Patch release** (e.g., `1.0.4` -> `1.0.5`):
+- **Automated Semantic Release (Recommended)**:
+  Automatically analyzes git commits since the last tag to determine major (`BREAKING CHANGE` or `!:`), minor (`feat:`), or patch (`fix:`, `refactor:`, `perf:`), and generates categorized release notes:
   ```bash
-  gh workflow run release.yml -f bump_type=patch
+  gh workflow run release.yml -f bump_type=auto
   ```
-- **Minor release** (e.g., `1.0.4` -> `1.1.0`):
+  *(Note: `auto` is the default when triggering `release.yml` without arguments).*
+
+- **Manual Override Bumps**:
+  - **Patch release** (e.g. `1.0.5` -> `1.0.6`):
+    ```bash
+    gh workflow run release.yml -f bump_type=patch
+    ```
+  - **Minor release** (e.g. `1.0.5` -> `1.1.0`):
+    ```bash
+    gh workflow run release.yml -f bump_type=minor
+    ```
+  - **Major release** (e.g. `1.0.5` -> `2.0.0`):
+    ```bash
+    gh workflow run release.yml -f bump_type=major
+    ```
+  - **Custom version**:
+    ```bash
+    gh workflow run release.yml -f bump_type=custom -f custom_version=1.2.0
+    ```
+
+- **Local Preview & Dry Run**:
+  Preview the next version and changelog locally without tagging or releasing:
   ```bash
-  gh workflow run release.yml -f bump_type=minor
-  ```
-- **Major release** (e.g., `1.0.4` -> `2.0.0`):
-  ```bash
-  gh workflow run release.yml -f bump_type=major
-  ```
-- **Custom version**:
-  ```bash
-  gh workflow run release.yml -f bump_type=custom -f custom_version=1.2.0
+  ./scripts/resolve_version.sh auto
   ```
 
 ### Release Pipeline Stages
