@@ -37,14 +37,25 @@ android {
         release {
             keyAlias = keystoreProperties['keyAlias']
             keyPassword = keystoreProperties['keyPassword']
-            storeFile = keystoreProperties['storeFile'] ? (file(keystoreProperties['storeFile']).isAbsolute() ? file(keystoreProperties['storeFile']) : rootProject.file(keystoreProperties['storeFile'])) : null
+            storeFile = keystoreProperties['storeFile'] ? (
+                new File(keystoreProperties['storeFile'].toString()).isAbsolute() ? 
+                    new File(keystoreProperties['storeFile'].toString()) : 
+                    rootProject.file(keystoreProperties['storeFile'].toString())
+            ) : null
             storePassword = keystoreProperties['storePassword']
         }
     }
 
     buildTypes {
         release {
-            signingConfig = (keystorePropertiesFile.exists() && signingConfigs.release.storeFile?.exists()) ? signingConfigs.release : signingConfigs.debug
+            if (keystorePropertiesFile.exists() && keystoreProperties['storeFile']) {
+                if (!signingConfigs.release.storeFile?.exists()) {
+                    throw new GradleException("key.properties specified storeFile but it was not found at: " + signingConfigs.release.storeFile)
+                }
+                signingConfig = signingConfigs.release
+            } else {
+                signingConfig = signingConfigs.debug
+            }
         }
     }
 }
