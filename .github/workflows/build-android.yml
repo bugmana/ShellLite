@@ -51,12 +51,11 @@ jobs:
           echo "Configuring persistent release keystore from secrets..."
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
           cp android/upload-keystore.jks android/app/upload-keystore.jks
-          cat <<EOF > android/key.properties
-storePassword=$ANDROID_KEYSTORE_PASSWORD
-keyPassword=$ANDROID_KEY_PASSWORD
-keyAlias=$ANDROID_KEY_ALIAS
-storeFile=upload-keystore.jks
-EOF
+          printf "%s\n" \
+            "storePassword=$ANDROID_KEYSTORE_PASSWORD" \
+            "keyPassword=$ANDROID_KEY_PASSWORD" \
+            "keyAlias=$ANDROID_KEY_ALIAS" \
+            "storeFile=upload-keystore.jks" > android/key.properties
           cp android/key.properties android/app/key.properties
           echo "Release keystore configured successfully."
 
