@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:xterm/xterm.dart';
 import '../config/app_config.dart';
 import '../models/server_profile.dart';
@@ -25,27 +24,10 @@ class TerminalScreen extends StatefulWidget {
 class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObserver {
   late final Terminal _fallbackTerminal;
   late final TerminalController _fallbackController;
-  late final SSHService _fallbackSSHService;
   late final FocusNode _terminalFocusNode;
   final GlobalKey<TerminalViewState> _terminalViewKey = GlobalKey<TerminalViewState>();
 
   bool _isKeyboardVisible = true;
-
-  T? _tryWatch<T>(BuildContext context) {
-    try {
-      return Provider.of<T>(context, listen: true);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  T? _tryRead<T>(BuildContext context) {
-    try {
-      return Provider.of<T>(context, listen: false);
-    } catch (_) {
-      return null;
-    }
-  }
 
   @override
   void initState() {
@@ -54,11 +36,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
 
     _fallbackTerminal = Terminal(maxLines: TerminalConfig.maxScrollbackLines);
     _fallbackController = TerminalController();
-    _fallbackSSHService = SSHService();
     _terminalFocusNode = FocusNode();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final sessionStore = _tryRead<SessionStore>(context);
+      final sessionStore = context.maybeRead<SessionStore>();
       if (sessionStore != null) {
         sessionStore.getOrCreateSession(widget.profile);
       }
@@ -83,12 +64,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     WidgetsBinding.instance.removeObserver(this);
     _terminalFocusNode.dispose();
     _fallbackController.dispose();
-    _fallbackSSHService.disconnect();
     super.dispose();
   }
 
   OpenSession? _readSession(BuildContext context) {
-    final store = _tryRead<SessionStore>(context);
+    final store = context.maybeRead<SessionStore>();
     return store?.activeSession ?? store?.getSession(widget.profile.id);
   }
 
@@ -130,11 +110,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
 
   void _handleKeyTap(String sequence) {
     final session = _readSession(context);
-    if (session != null) {
-      session.sshService.sendInput(sequence);
-    } else {
-      _fallbackSSHService.sendInput(sequence);
-    }
+    session?.sshService.sendInput(sequence);
     _focusTerminal();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -203,8 +179,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    final terminalSettings = _tryWatch<TerminalSettingsStore>(context);
-    final sessionStore = _tryWatch<SessionStore>(context);
+    final terminalSettings = context.maybeWatch<TerminalSettingsStore>();
+    final sessionStore = context.maybeWatch<SessionStore>();
     final session = sessionStore?.activeSession ?? sessionStore?.getSession(widget.profile.id);
 
     final terminal = session?.terminal ?? _fallbackTerminal;

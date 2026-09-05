@@ -47,7 +47,6 @@ class StorageConfig {
   static const String profilesKey = 'shell_lite_server_profiles_v1';
   static const String credentialPrefix = 'cred_';
   static const String keyPassphrasePrefix = 'key_pass_';
-  static const String hasSeenGestureTipKey = 'shell_lite_has_seen_gesture_tip_v1';
   static const String terminalThemeKey = 'shell_lite_terminal_theme_id_v1';
   static const String terminalFontSizeKey = 'shell_lite_terminal_font_size_v1';
   static const String terminalFontFamilyKey = 'shell_lite_terminal_font_family_v1';
@@ -58,30 +57,31 @@ class StorageConfig {
   static String buildKeyPassphraseTag(String profileId) => '$keyPassphrasePrefix$profileId';
 }
 
-/// Helper to decode escape codes from user input into terminal sequences.
+final _keyEscapeRegex = RegExp(r'\\[enrt]|\\x1[bB]|\^([A-Za-z_\]\^\\?\[])');
+
+/// Decodes escape codes from user input into terminal sequences.
 String parseKeySequence(String raw) {
-  var result = raw;
-  result = result.replaceAll(r'\e', '\x1B');
-  result = result.replaceAll(r'\x1b', '\x1B');
-  result = result.replaceAll(r'\x1B', '\x1B');
-  result = result.replaceAll(r'\t', '\t');
-  result = result.replaceAll(r'\n', '\n');
-  result = result.replaceAll(r'\r', '\r');
-
-  // Translate ^A to ^Z
-  for (int i = 1; i <= 26; i++) {
-    final letter = String.fromCharCode(64 + i);
-    final ctrlChar = String.fromCharCode(i);
-    result = result.replaceAll('^$letter', ctrlChar);
-  }
-  result = result.replaceAll(r'^]', '\x1D');
-  result = result.replaceAll(r'^^', '\x1E');
-  result = result.replaceAll(r'^_', '\x1F');
-  result = result.replaceAll(r'^?', '\x7F');
-  result = result.replaceAll(r'^[', '\x1B');
-  result = result.replaceAll(r'^\', '\x1C');
-
-  return result;
+  return raw.replaceAllMapped(_keyEscapeRegex, (match) {
+    final s = match[0]!;
+    if (s == r'\e' || s == r'\x1b' || s == r'\x1B') return '\x1B';
+    if (s == r'\t') return '\t';
+    if (s == r'\n') return '\n';
+    if (s == r'\r') return '\r';
+    if (s.startsWith('^') && s.length == 2) {
+      final code = s.codeUnitAt(1);
+      if (code >= 65 && code <= 90) return String.fromCharCode(code - 64);
+      if (code >= 97 && code <= 122) return String.fromCharCode(code - 96);
+      switch (s[1]) {
+        case '[': return '\x1B';
+        case r'\': return '\x1C';
+        case ']': return '\x1D';
+        case '^': return '\x1E';
+        case '_': return '\x1F';
+        case '?': return '\x7F';
+      }
+    }
+    return s;
+  });
 }
 
 /// Key shortcuts for the terminal keyboard accessory bar.

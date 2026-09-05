@@ -92,16 +92,17 @@ class ServerProfile {
           tmuxSessionName == other.tmuxSessionName;
 
   @override
-  int get hashCode =>
-      id.hashCode ^
-      displayName.hashCode ^
-      host.hashCode ^
-      port.hashCode ^
-      username.hashCode ^
-      authMethod.hashCode ^
-      (initialCommand?.hashCode ?? 0) ^
-      persistSession.hashCode ^
-      (tmuxSessionName?.hashCode ?? 0);
+  int get hashCode => Object.hash(
+        id,
+        displayName,
+        host,
+        port,
+        username,
+        authMethod,
+        initialCommand,
+        persistSession,
+        tmuxSessionName,
+      );
 
   @override
   String toString() =>

@@ -96,15 +96,15 @@ class ServerStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> getCredential(ServerProfile profile) async {
-    return await _storageService.retrieveCredential(profile.authMethod.credentialTag);
+  Future<String?> getCredential(ServerProfile profile) {
+    return _storageService.retrieveCredential(profile.authMethod.credentialTag);
   }
 
   Future<String?> getKeyPassphrase(ServerProfile profile) async {
     if (profile.authMethod is SSHKeyAuth) {
       final auth = profile.authMethod as SSHKeyAuth;
       if (auth.passphraseTag != null) {
-        return await _storageService.retrieveCredential(auth.passphraseTag!);
+        return _storageService.retrieveCredential(auth.passphraseTag!);
       }
     }
     return null;

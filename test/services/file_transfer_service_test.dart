@@ -60,6 +60,36 @@ void main() {
       expect(item.formattedSize, '10 MB');
       expect(item.localPath, '/tmp/document.pdf');
     });
+
+    test('openChunkStream yields correct chunks for in-memory bytes', () async {
+      final data = Uint8List.fromList(List.generate(100, (i) => i));
+      final item = FileTransferItem(name: 'data.bin', size: 100, bytes: data);
+
+      final chunks = await item.openChunkStream(chunkSize: 40).toList();
+      expect(chunks.length, 3);
+      expect(chunks[0].length, 40);
+      expect(chunks[1].length, 40);
+      expect(chunks[2].length, 20);
+    });
+
+    test('openChunkStream yields empty chunk for zero-byte data', () async {
+      final item = FileTransferItem(name: 'empty.txt', size: 0, bytes: Uint8List(0));
+      final chunks = await item.openChunkStream().toList();
+      expect(chunks.length, 1);
+      expect(chunks.first.isEmpty, isTrue);
+    });
+
+    test('openChunkStream forwards stream data', () async {
+      final stream = Stream<List<int>>.fromIterable([
+        [1, 2],
+        [3, 4, 5],
+      ]);
+      final item = FileTransferItem(name: 'stream.txt', size: 5, readStream: stream);
+      final chunks = await item.openChunkStream().toList();
+      expect(chunks.length, 2);
+      expect(chunks[0], [1, 2]);
+      expect(chunks[1], [3, 4, 5]);
+    });
   });
 
   group('FileUploadProgress', () {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:xterm/xterm.dart';
 import 'terminal_theme_presets.dart';
 
@@ -53,6 +54,22 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
 extension AppThemeContextExtension on BuildContext {
   AppThemeExtension get appTheme {
     return Theme.of(this).extension<AppThemeExtension>() ?? AppTheme.defaultExtension;
+  }
+
+  T? maybeWatch<T>() {
+    try {
+      return Provider.of<T>(this, listen: true);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  T? maybeRead<T>() {
+    try {
+      return Provider.of<T>(this, listen: false);
+    } catch (_) {
+      return null;
+    }
   }
 }
 

@@ -29,12 +29,8 @@ class KeyboardAccessoryBar extends StatelessWidget {
   });
 
   void _triggerHaptic(BuildContext context) {
-    try {
-      final store = Provider.of<TerminalSettingsStore>(context, listen: false);
-      if (store.hapticFeedbackEnabled) {
-        HapticFeedback.lightImpact();
-      }
-    } catch (_) {
+    final store = context.maybeRead<TerminalSettingsStore>();
+    if (store?.hapticFeedbackEnabled ?? true) {
       HapticFeedback.lightImpact();
     }
   }
@@ -55,11 +51,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    TerminalSettingsStore? settingsStore;
-    try {
-      settingsStore = Provider.of<TerminalSettingsStore>(context, listen: true);
-    } catch (_) {}
-
+    final settingsStore = context.maybeWatch<TerminalSettingsStore>();
     final activeKeys = keys ?? settingsStore?.accessoryKeys ?? defaultKeys;
 
     return Focus(

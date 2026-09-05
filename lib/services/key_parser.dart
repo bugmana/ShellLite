@@ -85,14 +85,12 @@ class SSHKeyParser {
     }
   }
 
+  static final _pemCleanRegex = RegExp(r'-----[^-]+-----|\s+');
+
   static bool _checkOpenSSHIsEncrypted(String pem) {
     try {
-      final lines = pem
-          .split('\n')
-          .map((l) => l.trim())
-          .where((l) => !l.startsWith('-----') && l.isNotEmpty)
-          .join();
-      final bytes = Uint8List.fromList(base64.decode(lines));
+      final cleanBase64 = pem.replaceAll(_pemCleanRegex, '');
+      final bytes = base64.decode(cleanBase64);
       final buffer = ByteData.sublistView(bytes);
 
       const magic = 'openssh-key-v1\x00';

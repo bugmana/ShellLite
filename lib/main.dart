@@ -33,9 +33,11 @@ void main() async {
   final sessionStore = SessionStore(storageService: storageService);
   final securityStore = SecurityStore(securityService: securityService);
 
-  await store.load();
-  await terminalSettings.load();
-  await securityStore.load();
+  await Future.wait([
+    store.load(),
+    terminalSettings.load(),
+    securityStore.load(),
+  ]);
 
   runApp(
     MultiProvider(

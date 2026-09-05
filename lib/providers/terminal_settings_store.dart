@@ -11,6 +11,7 @@ class TerminalSettingsStore extends ChangeNotifier {
   double _fontSize = TerminalConfig.fontSize;
   String _fontFamily = TerminalConfig.fontFamily;
   List<AccessoryKeyItem> _configuredAccessoryKeys = AccessoryBarConfig.initialConfiguredKeys;
+  late List<TerminalKeyShortcut> _cachedAccessoryKeys = _buildAccessoryShortcuts();
   bool _hapticFeedbackEnabled = true;
   bool _isLoaded = false;
 
@@ -21,8 +22,7 @@ class TerminalSettingsStore extends ChangeNotifier {
   double get fontSize => _fontSize;
   String get fontFamily => _fontFamily;
   List<AccessoryKeyItem> get configuredAccessoryKeys => List.unmodifiable(_configuredAccessoryKeys);
-  List<TerminalKeyShortcut> get accessoryKeys =>
-      _configuredAccessoryKeys.where((k) => k.isEnabled).map((k) => k.toShortcut()).toList();
+  List<TerminalKeyShortcut> get accessoryKeys => _cachedAccessoryKeys;
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
   bool get isLoaded => _isLoaded;
 
@@ -35,11 +35,20 @@ class TerminalSettingsStore extends ChangeNotifier {
         fontFamilyFallback: TerminalConfig.fontFamilyFallback,
       );
 
+  List<TerminalKeyShortcut> _buildAccessoryShortcuts() =>
+      _configuredAccessoryKeys.where((k) => k.isEnabled).map((k) => k.toShortcut()).toList();
+
+  void _updateConfiguredKeys(List<AccessoryKeyItem> keys) {
+    _configuredAccessoryKeys = keys;
+    _cachedAccessoryKeys = _buildAccessoryShortcuts();
+  }
+
   Future<void> load() async {
     _themeId = await _storageService.getTerminalThemeId();
     _fontSize = await _storageService.getTerminalFontSize();
     _fontFamily = await _storageService.getTerminalFontFamily();
-    _configuredAccessoryKeys = await _storageService.loadAccessoryKeys();
+    final keys = await _storageService.loadAccessoryKeys();
+    _updateConfiguredKeys(keys);
     _hapticFeedbackEnabled = await _storageService.getHapticFeedbackEnabled();
     _isLoaded = true;
     notifyListeners();
@@ -78,6 +87,7 @@ class TerminalSettingsStore extends ChangeNotifier {
     }
     final item = _configuredAccessoryKeys.removeAt(oldIndex);
     _configuredAccessoryKeys.insert(newIndex, item);
+    _cachedAccessoryKeys = _buildAccessoryShortcuts();
     await _storageService.saveAccessoryKeys(_configuredAccessoryKeys);
     notifyListeners();
   }
@@ -86,6 +96,7 @@ class TerminalSettingsStore extends ChangeNotifier {
     if (index < 0 || index >= _configuredAccessoryKeys.length) return;
     final item = _configuredAccessoryKeys[index];
     _configuredAccessoryKeys[index] = item.copyWith(isEnabled: !item.isEnabled);
+    _cachedAccessoryKeys = _buildAccessoryShortcuts();
     await _storageService.saveAccessoryKeys(_configuredAccessoryKeys);
     notifyListeners();
   }
@@ -105,6 +116,7 @@ class TerminalSettingsStore extends ChangeNotifier {
       isCustom: true,
     );
     _configuredAccessoryKeys.add(item);
+    _cachedAccessoryKeys = _buildAccessoryShortcuts();
     await _storageService.saveAccessoryKeys(_configuredAccessoryKeys);
     notifyListeners();
   }
@@ -112,12 +124,13 @@ class TerminalSettingsStore extends ChangeNotifier {
   Future<void> removeAccessoryKey(int index) async {
     if (index < 0 || index >= _configuredAccessoryKeys.length) return;
     _configuredAccessoryKeys.removeAt(index);
+    _cachedAccessoryKeys = _buildAccessoryShortcuts();
     await _storageService.saveAccessoryKeys(_configuredAccessoryKeys);
     notifyListeners();
   }
 
   Future<void> resetAccessoryKeysToDefault() async {
-    _configuredAccessoryKeys = List.from(AccessoryBarConfig.initialConfiguredKeys);
+    _updateConfiguredKeys(List.from(AccessoryBarConfig.initialConfiguredKeys));
     await _storageService.saveAccessoryKeys(_configuredAccessoryKeys);
     notifyListeners();
   }
@@ -127,12 +140,14 @@ class TerminalSettingsStore extends ChangeNotifier {
     _fontSize = TerminalConfig.fontSize;
     _fontFamily = TerminalConfig.fontFamily;
     _hapticFeedbackEnabled = true;
-    _configuredAccessoryKeys = List.from(AccessoryBarConfig.initialConfiguredKeys);
-    await _storageService.setTerminalThemeId(_themeId);
-    await _storageService.setTerminalFontSize(_fontSize);
-    await _storageService.setTerminalFontFamily(_fontFamily);
-    await _storageService.setHapticFeedbackEnabled(_hapticFeedbackEnabled);
-    await _storageService.saveAccessoryKeys(_configuredAccessoryKeys);
+    _updateConfiguredKeys(List.from(AccessoryBarConfig.initialConfiguredKeys));
+    await Future.wait([
+      _storageService.setTerminalThemeId(_themeId),
+      _storageService.setTerminalFontSize(_fontSize),
+      _storageService.setTerminalFontFamily(_fontFamily),
+      _storageService.setHapticFeedbackEnabled(_hapticFeedbackEnabled),
+      _storageService.saveAccessoryKeys(_configuredAccessoryKeys),
+    ]);
     notifyListeners();
   }
 }

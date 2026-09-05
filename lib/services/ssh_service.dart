@@ -18,6 +18,8 @@ enum SSHConnectionState {
 }
 
 class SSHService {
+  static final _tmuxSanitizeRegex = RegExp(r'[^a-zA-Z0-9_\-]');
+
   final StorageService _storageService;
   SSHClient? _client;
   SSHSession? _shellSession;
@@ -152,11 +154,10 @@ class SSHService {
         onStateChange(SSHConnectionState.disconnected, null);
       });
 
-      // Execute persistent session (tmux) auto-attach or initial command
       if (profile.persistSession) {
         final rawName = profile.tmuxSessionName?.trim();
         final sessionName = (rawName != null && rawName.isNotEmpty)
-            ? rawName.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_')
+            ? rawName.replaceAll(_tmuxSanitizeRegex, '_')
             : 'shelllite';
 
         // tmux new-session -A -s <name>:

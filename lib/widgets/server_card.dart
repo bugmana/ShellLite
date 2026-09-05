@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import '../providers/session_store.dart';
@@ -20,20 +19,12 @@ class ServerCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  T? _tryWatch<T>(BuildContext context) {
-    try {
-      return Provider.of<T>(context, listen: true);
-    } catch (_) {
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final isKeyAuth = profile.authMethod is SSHKeyAuth;
-    final telemetryStore = _tryWatch<TelemetryStore>(context);
-    final sessionStore = _tryWatch<SessionStore>(context);
+    final telemetryStore = context.maybeWatch<TelemetryStore>();
+    final sessionStore = context.maybeWatch<SessionStore>();
     final hasActiveSession = sessionStore?.hasActiveSession(profile.id) ?? false;
     final telemetry = telemetryStore?.getTelemetry(profile.id);
     final isLoadingTelemetry = telemetryStore?.isLoading(profile.id) ?? false;

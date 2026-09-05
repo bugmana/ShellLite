@@ -22,6 +22,50 @@ class FileTransferItem {
   });
 
   String get formattedSize => FileTransferService.formatBytes(size);
+
+  /// Yields binary data chunks for upload without loading entire local files into RAM.
+  Stream<Uint8List> openChunkStream({int chunkSize = 32 * 1024}) async* {
+    if (bytes != null) {
+      final data = bytes!;
+      final total = data.length;
+      if (total == 0) {
+        yield Uint8List(0);
+        return;
+      }
+      var offset = 0;
+      while (offset < total) {
+        final length = min(total - offset, chunkSize);
+        yield data.sublist(offset, offset + length);
+        offset += length;
+      }
+    } else if (!kIsWeb && localPath != null) {
+      final file = File(localPath!);
+      final raf = await file.open(mode: FileMode.read);
+      try {
+        final total = await file.length();
+        if (total == 0) {
+          yield Uint8List(0);
+          return;
+        }
+        while (true) {
+          final chunk = await raf.read(chunkSize);
+          if (chunk.isEmpty) break;
+          yield chunk;
+        }
+      } finally {
+        await raf.close();
+      }
+    } else if (readStream != null) {
+      await for (final rawChunk in readStream!) {
+        final chunk = rawChunk is Uint8List ? rawChunk : Uint8List.fromList(rawChunk);
+        if (chunk.isNotEmpty) {
+          yield chunk;
+        }
+      }
+    } else {
+      throw Exception('No valid data source for $name');
+    }
+  }
 }
 
 /// Status and progress information for an active file upload.
@@ -170,86 +214,26 @@ class FileTransferService {
     const maxChunkSize = 32 * 1024;
 
     try {
-      if (item.bytes != null) {
-        final data = item.bytes!;
-        final total = data.length;
-        var bytesSent = 0;
+      var bytesSent = 0;
+      final total = item.size;
 
-        if (total == 0) {
-          session.stdin.add(Uint8List(0));
-          onProgress?.call(0, 0);
-        } else {
-          while (bytesSent < total) {
-            if (isCancelled?.call() == true) {
-              session.close();
-              try {
-                await client.execute("rm -f '$escapedPath'");
-              } catch (_) {}
-              throw Exception('Upload cancelled');
-            }
-            final chunkSize = min(total - bytesSent, maxChunkSize);
-            final chunk = data.sublist(bytesSent, bytesSent + chunkSize);
-            session.stdin.add(chunk);
-            bytesSent += chunkSize;
-            onProgress?.call(bytesSent, total);
-            // Micro-yield to allow UI and websocket processing
-            await Future.delayed(Duration.zero);
-          }
+      await for (final chunk in item.openChunkStream(chunkSize: maxChunkSize)) {
+        if (isCancelled?.call() == true) {
+          session.close();
+          try {
+            await client.execute("rm -f '$escapedPath'");
+          } catch (_) {}
+          throw Exception('Upload cancelled');
         }
-      } else if (!kIsWeb && item.localPath != null) {
-        final file = File(item.localPath!);
-        final raf = await file.open(mode: FileMode.read);
-        try {
-          final total = await file.length();
-          var bytesSent = 0;
-          if (total == 0) {
-            session.stdin.add(Uint8List(0));
-            onProgress?.call(0, 0);
-          } else {
-            while (bytesSent < total) {
-              if (isCancelled?.call() == true) {
-                session.close();
-                try {
-                  await client.execute("rm -f '$escapedPath'");
-                } catch (_) {}
-                throw Exception('Upload cancelled');
-              }
-              final chunkSize = min(total - bytesSent, maxChunkSize);
-              final chunk = await raf.read(chunkSize);
-              if (chunk.isEmpty) break;
-              session.stdin.add(chunk);
-              bytesSent += chunk.length;
-              onProgress?.call(bytesSent, total);
-              await Future.delayed(Duration.zero);
-            }
-          }
-        } finally {
-          await raf.close();
-        }
-      } else if (item.readStream != null) {
-        var bytesSent = 0;
-        final total = item.size;
-        await for (final rawChunk in item.readStream!) {
-          if (isCancelled?.call() == true) {
-            session.close();
-            try {
-              await client.execute("rm -f '$escapedPath'");
-            } catch (_) {}
-            throw Exception('Upload cancelled');
-          }
-          final chunk = rawChunk is Uint8List ? rawChunk : Uint8List.fromList(rawChunk);
-          if (chunk.isNotEmpty) {
-            session.stdin.add(chunk);
-            bytesSent += chunk.length;
-            onProgress?.call(bytesSent, total > 0 ? total : bytesSent);
-            await Future.delayed(Duration.zero);
-          }
-        }
-        if (total > 0 && bytesSent < total) {
-          onProgress?.call(total, total);
-        }
-      } else {
-        throw Exception('No valid data source for ${item.name}');
+
+        session.stdin.add(chunk);
+        bytesSent += chunk.length;
+        onProgress?.call(bytesSent, total > 0 ? total : bytesSent);
+        await Future.delayed(Duration.zero);
+      }
+
+      if (total > 0 && bytesSent < total) {
+        onProgress?.call(total, total);
       }
 
       await session.stdin.close();
@@ -300,71 +284,21 @@ class FileTransferService {
 
       try {
         const maxChunkSize = 32 * 1024;
+        var bytesSent = 0;
+        final total = item.size;
 
-        if (item.bytes != null) {
-          final data = item.bytes!;
-          final total = data.length;
-          var bytesSent = 0;
+        await for (final chunk in item.openChunkStream(chunkSize: maxChunkSize)) {
+          if (isCancelled?.call() == true) {
+            throw Exception('Upload cancelled');
+          }
 
-          if (total == 0) {
-            await remoteFile.writeBytes(Uint8List(0), offset: 0);
-            onProgress?.call(0, 0);
-          } else {
-            while (bytesSent < total) {
-              if (isCancelled?.call() == true) {
-                throw Exception('Upload cancelled');
-              }
-              final chunkSize = min(total - bytesSent, maxChunkSize);
-              final chunk = data.sublist(bytesSent, bytesSent + chunkSize);
-              await remoteFile.writeBytes(chunk, offset: bytesSent);
-              bytesSent += chunkSize;
-              onProgress?.call(bytesSent, total);
-            }
-          }
-        } else if (!kIsWeb && item.localPath != null) {
-          final file = File(item.localPath!);
-          final raf = await file.open(mode: FileMode.read);
-          try {
-            final total = await file.length();
-            var bytesSent = 0;
-            if (total == 0) {
-              await remoteFile.writeBytes(Uint8List(0), offset: 0);
-              onProgress?.call(0, 0);
-            } else {
-              while (bytesSent < total) {
-                if (isCancelled?.call() == true) {
-                  throw Exception('Upload cancelled');
-                }
-                final chunkSize = min(total - bytesSent, maxChunkSize);
-                final chunk = await raf.read(chunkSize);
-                if (chunk.isEmpty) break;
-                await remoteFile.writeBytes(chunk, offset: bytesSent);
-                bytesSent += chunk.length;
-                onProgress?.call(bytesSent, total);
-              }
-            }
-          } finally {
-            await raf.close();
-          }
-        } else if (item.readStream != null) {
-          var bytesSent = 0;
-          final total = item.size;
-          await for (final rawChunk in item.readStream!) {
-            if (isCancelled?.call() == true) {
-              throw Exception('Upload cancelled');
-            }
-            final chunk = rawChunk is Uint8List ? rawChunk : Uint8List.fromList(rawChunk);
-            if (chunk.isNotEmpty) {
-              await remoteFile.writeBytes(chunk, offset: bytesSent);
-              bytesSent += chunk.length;
-              onProgress?.call(bytesSent, total > 0 ? total : bytesSent);
-            }
-          }
-          if (total > 0 && bytesSent < total) {
-            onProgress?.call(total, total);
-          }
-        } else {
-          throw Exception('No valid data source for ${item.name}');
+          await remoteFile.writeBytes(chunk, offset: bytesSent);
+          bytesSent += chunk.length;
+          onProgress?.call(bytesSent, total > 0 ? total : bytesSent);
+        }
+
+        if (total > 0 && bytesSent < total) {
+          onProgress?.call(total, total);
         }
       } finally {
         await remoteFile.close();

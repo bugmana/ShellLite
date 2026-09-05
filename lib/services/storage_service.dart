@@ -142,24 +142,6 @@ class StorageService {
     }
   }
 
-  // ── First-Run Gesture Tip Flag ─────────────────────────────────────────────
-
-  Future<bool> hasSeenGestureTip() async {
-    try {
-      final prefs = await _sharedPrefs;
-      return prefs.getBool(StorageConfig.hasSeenGestureTipKey) ?? false;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> markGestureTipSeen() async {
-    try {
-      final prefs = await _sharedPrefs;
-      await prefs.setBool(StorageConfig.hasSeenGestureTipKey, true);
-    } catch (_) {}
-  }
-
   // ── Terminal Preferences ───────────────────────────────────────────────────
 
   Future<String> getTerminalThemeId() async {
