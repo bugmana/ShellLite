@@ -86,6 +86,7 @@ jobs:
     name: Build Android
     needs: resolve-version
     uses: ./.github/workflows/build-android.yml
+    secrets: inherit
     with:
       upload_artifact: true
       version: ${{ needs.resolve-version.outputs.version }}

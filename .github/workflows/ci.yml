@@ -51,6 +51,7 @@ jobs:
   build-android:
     name: Build Android
     uses: ./.github/workflows/build-android.yml
+    secrets: inherit
     with:
       upload_artifact: false
       version: '1.0.0'
