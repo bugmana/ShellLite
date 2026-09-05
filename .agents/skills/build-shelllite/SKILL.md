@@ -96,8 +96,73 @@ Workflows are in [`.github/workflows/`](file:///home/aron/projects/ShellLite/.gi
 - `ci.yml`: Runs on push and PR to `main` and `master`. Executes `flutter pub get`, `flutter analyze`, `flutter test`, and `flutter build web --release`.
 - `build-android.yml`: Builds release APK/AAB with keystore secrets.
 - `build-ios.yml`: Builds iOS IPA artifact.
-- `release.yml`: Packages multi-platform release assets on `v*.*.*` tags.
+- `release.yml`: Automated multi-platform release workflow triggered via `workflow_dispatch`. Calculates version, tags git commit, triggers Android and iOS builds, and publishes GitHub Release.
 - `dependabot-auto-merge.yml`: Automatically merges authorized Dependabot updates.
+
+## Release Process & Publishing
+
+ShellLite releases are automated via GitHub Actions [`.github/workflows/release.yml`](file:///home/aron/projects/ShellLite/.github/workflows/release.yml).
+
+### Pre-Release Checklist
+1. Ensure all changes are committed and pushed to `main`:
+   ```bash
+   git status
+   git push origin main
+   ```
+2. Verify code quality and test suite:
+   ```bash
+   flutter analyze
+   flutter test
+   ```
+
+### Triggering a Release
+Trigger the release workflow using the GitHub CLI (`gh`):
+
+- **Patch release** (e.g., `1.0.4` -> `1.0.5`):
+  ```bash
+  gh workflow run release.yml -f bump_type=patch
+  ```
+- **Minor release** (e.g., `1.0.4` -> `1.1.0`):
+  ```bash
+  gh workflow run release.yml -f bump_type=minor
+  ```
+- **Major release** (e.g., `1.0.4` -> `2.0.0`):
+  ```bash
+  gh workflow run release.yml -f bump_type=major
+  ```
+- **Custom version**:
+  ```bash
+  gh workflow run release.yml -f bump_type=custom -f custom_version=1.2.0
+  ```
+
+### Release Pipeline Stages
+The `release.yml` workflow orchestrates four main steps:
+1. **`resolve-version`**:
+   - Queries the latest git tag (e.g. `v1.0.4`).
+   - Computes the new semantic version according to `bump_type`.
+   - Creates and pushes an annotated git tag (e.g. `v1.0.5`).
+2. **`build-ios`**:
+   - Reusable workflow [`.github/workflows/build-ios.yml`](file:///home/aron/projects/ShellLite/.github/workflows/build-ios.yml).
+   - Generates sideloadable iOS IPA (`ShellLite.ipa`) compatible with SideStore, AltStore, and Sideloadly.
+3. **`build-android`**:
+   - Reusable workflow [`.github/workflows/build-android.yml`](file:///home/aron/projects/ShellLite/.github/workflows/build-android.yml).
+   - Generates signed release APK (`ShellLite.apk`) and App Bundle (`ShellLite.aab`).
+4. **`publish-release`**:
+   - Downloads IPA, APK, and AAB build artifacts.
+   - Publishes the GitHub Release tagged with `vX.Y.Z` and attaches all installer assets.
+
+### Monitoring & Verifying the Release
+Track the workflow progress:
+```bash
+# List recent release workflow runs
+gh run list --workflow=release.yml
+
+# Watch the running workflow interactively
+gh run watch <run-id>
+
+# View the published release
+gh release view
+```
 
 ## Git Commit & Push Workflow
 - **Commit Convention**: Conventional Commits format with scope:
