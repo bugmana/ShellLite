@@ -24,6 +24,8 @@ class FileUploadModal extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: theme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
@@ -385,51 +387,54 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
     final theme = context.appTheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: SafeArea(
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(theme),
-              const Divider(height: 1),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!_uploadComplete) ...[
-                        _buildDirectorySection(theme),
-                        const SizedBox(height: 16),
-                      ],
-                      if (_uploadComplete)
-                        _buildCompleteView(theme)
-                      else if (_isUploading)
-                        _buildProgressView(theme)
-                      else ...[
-                        _buildFilePickerSection(theme),
-                        if (_selectedFiles.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _buildFileList(theme),
+    return PopScope(
+      canPop: !_isUploading,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: SafeArea(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(theme),
+                const Divider(height: 1),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!_uploadComplete) ...[
+                          _buildDirectorySection(theme),
+                          const SizedBox(height: 16),
                         ],
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 12),
-                          _buildErrorBanner(theme),
+                        if (_uploadComplete)
+                          _buildCompleteView(theme)
+                        else if (_isUploading)
+                          _buildProgressView(theme)
+                        else ...[
+                          _buildFilePickerSection(theme),
+                          if (_selectedFiles.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildFileList(theme),
+                          ],
+                          if (_errorMessage != null) ...[
+                            const SizedBox(height: 12),
+                            _buildErrorBanner(theme),
+                          ],
+                          const SizedBox(height: 20),
+                          _buildActionButtons(theme),
                         ],
-                        const SizedBox(height: 20),
-                        _buildActionButtons(theme),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -493,10 +498,11 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.close_rounded, size: 20, color: theme.textSecondary),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+              if (!_isUploading)
+                IconButton(
+                  icon: Icon(Icons.close_rounded, size: 20, color: theme.textSecondary),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
             ],
           ),
         ],

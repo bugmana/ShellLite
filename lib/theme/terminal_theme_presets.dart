@@ -58,7 +58,7 @@ class TerminalThemePresets {
     description: 'Deep black with emerald terminal green accents',
     theme: TerminalTheme(
       cursor: Color(0xFF3FB950),
-      selection: Color(0x5558A6FF),
+      selection: Color(0x7758A6FF),
       foreground: Color(0xFFF0F6FC),
       background: Color(0xFF0B0F14),
       black: Color(0xFF30363D),
@@ -111,7 +111,7 @@ class TerminalThemePresets {
     description: 'Soothing pastel dark theme with soft hues',
     theme: TerminalTheme(
       cursor: Color(0xFFF5E0DC),
-      selection: Color(0x55585B70),
+      selection: Color(0x7789B4FA),
       foreground: Color(0xFFCDD6F4),
       background: Color(0xFF1E1E2E),
       black: Color(0xFF45475A),
@@ -164,7 +164,7 @@ class TerminalThemePresets {
     description: 'Vibrant dark theme with high contrast purples & pinks',
     theme: TerminalTheme(
       cursor: Color(0xFFF8F8F2),
-      selection: Color(0x5544475A),
+      selection: Color(0x77BD93F9),
       foreground: Color(0xFFF8F8F2),
       background: Color(0xFF282A36),
       black: Color(0xFF21222C),
@@ -217,7 +217,7 @@ class TerminalThemePresets {
     description: 'Arctic, north-bluish clean color palette',
     theme: TerminalTheme(
       cursor: Color(0xFFD8DEE9),
-      selection: Color(0x554C566A),
+      selection: Color(0x7788C0D0),
       foreground: Color(0xFFD8DEE9),
       background: Color(0xFF2E3440),
       black: Color(0xFF3B4252),
@@ -270,7 +270,7 @@ class TerminalThemePresets {
     description: 'Clean dark theme inspired by Tokyo neon lights',
     theme: TerminalTheme(
       cursor: Color(0xFFC0CAF5),
-      selection: Color(0x5533467C),
+      selection: Color(0x777AA2F7),
       foreground: Color(0xFFA9B1D6),
       background: Color(0xFF1A1B26),
       black: Color(0xFF32344A),
@@ -323,7 +323,7 @@ class TerminalThemePresets {
     description: 'Scientifically calibrated precision color palette',
     theme: TerminalTheme(
       cursor: Color(0xFF93A1A1),
-      selection: Color(0x55073642),
+      selection: Color(0x772AA198),
       foreground: Color(0xFF839496),
       background: Color(0xFF002B36),
       black: Color(0xFF073642),

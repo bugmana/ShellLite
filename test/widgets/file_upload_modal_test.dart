@@ -75,16 +75,17 @@ void main() {
     expect(uploadButton.onPressed, isNull);
   });
 
-  testWidgets('FileUploadModal allows editing destination directory', (tester) async {
+  testWidgets('FileUploadModal uses PopScope to protect against accidental navigation during upload', (tester) async {
     await tester.pumpWidget(createTestWidget(initialDirectory: '/tmp'));
     await tester.pumpAndSettle();
 
-    final dirField = find.widgetWithText(TextField, '/tmp');
-    expect(dirField, findsOneWidget);
+    final popScopeFinder = find.byType(PopScope);
+    expect(popScopeFinder, findsOneWidget);
+    final popScope = tester.widget<PopScope>(popScopeFinder);
+    // When not uploading, canPop is true
+    expect(popScope.canPop, isTrue);
 
-    await tester.enterText(dirField, '/home/deploy/workspace');
-    await tester.pump();
-
-    expect(find.widgetWithText(TextField, '/home/deploy/workspace'), findsOneWidget);
+    // Close button is present when not uploading
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
   });
 }

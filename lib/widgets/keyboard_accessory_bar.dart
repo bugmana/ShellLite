@@ -11,6 +11,8 @@ class KeyboardAccessoryBar extends StatelessWidget {
   final VoidCallback? onExtendedKeysTap;
   final VoidCallback? onInteraction;
   final VoidCallback? onCloseKeyboard;
+  final VoidCallback? onToggleKeyboard;
+  final bool isKeyboardVisible;
   final List<TerminalKeyShortcut>? keys;
 
   static const List<TerminalKeyShortcut> defaultKeys = AccessoryBarConfig.defaultKeys;
@@ -21,6 +23,8 @@ class KeyboardAccessoryBar extends StatelessWidget {
     this.onExtendedKeysTap,
     this.onInteraction,
     this.onCloseKeyboard,
+    this.onToggleKeyboard,
+    this.isKeyboardVisible = true,
     this.keys,
   });
 
@@ -61,30 +65,31 @@ class KeyboardAccessoryBar extends StatelessWidget {
     return Focus(
       canRequestFocus: false,
       descendantsAreFocusable: false,
-      child: Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) => onInteraction?.call(),
-        child: Container(
-          height: AccessoryBarConfig.barHeight,
-          decoration: BoxDecoration(
-            color: theme.surface,
-            border: Border(
-              top: BorderSide(color: theme.border, width: 1),
-            ),
+      child: Container(
+        height: AccessoryBarConfig.barHeight,
+        decoration: BoxDecoration(
+          color: theme.surface,
+          border: Border(
+            top: BorderSide(color: theme.border, width: 1),
           ),
-          child: Row(
+        ),
+        child: Row(
           children: [
             // Scrollable keys list (Starts with Tab, ⇧Tab on far left)
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                scrollDirection: Axis.horizontal,
-                itemCount: activeKeys.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
-                itemBuilder: (context, index) => _buildKeyButton(context, activeKeys[index], theme),
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => onInteraction?.call(),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: activeKeys.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  itemBuilder: (context, index) => _buildKeyButton(context, activeKeys[index], theme),
+                ),
               ),
             ),
-            // Pinned right action area (Extended Keys + Close Keyboard button)
+            // Pinned right action area (Extended Keys + Toggle Keyboard button)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
@@ -94,16 +99,15 @@ class KeyboardAccessoryBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildExtendedKeysButton(context, theme),
-                  if (onCloseKeyboard != null) ...[
+                  if (onToggleKeyboard != null || onCloseKeyboard != null) ...[
                     const SizedBox(width: 6),
-                    _buildCloseKeyboardButton(context, theme),
+                    _buildToggleKeyboardButton(context, theme),
                   ],
                 ],
               ),
             ),
           ],
         ),
-      ),
       ),
     );
   }
@@ -172,9 +176,14 @@ class KeyboardAccessoryBar extends StatelessWidget {
     );
   }
 
-  Widget _buildCloseKeyboardButton(BuildContext context, AppThemeExtension theme) {
+  Widget _buildToggleKeyboardButton(BuildContext context, AppThemeExtension theme) {
+    final tooltip = isKeyboardVisible ? 'Hide keyboard' : 'Show keyboard';
+    final icon = isKeyboardVisible
+        ? Icons.keyboard_arrow_down_rounded
+        : Icons.keyboard_arrow_up_rounded;
+
     return Tooltip(
-      message: 'Close keyboard',
+      message: tooltip,
       child: Material(
         color: theme.cardSurface,
         borderRadius: BorderRadius.circular(6),
@@ -183,7 +192,11 @@ class KeyboardAccessoryBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           onTap: () {
             _triggerHaptic(context);
-            onCloseKeyboard?.call();
+            if (onToggleKeyboard != null) {
+              onToggleKeyboard!();
+            } else {
+              onCloseKeyboard?.call();
+            }
           },
           child: Container(
             width: 34,
@@ -194,8 +207,8 @@ class KeyboardAccessoryBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
-              Icons.keyboard_hide_rounded,
-              size: 18,
+              icon,
+              size: 20,
               color: theme.textSecondary,
             ),
           ),

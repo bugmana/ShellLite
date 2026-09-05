@@ -87,14 +87,18 @@ void main() {
     // Find and tap accessory keys
     final tabKey = find.text('Tab');
     final shiftTabKey = find.text('⇧Tab');
-    final ctrlCKey = find.text('^C');
-    final ctrlDKey = find.text('^D');
+    final upKey = find.text('↑');
+    final downKey = find.text('↓');
+    final leftKey = find.text('←');
+    final rightKey = find.text('→');
     final escKey = find.text('Esc');
 
     expect(tabKey, findsOneWidget);
     expect(shiftTabKey, findsOneWidget);
-    expect(ctrlCKey, findsOneWidget);
-    expect(ctrlDKey, findsOneWidget);
+    expect(upKey, findsOneWidget);
+    expect(downKey, findsOneWidget);
+    expect(leftKey, findsOneWidget);
+    expect(rightKey, findsOneWidget);
     expect(escKey, findsOneWidget);
 
     // Verify TerminalView has a focusNode attached
@@ -112,11 +116,19 @@ void main() {
     await tester.pump();
     expect(terminalView.focusNode!.hasFocus, isTrue);
 
-    await tester.tap(ctrlCKey);
+    await tester.tap(upKey);
     await tester.pump();
     expect(terminalView.focusNode!.hasFocus, isTrue);
 
-    await tester.tap(ctrlDKey);
+    await tester.tap(downKey);
+    await tester.pump();
+    expect(terminalView.focusNode!.hasFocus, isTrue);
+
+    await tester.tap(leftKey);
+    await tester.pump();
+    expect(terminalView.focusNode!.hasFocus, isTrue);
+
+    await tester.tap(rightKey);
     await tester.pump();
     expect(terminalView.focusNode!.hasFocus, isTrue);
 
@@ -149,11 +161,11 @@ void main() {
     await tester.tap(moreButton);
     await tester.pumpAndSettle();
 
-    // Verify clear screen, reconnect, disconnect, gesture tips are in menu
+    // Verify clear screen, reconnect, disconnect are in menu, and gesture tips is removed
     expect(find.text('Clear Screen'), findsOneWidget);
     expect(find.text('Reconnect'), findsOneWidget);
     expect(find.text('Disconnect Session'), findsOneWidget);
-    expect(find.text('Gesture Tips'), findsOneWidget);
+    expect(find.text('Gesture Tips'), findsNothing);
 
     // Verify duplicate upload and paste are removed from menu
     expect(find.text('Upload File'), findsNothing);
@@ -198,7 +210,7 @@ void main() {
     expect(terminalSettingsStore.themeId, 'catppuccin');
   });
 
-  testWidgets('TerminalScreen close keyboard button closes keyboard and tapping terminal keeps/regains focus', (tester) async {
+  testWidgets('TerminalScreen keyboard toggle button toggles between down arrow and up arrow', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -207,18 +219,52 @@ void main() {
     final terminalView = tester.widget<TerminalView>(terminalViewFinder);
     expect(terminalView.focusNode!.hasFocus, isTrue);
 
-    // Verify close keyboard button is rendered on the far right of accessory bar
-    final closeKeyboardButton = find.byIcon(Icons.keyboard_hide_rounded);
-    expect(closeKeyboardButton, findsOneWidget);
+    // Initially keyboard is open -> down arrow icon is shown
+    final downArrowButton = find.byIcon(Icons.keyboard_arrow_down_rounded);
+    expect(downArrowButton, findsOneWidget);
 
-    // Tap close keyboard
-    await tester.tap(closeKeyboardButton);
-    await tester.pump();
-
-    // Tap terminal area to regain/keep focus and keyboard
-    await tester.tap(terminalViewFinder);
+    // Tap to close keyboard
+    await tester.tap(downArrowButton);
     await tester.pumpAndSettle();
 
+    // Now up arrow icon is shown
+    final upArrowButton = find.byIcon(Icons.keyboard_arrow_up_rounded);
+    expect(upArrowButton, findsOneWidget);
+
+    // Tap to re-open keyboard
+    await tester.tap(upArrowButton);
+    await tester.pumpAndSettle();
+
+    // Down arrow icon is shown again
+    expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
     expect(terminalView.focusNode!.hasFocus, isTrue);
+  });
+
+  testWidgets('TerminalScreen shows floating copy bar when text is selected', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final session = sessionStore.getSession(testProfile.id)!;
+    session.terminal.write('echo Hello World\r\n');
+    await tester.pump();
+
+    // Select text using controller
+    session.controller.setSelection(
+      session.terminal.buffer.createAnchor(0, 0),
+      session.terminal.buffer.createAnchor(10, 0),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify Copy button is shown
+    expect(find.text('Copy'), findsOneWidget);
+    expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+
+    // Tap Copy button
+    await tester.tap(find.text('Copy'));
+    await tester.pumpAndSettle();
+
+    // Selection should be cleared and copy bar hidden
+    expect(session.controller.selection, isNull);
+    expect(find.text('Copy'), findsNothing);
   });
 }

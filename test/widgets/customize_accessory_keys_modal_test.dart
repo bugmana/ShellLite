@@ -97,9 +97,13 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
+    final delText = find.text('test_del');
+    await tester.scrollUntilVisible(delText, 100, scrollable: find.byType(Scrollable));
+    await tester.drag(find.byType(Scrollable), const Offset(0, -80));
+    await tester.pumpAndSettle();
+    expect(delText, findsOneWidget);
+
     final deleteButton = find.byIcon(Icons.delete_outline_rounded);
-    await tester.scrollUntilVisible(deleteButton, 200, scrollable: find.byType(Scrollable));
-    expect(find.text('test_del'), findsOneWidget);
     expect(deleteButton, findsOneWidget);
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
@@ -131,7 +135,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify custom key is gone and default length restored
-    expect(settingsStore.configuredAccessoryKeys.length, 13);
+    expect(settingsStore.configuredAccessoryKeys.length, 7);
     expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'cust_reset'), isFalse);
   });
 }

@@ -8,9 +8,7 @@ import '../models/server_profile.dart';
 import '../providers/session_store.dart';
 import '../providers/terminal_settings_store.dart';
 import '../services/ssh_service.dart';
-import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/directional_hud.dart';
 import '../widgets/file_upload_modal.dart';
 import '../widgets/keyboard_accessory_bar.dart';
 import '../widgets/terminal_appearance_modal.dart';
@@ -24,15 +22,14 @@ class TerminalScreen extends StatefulWidget {
   State<TerminalScreen> createState() => _TerminalScreenState();
 }
 
-class _TerminalScreenState extends State<TerminalScreen> {
+class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObserver {
   late final Terminal _fallbackTerminal;
   late final TerminalController _fallbackController;
   late final SSHService _fallbackSSHService;
   late final FocusNode _terminalFocusNode;
   final GlobalKey<TerminalViewState> _terminalViewKey = GlobalKey<TerminalViewState>();
 
-  bool _showGestureTip = false;
-  Timer? _tipDismissTimer;
+  bool _isKeyboardVisible = true;
 
   T? _tryWatch<T>(BuildContext context) {
     try {
@@ -53,6 +50,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _fallbackTerminal = Terminal(maxLines: TerminalConfig.maxScrollbackLines);
     _fallbackController = TerminalController();
@@ -60,7 +58,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
     _terminalFocusNode = FocusNode();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkGestureTip();
       final sessionStore = _tryRead<SessionStore>(context);
       if (sessionStore != null) {
         sessionStore.getOrCreateSession(widget.profile);
@@ -69,34 +66,21 @@ class _TerminalScreenState extends State<TerminalScreen> {
     });
   }
 
-  Future<void> _checkGestureTip() async {
-    final storage = mounted ? _tryRead<StorageService>(context) : null;
-    if (storage != null) {
-      final seen = await storage.hasSeenGestureTip();
-      if (!seen && mounted) {
-        setState(() {
-          _showGestureTip = true;
-        });
-        _tipDismissTimer = Timer(const Duration(seconds: 7), _dismissGestureTip);
-      }
-    }
-  }
-
-  void _dismissGestureTip() {
-    _tipDismissTimer?.cancel();
-    _tipDismissTimer = null;
-    if (_showGestureTip && mounted) {
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    final bottomInset = View.of(context).viewInsets.bottom;
+    final isVisible = bottomInset > 0 || _terminalFocusNode.hasFocus;
+    if (_isKeyboardVisible != isVisible && mounted) {
       setState(() {
-        _showGestureTip = false;
+        _isKeyboardVisible = isVisible;
       });
-      final storage = mounted ? _tryRead<StorageService>(context) : null;
-      storage?.markGestureTipSeen();
     }
   }
 
   @override
   void dispose() {
-    _tipDismissTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _terminalFocusNode.dispose();
     _fallbackController.dispose();
     _fallbackSSHService.disconnect();
@@ -117,6 +101,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
       _terminalFocusNode.requestFocus();
     }
     _terminalViewKey.currentState?.requestKeyboard();
+    if (!_isKeyboardVisible) {
+      setState(() {
+        _isKeyboardVisible = true;
+      });
+    }
   }
 
   void _closeKeyboard() {
@@ -124,6 +113,19 @@ class _TerminalScreenState extends State<TerminalScreen> {
     _terminalViewKey.currentState?.closeKeyboard();
     _terminalFocusNode.unfocus();
     SystemChannels.textInput.invokeMethod('TextInput.hide');
+    if (_isKeyboardVisible) {
+      setState(() {
+        _isKeyboardVisible = false;
+      });
+    }
+  }
+
+  void _toggleKeyboard() {
+    if (_isKeyboardVisible) {
+      _closeKeyboard();
+    } else {
+      _focusTerminal();
+    }
   }
 
   void _handleKeyTap(String sequence) {
@@ -294,12 +296,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   }
                   Navigator.of(context).maybePop();
                   break;
-                case 'guide':
-                  setState(() => _showGestureTip = true);
-                  _tipDismissTimer?.cancel();
-                  _tipDismissTimer = Timer(const Duration(seconds: 7), _dismissGestureTip);
-                  _focusTerminal();
-                  break;
               }
             },
             itemBuilder: (ctx) => [
@@ -335,17 +331,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'guide',
-                child: Row(
-                  children: [
-                    Icon(Icons.help_outline_rounded, size: 18, color: theme.secondaryAccent),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Gesture Tips')),
-                  ],
-                ),
-              ),
             ],
           ),
         ],
@@ -354,39 +339,43 @@ class _TerminalScreenState extends State<TerminalScreen> {
         child: Column(
           children: [
             Expanded(
-              child: Stack(
-                children: [
-                  Container(
-                    color: activeTheme.background,
-                    child: DirectionalHUDOverlay(
-                      onAction: _handleKeyTap,
-                      child: TerminalView(
-                        terminal,
-                        key: _terminalViewKey,
-                        controller: controller,
-                        theme: activeTheme,
-                        focusNode: _terminalFocusNode,
-                        autofocus: true,
-                        textStyle: textStyle,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        deleteDetection: true,
-                        onTapUp: (details, offset) => _focusTerminal(),
+              child: ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) {
+                  final hasSelection = controller.selection != null;
+                  return Stack(
+                    children: [
+                      Container(
+                        color: activeTheme.background,
+                        child: TerminalView(
+                          terminal,
+                          key: _terminalViewKey,
+                          controller: controller,
+                          theme: activeTheme,
+                          focusNode: _terminalFocusNode,
+                          autofocus: true,
+                          textStyle: textStyle,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          deleteDetection: true,
+                          onTapUp: (details, offset) => _focusTerminal(),
+                        ),
                       ),
-                    ),
-                  ),
-                  if (_showGestureTip)
-                    Positioned(
-                      top: 10,
-                      left: 12,
-                      right: 12,
-                      child: _buildGestureTipBanner(theme),
-                    ),
-                ],
+                      if (hasSelection)
+                        Positioned(
+                          top: 10,
+                          right: 12,
+                          child: _buildFloatingCopyBar(theme, terminal, controller),
+                        ),
+                    ],
+                  );
+                },
               ),
             ),
             KeyboardAccessoryBar(
               onKeyTap: _handleKeyTap,
               onInteraction: _focusTerminal,
+              isKeyboardVisible: _isKeyboardVisible,
+              onToggleKeyboard: _toggleKeyboard,
               onCloseKeyboard: _closeKeyboard,
               onExtendedKeysTap: () {
                 showModalBottomSheet(
@@ -405,17 +394,17 @@ class _TerminalScreenState extends State<TerminalScreen> {
     );
   }
 
-  Widget _buildGestureTipBanner(AppThemeExtension theme) {
+  Widget _buildFloatingCopyBar(AppThemeExtension theme, Terminal terminal, TerminalController controller) {
     return Material(
       color: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
-          color: theme.cardSurface.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(10),
+          color: theme.cardSurface.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: theme.primaryAccent.withValues(alpha: 0.6),
-            width: 1,
+            color: theme.primaryAccent.withValues(alpha: 0.7),
+            width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
@@ -426,34 +415,61 @@ class _TerminalScreenState extends State<TerminalScreen> {
           ],
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.lightbulb_outline_rounded,
-              color: theme.primaryAccent,
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Tip: Hold anywhere on screen for navigation joystick (↑/↓ History, → Tab, ← Cursor)',
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  height: 1.3,
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                final selection = controller.selection;
+                if (selection != null) {
+                  final text = terminal.buffer.getText(selection);
+                  Clipboard.setData(ClipboardData(text: text));
+                  controller.clearSelection();
+                  HapticFeedback.lightImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Copied to clipboard'),
+                      duration: const Duration(seconds: 1),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: theme.cardSurface,
+                    ),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.copy_rounded, size: 16, color: theme.primaryAccent),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Copy',
+                      style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            Container(
+              height: 16,
+              width: 1,
+              color: theme.border,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+            ),
             InkWell(
-              borderRadius: BorderRadius.circular(4),
-              onTap: _dismissGestureTip,
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => controller.clearSelection(),
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Icon(
                   Icons.close_rounded,
-                  color: theme.textSecondary,
                   size: 16,
+                  color: theme.textSecondary,
                 ),
               ),
             ),

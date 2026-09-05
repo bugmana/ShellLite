@@ -51,7 +51,7 @@ class StorageConfig {
   static const String terminalThemeKey = 'shell_lite_terminal_theme_id_v1';
   static const String terminalFontSizeKey = 'shell_lite_terminal_font_size_v1';
   static const String terminalFontFamilyKey = 'shell_lite_terminal_font_family_v1';
-  static const String accessoryKeysKey = 'shell_lite_accessory_keys_v1';
+  static const String accessoryKeysKey = 'shell_lite_accessory_keys_v2';
   static const String hapticFeedbackKey = 'shell_lite_haptic_feedback_v1';
 
   static String buildCredentialTag(String profileId) => '$credentialPrefix$profileId';
@@ -185,12 +185,6 @@ class AccessoryBarConfig {
     TerminalKeyShortcut(label: '←', sequence: '\x1B[D'),
     TerminalKeyShortcut(label: '→', sequence: '\x1B[C'),
     TerminalKeyShortcut(label: 'Esc', sequence: '\x1B'),
-    TerminalKeyShortcut(label: '^C', sequence: '\x03'),
-    TerminalKeyShortcut(label: '^D', sequence: '\x04'),
-    TerminalKeyShortcut(label: '|', sequence: '|'),
-    TerminalKeyShortcut(label: '~', sequence: '~'),
-    TerminalKeyShortcut(label: '/', sequence: '/'),
-    TerminalKeyShortcut(label: '-', sequence: '-'),
   ];
 
   static List<AccessoryKeyItem> get initialConfiguredKeys => defaultKeys

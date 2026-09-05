@@ -93,7 +93,7 @@ void main() {
 
     // Reset to defaults
     await store.resetAccessoryKeysToDefault();
-    expect(store.configuredAccessoryKeys.length, 13);
+    expect(store.configuredAccessoryKeys.length, 7);
     expect(store.accessoryKeys.first.label, 'Tab');
   });
 

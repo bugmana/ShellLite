@@ -23,8 +23,6 @@ void main() {
     expect(find.text('←'), findsOneWidget);
     expect(find.text('→'), findsOneWidget);
     expect(find.text('Esc'), findsOneWidget);
-    expect(find.text('^C'), findsOneWidget);
-    expect(find.text('^D'), findsOneWidget);
 
     await tester.tap(find.text('Tab'));
     await tester.pump();
@@ -38,9 +36,9 @@ void main() {
     await tester.pump();
     expect(tappedSequence, '\x1B[A');
 
-    await tester.tap(find.text('^C'));
+    await tester.tap(find.text('Esc'));
     await tester.pump();
-    expect(tappedSequence, '\x03');
+    expect(tappedSequence, '\x1B');
   });
 
   testWidgets('KeyboardAccessoryBar opens ExtendedKeysSheet modal and triggers key callback', (tester) async {
@@ -117,25 +115,43 @@ void main() {
     }
   });
 
-  testWidgets('KeyboardAccessoryBar renders close keyboard button on far right when onCloseKeyboard provided', (tester) async {
-    bool closeKeyboardCalled = false;
+  testWidgets('KeyboardAccessoryBar renders toggle keyboard button with down arrow when open and up arrow when hidden', (tester) async {
+    bool toggleKeyboardCalled = false;
 
+    // Test when open (isKeyboardVisible = true)
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: KeyboardAccessoryBar(
             onKeyTap: (_) {},
-            onCloseKeyboard: () => closeKeyboardCalled = true,
+            isKeyboardVisible: true,
+            onToggleKeyboard: () => toggleKeyboardCalled = true,
           ),
         ),
       ),
     );
 
-    final hideKeyboardButton = find.byIcon(Icons.keyboard_hide_rounded);
-    expect(hideKeyboardButton, findsOneWidget);
+    final downArrowButton = find.byIcon(Icons.keyboard_arrow_down_rounded);
+    expect(downArrowButton, findsOneWidget);
 
-    await tester.tap(hideKeyboardButton);
+    await tester.tap(downArrowButton);
     await tester.pump();
-    expect(closeKeyboardCalled, isTrue);
+    expect(toggleKeyboardCalled, isTrue);
+
+    // Test when hidden (isKeyboardVisible = false)
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyboardAccessoryBar(
+            onKeyTap: (_) {},
+            isKeyboardVisible: false,
+            onToggleKeyboard: () {},
+          ),
+        ),
+      ),
+    );
+
+    final upArrowButton = find.byIcon(Icons.keyboard_arrow_up_rounded);
+    expect(upArrowButton, findsOneWidget);
   });
 }
