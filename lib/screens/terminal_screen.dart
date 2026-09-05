@@ -143,6 +143,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
   Future<void> _pasteClipboard() async {
     final data = await Clipboard.getData('text/plain');
+    if (!mounted) return;
     if (data != null && data.text != null) {
       _readTerminal(context).paste(data.text!);
     }

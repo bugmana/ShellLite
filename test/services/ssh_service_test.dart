@@ -78,7 +78,7 @@ void main() {
       });
 
       // Simulate a large TUI or log output chunked in arbitrary packet sizes (e.g. 7 bytes)
-      final sampleTuiLine = '│ 100% [████████████████████] CPU Usage 42.5% │\n';
+      const sampleTuiLine = '│ 100% [████████████████████] CPU Usage 42.5% │\n';
       final fullData = sampleTuiLine * 50;
       final fullBytes = utf8.encode(fullData);
 
