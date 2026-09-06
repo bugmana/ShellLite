@@ -100,3 +100,8 @@ service-account*.json
 credentials.json
 google-services.json
 GoogleService-Info.plist
+
+# Agent deliberation & scratch files
+.agents/**
+!.agents/skills/**
+ORIGINAL_REQUEST.md
