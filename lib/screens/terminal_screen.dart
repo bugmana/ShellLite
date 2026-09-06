@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/file_upload_modal.dart';
 import '../widgets/keyboard_accessory_bar.dart';
 import '../widgets/terminal_appearance_modal.dart';
+import '../widgets/terminal_selection_handle.dart';
 
 class TerminalScreen extends StatefulWidget {
   final ServerProfile profile;
@@ -25,6 +26,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   late final Terminal _fallbackTerminal;
   late final TerminalController _fallbackController;
   late final FocusNode _terminalFocusNode;
+  final ScrollController _terminalScrollController = ScrollController();
   final GlobalKey<TerminalViewState> _terminalViewKey = GlobalKey<TerminalViewState>();
 
   bool _isKeyboardVisible = true;
@@ -62,9 +64,18 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _terminalScrollController.dispose();
     _terminalFocusNode.dispose();
     _fallbackController.dispose();
     super.dispose();
+  }
+
+  dynamic get _renderTerminal {
+    try {
+      return _terminalViewKey.currentState?.renderTerminal;
+    } catch (_) {
+      return null;
+    }
   }
 
   OpenSession? _readSession(BuildContext context) {
@@ -259,9 +270,27 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           children: [
             Expanded(
               child: ListenableBuilder(
-                listenable: controller,
+                listenable: Listenable.merge([controller, _terminalScrollController]),
                 builder: (context, _) {
-                  final hasSelection = controller.selection != null;
+                  final selection = controller.selection?.normalized;
+                  final hasSelection = selection != null;
+                  final renderTerminal = _renderTerminal;
+
+                  Offset? startOffset;
+                  Offset? endOffset;
+                  double lineHeight = 16.0;
+
+                  if (hasSelection && renderTerminal != null) {
+                    try {
+                      lineHeight = renderTerminal.lineHeight as double;
+                      startOffset = renderTerminal.getOffset(selection.begin) as Offset;
+                      endOffset = renderTerminal.getOffset(selection.end) as Offset;
+                    } catch (_) {
+                      startOffset = null;
+                      endOffset = null;
+                    }
+                  }
+
                   return Stack(
                     children: [
                       Container(
@@ -270,6 +299,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           terminal,
                           key: _terminalViewKey,
                           controller: controller,
+                          scrollController: _terminalScrollController,
                           theme: activeTheme,
                           focusNode: _terminalFocusNode,
                           autofocus: true,
@@ -279,6 +309,34 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           onTapUp: (details, offset) => _focusTerminal(),
                         ),
                       ),
+                      if (hasSelection && startOffset != null && endOffset != null) ...[
+                        TerminalSelectionHandle(
+                          handleKey: const Key('terminal_selection_handle_start'),
+                          position: TerminalHandlePosition.left,
+                          offset: startOffset,
+                          lineHeight: lineHeight,
+                          color: theme.primaryAccent,
+                          onDragUpdate: (details) => _handleStartHandleDrag(
+                            details,
+                            selection,
+                            terminal,
+                            controller,
+                          ),
+                        ),
+                        TerminalSelectionHandle(
+                          handleKey: const Key('terminal_selection_handle_end'),
+                          position: TerminalHandlePosition.right,
+                          offset: endOffset,
+                          lineHeight: lineHeight,
+                          color: theme.primaryAccent,
+                          onDragUpdate: (details) => _handleEndHandleDrag(
+                            details,
+                            selection,
+                            terminal,
+                            controller,
+                          ),
+                        ),
+                      ],
                       if (hasSelection)
                         Positioned(
                           top: 10,
@@ -396,5 +454,86 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
         ),
       ),
     );
+  }
+
+  void _handleStartHandleDrag(
+    DragUpdateDetails details,
+    BufferRange normalized,
+    Terminal terminal,
+    TerminalController controller,
+  ) {
+    final renderBox = _terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderTerminal = _renderTerminal;
+    if (renderBox == null || renderTerminal == null) return;
+
+    final localPos = renderBox.globalToLocal(details.globalPosition);
+    final lineHeight = renderTerminal.lineHeight as double;
+
+    // Aim for the vertical center of the character cell
+    final targetOffset = Offset(localPos.dx, localPos.dy - (lineHeight * 0.5));
+    final cellOffset = renderTerminal.getCellOffset(targetOffset) as CellOffset;
+
+    // The start marker cannot be dragged past the last character of the selection
+    final currentEnd = normalized.end;
+    CellOffset lastValidStart;
+    if (currentEnd.x > 0) {
+      lastValidStart = CellOffset(currentEnd.x - 1, currentEnd.y);
+    } else if (currentEnd.y > 0) {
+      lastValidStart = CellOffset(terminal.viewWidth - 1, currentEnd.y - 1);
+    } else {
+      lastValidStart = const CellOffset(0, 0);
+    }
+
+    final newStart = cellOffset.isAfter(lastValidStart) ? lastValidStart : cellOffset;
+
+    if (!newStart.isEqual(normalized.begin)) {
+      controller.setSelection(
+        terminal.buffer.createAnchorFromOffset(newStart),
+        terminal.buffer.createAnchorFromOffset(currentEnd),
+        mode: controller.selectionMode,
+      );
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  void _handleEndHandleDrag(
+    DragUpdateDetails details,
+    BufferRange normalized,
+    Terminal terminal,
+    TerminalController controller,
+  ) {
+    final renderBox = _terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderTerminal = _renderTerminal;
+    if (renderBox == null || renderTerminal == null) return;
+
+    final localPos = renderBox.globalToLocal(details.globalPosition);
+    final lineHeight = renderTerminal.lineHeight as double;
+
+    // Aim for the vertical center of the character cell
+    final targetOffset = Offset(localPos.dx, localPos.dy - (lineHeight * 0.5));
+    final cellOffset = renderTerminal.getCellOffset(targetOffset) as CellOffset;
+
+    // Target cell should be included in selection, so end boundary is cellOffset.x + 1
+    final targetEnd = CellOffset(
+      (cellOffset.x + 1).clamp(1, terminal.viewWidth),
+      cellOffset.y,
+    );
+
+    // End marker cannot be dragged before or same as the start marker
+    final minEnd = CellOffset(
+      (normalized.begin.x + 1).clamp(1, terminal.viewWidth),
+      normalized.begin.y,
+    );
+
+    final newEnd = targetEnd.isBefore(minEnd) ? minEnd : targetEnd;
+
+    if (!newEnd.isEqual(normalized.end)) {
+      controller.setSelection(
+        terminal.buffer.createAnchorFromOffset(normalized.begin),
+        terminal.buffer.createAnchorFromOffset(newEnd),
+        mode: controller.selectionMode,
+      );
+      HapticFeedback.selectionClick();
+    }
   }
 }

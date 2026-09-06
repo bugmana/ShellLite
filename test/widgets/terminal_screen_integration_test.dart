@@ -268,5 +268,59 @@ void main() {
     // Selection should be cleared and copy bar hidden
     expect(session.controller.selection, isNull);
     expect(find.text('Copy'), findsNothing);
+    expect(find.byKey(const Key('terminal_selection_handle_start')), findsNothing);
+    expect(find.byKey(const Key('terminal_selection_handle_end')), findsNothing);
+  });
+
+  testWidgets('TerminalScreen renders selection handles and allows dragging markers to update selection', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final session = sessionStore.getSession(testProfile.id)!;
+    session.terminal.write('echo Hello World\r\n');
+    await tester.pump();
+
+    int helloLine = 0;
+    int helloCol = 0;
+    for (int i = 0; i < session.terminal.buffer.lines.length; i++) {
+      final text = session.terminal.buffer.lines[i].getText();
+      if (text.contains('Hello')) {
+        helloLine = i;
+        helloCol = text.indexOf('Hello');
+        break;
+      }
+    }
+
+    // Select "Hello"
+    session.controller.setSelection(
+      session.terminal.buffer.createAnchor(helloCol, helloLine),
+      session.terminal.buffer.createAnchor(helloCol + 5, helloLine),
+    );
+    await tester.pumpAndSettle();
+
+    final startHandleFinder = find.byKey(const Key('terminal_selection_handle_start'));
+    final endHandleFinder = find.byKey(const Key('terminal_selection_handle_end'));
+
+    expect(startHandleFinder, findsOneWidget);
+    expect(endHandleFinder, findsOneWidget);
+
+    // Initial text should be "Hello"
+    expect(session.terminal.buffer.getText(session.controller.selection), 'Hello');
+
+    // Drag end handle to the right
+    await tester.drag(endHandleFinder, const Offset(60, 0));
+    await tester.pumpAndSettle();
+
+    // End of selection should have expanded
+    final newEnd = session.controller.selection!.normalized.end;
+    expect(newEnd.x, greaterThan(helloCol + 5));
+
+    // Drag start handle to the left
+    await tester.drag(startHandleFinder, const Offset(-60, 0));
+    await tester.pumpAndSettle();
+
+    // Start of selection should have moved left
+    final newStart = session.controller.selection!.normalized.begin;
+    expect(newStart.x, lessThan(helloCol));
   });
 }
