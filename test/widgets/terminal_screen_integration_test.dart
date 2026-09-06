@@ -137,7 +137,7 @@ void main() {
     expect(terminalView.focusNode!.hasFocus, isTrue);
   });
 
-  testWidgets('TerminalScreen shows Paste action button in AppBar and handles paste', (tester) async {
+  testWidgets('TerminalScreen shows Paste action button in KeyboardAccessoryBar and handles paste', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -148,7 +148,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('TerminalScreen shows Disconnect action button in AppBar and handles session disconnect', (tester) async {
+  testWidgets('TerminalScreen shows Disconnect action in Session Menu and handles session disconnect', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -156,23 +156,21 @@ void main() {
     expect(session, isNotNull);
     expect(sessionStore.hasActiveSession(testProfile.id), isTrue);
 
-    // Verify three-dots popup menu button is removed
-    expect(find.byTooltip('More actions'), findsNothing);
-    expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+    // Verify Session Menu button is present in AppBar
+    final menuButton = find.byTooltip('Session Menu');
+    expect(menuButton, findsOneWidget);
+    expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
 
-    // Verify clear screen and reconnect are removed from AppBar
-    expect(find.text('Clear Screen'), findsNothing);
-    expect(find.descendant(of: find.byType(AppBar), matching: find.text('Reconnect')), findsNothing);
+    // Open Session Menu
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
 
-    // Verify Disconnect button is present directly in AppBar
-    final disconnectButton = find.byTooltip('Disconnect Session');
-    expect(disconnectButton, findsOneWidget);
-    expect(find.byIcon(Icons.power_settings_new_rounded), findsOneWidget);
+    // Verify Disconnect option is present
+    final disconnectItem = find.text('Disconnect');
+    expect(disconnectItem, findsOneWidget);
 
-    // Press and hold Disconnect button for 600ms
-    final gesture = await tester.startGesture(tester.getCenter(disconnectButton));
-    await tester.pump(const Duration(milliseconds: 650));
-    await gesture.up();
+    // Tap Disconnect
+    await tester.tap(disconnectItem);
     await tester.pumpAndSettle();
 
     // Verify session has been closed
@@ -180,27 +178,39 @@ void main() {
     expect(sessionStore.getSession(testProfile.id), isNull);
   });
 
-  testWidgets('TerminalScreen shows Upload File action button in AppBar', (tester) async {
+  testWidgets('TerminalScreen shows Upload File action in Session Menu', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    final uploadButton = find.byIcon(Icons.cloud_upload_outlined);
-    expect(uploadButton, findsOneWidget);
+    // Open Session Menu
+    final menuButton = find.byTooltip('Session Menu');
+    expect(menuButton, findsOneWidget);
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
+
+    final uploadItem = find.text('Upload File');
+    expect(uploadItem, findsOneWidget);
 
     // Tapping when disconnected shows disconnected snackbar
-    await tester.tap(uploadButton);
+    await tester.tap(uploadItem);
     await tester.pump();
     expect(find.text('Terminal session is not connected'), findsOneWidget);
   });
 
-  testWidgets('TerminalScreen opens Terminal Settings modal', (tester) async {
+  testWidgets('TerminalScreen opens Terminal Settings modal via Session Menu', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    // Tap settings button in app bar
-    final settingsButton = find.byIcon(Icons.tune_rounded);
-    expect(settingsButton, findsOneWidget);
-    await tester.tap(settingsButton);
+    // Open Session Menu
+    final menuButton = find.byTooltip('Session Menu');
+    expect(menuButton, findsOneWidget);
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
+
+    // Tap settings item in menu
+    final settingsItem = find.text('Terminal Settings');
+    expect(settingsItem, findsOneWidget);
+    await tester.tap(settingsItem);
     await tester.pumpAndSettle();
 
     // Modal should be displayed
@@ -326,7 +336,7 @@ void main() {
     expect(newStart.x, lessThan(helloCol));
   });
 
-  testWidgets('TerminalScreen AppBar centers title and uses accessible action buttons', (tester) async {
+  testWidgets('TerminalScreen AppBar centers title and uses clean 2-item header with overflow Session Menu', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -335,20 +345,17 @@ void main() {
     final appBar = tester.widget<AppBar>(appBarFinder);
     expect(appBar.centerTitle, isTrue);
 
-    // Verify all 4 action buttons are present and have >= 44pt touch targets
-    final uploadButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.cloud_upload_outlined));
-    final pasteButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.paste_rounded));
-    final settingsButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.tune_rounded));
-    final disconnectFinder = find.byType(HoldToDisconnectButton);
+    // Verify clean header: Session Menu button is present with >= 44pt touch target
+    final menuButton = find.byTooltip('Session Menu');
+    expect(menuButton, findsOneWidget);
+    final menuWidget = tester.widget<PopupMenuButton<String>>(find.byWidgetPredicate((w) => w is PopupMenuButton<String>));
+    expect(menuWidget.constraints!.minWidth, greaterThanOrEqualTo(44.0));
+    expect(menuWidget.constraints!.minHeight, greaterThanOrEqualTo(44.0));
 
-    expect(uploadButton.constraints!.minWidth, greaterThanOrEqualTo(44.0));
-    expect(uploadButton.constraints!.minHeight, greaterThanOrEqualTo(44.0));
-    expect(pasteButton.constraints!.minWidth, greaterThanOrEqualTo(44.0));
-    expect(pasteButton.constraints!.minHeight, greaterThanOrEqualTo(44.0));
-    expect(settingsButton.constraints!.minWidth, greaterThanOrEqualTo(44.0));
-    expect(settingsButton.constraints!.minHeight, greaterThanOrEqualTo(44.0));
-    expect(disconnectFinder, findsOneWidget);
-    expect(find.byIcon(Icons.power_settings_new_rounded), findsOneWidget);
+    // Verify Paste button is present on the KeyboardAccessoryBar with >= 44pt touch target
+    final pasteFinder = find.byTooltip('Paste');
+    expect(pasteFinder, findsOneWidget);
+    expect(find.byIcon(Icons.paste_rounded), findsOneWidget);
 
     // Verify title text has maxLines: 1 and TextOverflow.ellipsis
     final titleText = tester.widget<Text>(find.text('Test Terminal Server'));

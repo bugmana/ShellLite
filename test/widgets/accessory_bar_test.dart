@@ -154,4 +154,26 @@ void main() {
     final upArrowButton = find.byIcon(Icons.keyboard_arrow_up_rounded);
     expect(upArrowButton, findsOneWidget);
   });
+
+  testWidgets('KeyboardAccessoryBar renders paste button when onPaste is provided and triggers callback', (tester) async {
+    bool pasteCalled = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyboardAccessoryBar(
+            onKeyTap: (_) {},
+            onPaste: () => pasteCalled = true,
+          ),
+        ),
+      ),
+    );
+
+    final pasteButton = find.byTooltip('Paste');
+    expect(pasteButton, findsOneWidget);
+    expect(find.byIcon(Icons.paste_rounded), findsOneWidget);
+
+    await tester.tap(pasteButton);
+    await tester.pump();
+    expect(pasteCalled, isTrue);
+  });
 }

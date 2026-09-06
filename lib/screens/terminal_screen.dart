@@ -231,38 +231,85 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.cloud_upload_outlined, size: 20),
-            tooltip: 'Upload File to Server',
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert_rounded, color: theme.textPrimary, size: 20),
+            tooltip: 'Session Menu',
             padding: const EdgeInsets.all(10),
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            visualDensity: VisualDensity.compact,
-            onPressed: () => _openFileUpload(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.paste_rounded, size: 20),
-            tooltip: 'Paste',
-            padding: const EdgeInsets.all(10),
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            visualDensity: VisualDensity.compact,
-            onPressed: _pasteClipboard,
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune_rounded, size: 20),
-            tooltip: 'Terminal Settings',
-            padding: const EdgeInsets.all(10),
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            visualDensity: VisualDensity.compact,
-            onPressed: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
-          ),
-          HoldToDisconnectButton(
-            theme: theme,
-            onDisconnect: () {
-              if (session != null) {
-                sessionStore?.closeSession(session.id);
+            color: theme.cardSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              side: BorderSide(color: theme.border, width: 1),
+            ),
+            onSelected: (value) {
+              switch (value) {
+                case 'upload':
+                  _openFileUpload(context);
+                  break;
+                case 'settings':
+                  TerminalAppearanceModal.show(context).then((_) => _focusTerminal());
+                  break;
+                case 'paste':
+                  _pasteClipboard();
+                  break;
+                case 'disconnect':
+                  if (session != null) {
+                    sessionStore?.closeSession(session.id);
+                  }
+                  Navigator.of(context).maybePop();
+                  break;
               }
-              Navigator.of(context).maybePop();
             },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'upload',
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_upload_outlined, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Upload File', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.tune_rounded, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Terminal Settings', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'paste',
+                child: Row(
+                  children: [
+                    Icon(Icons.paste_rounded, size: 18, color: theme.textSecondary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Paste', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'disconnect',
+                child: Row(
+                  children: [
+                    Icon(Icons.power_settings_new_rounded, size: 18, color: theme.error),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Disconnect',
+                      style: TextStyle(
+                        color: theme.error,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 4),
         ],
@@ -465,6 +512,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               isKeyboardVisible: _isKeyboardVisible,
               onToggleKeyboard: _toggleKeyboard,
               onCloseKeyboard: _closeKeyboard,
+              onPaste: _pasteClipboard,
               onExtendedKeysTap: () {
                 showModalBottomSheet(
                   context: context,

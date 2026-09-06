@@ -82,6 +82,7 @@ class KeyboardAccessoryBar extends StatefulWidget {
   final VoidCallback? onInteraction;
   final VoidCallback? onCloseKeyboard;
   final VoidCallback? onToggleKeyboard;
+  final VoidCallback? onPaste;
   final bool isKeyboardVisible;
   final bool isTmuxEnabled;
   final List<TerminalKeyShortcut>? keys;
@@ -95,6 +96,7 @@ class KeyboardAccessoryBar extends StatefulWidget {
     this.onInteraction,
     this.onCloseKeyboard,
     this.onToggleKeyboard,
+    this.onPaste,
     this.isKeyboardVisible = true,
     this.isTmuxEnabled = false,
     this.keys,
@@ -280,6 +282,10 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (widget.onPaste != null) ...[
+                        _buildPasteButton(context, theme),
+                        const SizedBox(width: 6),
+                      ],
                       _buildExtendedKeysButton(context, theme),
                       if (widget.onToggleKeyboard != null || widget.onCloseKeyboard != null) ...[
                         const SizedBox(width: 6),
@@ -394,6 +400,38 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
               fontSize: 13,
               fontFamily: 'monospace',
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasteButton(BuildContext context, AppThemeExtension theme) {
+    return Tooltip(
+      message: 'Paste',
+      child: Material(
+        color: theme.cardSurface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: InkWell(
+          canRequestFocus: false,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          onTap: () {
+            _triggerHaptic();
+            widget.onPaste?.call();
+          },
+          child: Container(
+            width: AppTouchTarget.min,
+            height: AppTouchTarget.min,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.border, width: 1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(
+              Icons.paste_rounded,
+              size: 18,
+              color: theme.textPrimary,
             ),
           ),
         ),
