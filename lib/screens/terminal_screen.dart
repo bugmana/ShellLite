@@ -209,9 +209,18 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
+        titleSpacing: 0,
         title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(session?.profile.displayName ?? widget.profile.displayName, style: const TextStyle(fontSize: 16)),
+            Text(
+              session?.profile.displayName ?? widget.profile.displayName,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 2),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -241,21 +250,33 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           IconButton(
             icon: const Icon(Icons.cloud_upload_outlined, size: 20),
             tooltip: 'Upload File to Server',
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            visualDensity: VisualDensity.compact,
             onPressed: () => _openFileUpload(context),
           ),
           IconButton(
             icon: const Icon(Icons.paste_rounded, size: 20),
             tooltip: 'Paste',
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            visualDensity: VisualDensity.compact,
             onPressed: _pasteClipboard,
           ),
           IconButton(
             icon: const Icon(Icons.tune_rounded, size: 20),
             tooltip: 'Terminal Settings',
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            visualDensity: VisualDensity.compact,
             onPressed: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
           ),
           IconButton(
             icon: Icon(Icons.power_settings_new_rounded, size: 20, color: theme.error),
             tooltip: 'Disconnect Session',
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               if (session != null) {
                 sessionStore?.closeSession(session.id);
@@ -263,6 +284,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               Navigator.of(context).maybePop();
             },
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(

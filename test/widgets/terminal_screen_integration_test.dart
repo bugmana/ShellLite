@@ -323,4 +323,30 @@ void main() {
     final newStart = session.controller.selection!.normalized.begin;
     expect(newStart.x, lessThan(helloCol));
   });
+
+  testWidgets('TerminalScreen AppBar centers title and uses compact action buttons', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final appBarFinder = find.byType(AppBar);
+    expect(appBarFinder, findsOneWidget);
+    final appBar = tester.widget<AppBar>(appBarFinder);
+    expect(appBar.centerTitle, isTrue);
+
+    // Verify all 4 action buttons are present and have compact constraints
+    final uploadButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.cloud_upload_outlined));
+    final pasteButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.paste_rounded));
+    final settingsButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.tune_rounded));
+    final disconnectButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.power_settings_new_rounded));
+
+    expect(uploadButton.visualDensity, VisualDensity.compact);
+    expect(pasteButton.visualDensity, VisualDensity.compact);
+    expect(settingsButton.visualDensity, VisualDensity.compact);
+    expect(disconnectButton.visualDensity, VisualDensity.compact);
+
+    // Verify title text has maxLines: 1 and TextOverflow.ellipsis
+    final titleText = tester.widget<Text>(find.text('Test Terminal Server'));
+    expect(titleText.maxLines, 1);
+    expect(titleText.overflow, TextOverflow.ellipsis);
+  });
 }
