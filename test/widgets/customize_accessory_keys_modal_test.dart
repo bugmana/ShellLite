@@ -37,6 +37,30 @@ void main() {
     );
   }
 
+  testWidgets('CustomizeAccessoryKeysModal renders sticky modifiers and toggles them', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    expect(find.text('STICKY MODIFIERS'), findsOneWidget);
+    expect(find.text('Ctrl Sticky Modifier'), findsOneWidget);
+    expect(find.text('Alt / Meta Sticky Modifier'), findsOneWidget);
+
+    expect(settingsStore.ctrlModifierEnabled, isTrue);
+    expect(settingsStore.altModifierEnabled, isTrue);
+
+    // Toggle Ctrl switch (first switch in modal)
+    final ctrlSwitch = find.byType(Switch).first;
+    await tester.tap(ctrlSwitch);
+    await tester.pumpAndSettle();
+    expect(settingsStore.ctrlModifierEnabled, isFalse);
+
+    // Toggle Alt switch (second switch in modal)
+    final altSwitch = find.byType(Switch).at(1);
+    await tester.tap(altSwitch);
+    await tester.pumpAndSettle();
+    expect(settingsStore.altModifierEnabled, isFalse);
+  });
+
   testWidgets('CustomizeAccessoryKeysModal renders key list and toggle switches', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
@@ -45,9 +69,12 @@ void main() {
     expect(find.text('Tab'), findsOneWidget);
     expect(find.text('⇧Tab'), findsOneWidget);
 
-    // Toggle the first switch
-    final firstSwitch = find.byType(Switch).first;
-    await tester.tap(firstSwitch);
+    // Toggle the first switch in ReorderableListView
+    final firstKeySwitch = find.descendant(
+      of: find.byType(ReorderableListView),
+      matching: find.byType(Switch),
+    ).first;
+    await tester.tap(firstKeySwitch);
     await tester.pumpAndSettle();
 
     // Verify first key is disabled in store

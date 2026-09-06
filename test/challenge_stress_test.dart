@@ -27,7 +27,7 @@ double computeContrastRatio(Color c1, Color c2) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-// The proposal's exact formula (UIUX_PROPOSAL.md lines 813-818)
+// Baseline contrast formula based on ThemeData brightness estimation
 Color proposedComputeOnPrimary(Color primaryAccent) {
   final brightness = ThemeData.estimateBrightnessForColor(primaryAccent);
   return brightness == Brightness.light
@@ -35,7 +35,7 @@ Color proposedComputeOnPrimary(Color primaryAccent) {
       : Colors.white;            // Pure white
 }
 
-// The remediated formula (UIUX_PROPOSAL.md Section 4.2)
+// Production contrast formula using relative luminance threshold (0.1833)
 Color remediatedComputeOnPrimary(Color primaryAccent) {
   final lum = primaryAccent.computeLuminance();
   return lum > 0.1833 ? const Color(0xFF0B0F14) : Colors.white;

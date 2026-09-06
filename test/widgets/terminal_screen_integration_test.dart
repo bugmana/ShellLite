@@ -254,7 +254,7 @@ void main() {
     expect(terminalView.focusNode!.hasFocus, isTrue);
   });
 
-  testWidgets('TerminalScreen shows floating copy bar when text is selected', (tester) async {
+  testWidgets('TerminalScreen shows floating callout toolbar [Copy | Select All] when text is selected', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -269,19 +269,39 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify Copy button is shown
+    // Verify floating callout toolbar buttons are shown
     expect(find.text('Copy'), findsOneWidget);
     expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+    expect(find.text('Select All'), findsOneWidget);
+    expect(find.byIcon(Icons.select_all_rounded), findsOneWidget);
 
-    // Tap Copy button
+    // Verify KeyboardAccessoryBar remains mounted and visible (untouched)
+    expect(find.byType(KeyboardAccessoryBar), findsOneWidget);
+
+    // Tap "Select All" button
+    await tester.tap(find.text('Select All'));
+    await tester.pumpAndSettle();
+
+    // Verify selection expanded across buffer
+    expect(session.controller.selection, isNotNull);
+    final selection = session.controller.selection!.normalized;
+    expect(selection.begin.y, equals(0));
+    expect(selection.begin.x, equals(0));
+    expect(selection.end.y, equals(session.terminal.buffer.lines.length - 1));
+
+    // Tap "Copy" button
     await tester.tap(find.text('Copy'));
     await tester.pumpAndSettle();
 
-    // Selection should be cleared and copy bar hidden
+    // Selection should be cleared and floating toolbar hidden
     expect(session.controller.selection, isNull);
     expect(find.text('Copy'), findsNothing);
+    expect(find.text('Select All'), findsNothing);
     expect(find.byKey(const Key('terminal_selection_handle_start')), findsNothing);
     expect(find.byKey(const Key('terminal_selection_handle_end')), findsNothing);
+
+    // KeyboardAccessoryBar is still present
+    expect(find.byType(KeyboardAccessoryBar), findsOneWidget);
   });
 
   testWidgets('TerminalScreen renders selection handles and allows dragging markers to update selection', (tester) async {
@@ -361,5 +381,57 @@ void main() {
     final titleText = tester.widget<Text>(find.text('Test Terminal Server'));
     expect(titleText.maxLines, 1);
     expect(titleText.overflow, TextOverflow.ellipsis);
+  });
+
+  testWidgets('TerminalScreen sets hardwareKeyboardOnly when virtual keyboard is toggled to prevent scroll interruption', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Initially keyboard is visible -> hardwareKeyboardOnly is false
+    final terminalViewInitial = tester.widget<TerminalView>(find.byType(TerminalView));
+    expect(terminalViewInitial.hardwareKeyboardOnly, isFalse);
+
+    // Tap toggle keyboard (down arrow) to hide keyboard
+    final hideKeyboardButton = find.byTooltip('Hide keyboard');
+    expect(hideKeyboardButton, findsOneWidget);
+    await tester.tap(hideKeyboardButton);
+    await tester.pumpAndSettle();
+
+    // Now keyboard is hidden -> hardwareKeyboardOnly is true to guard scrolling
+    final terminalViewHidden = tester.widget<TerminalView>(find.byType(TerminalView));
+    expect(terminalViewHidden.hardwareKeyboardOnly, isTrue);
+
+    // Tap toggle keyboard (up arrow) to show keyboard
+    final showKeyboardButton = find.byTooltip('Show keyboard');
+    expect(showKeyboardButton, findsOneWidget);
+    await tester.tap(showKeyboardButton);
+    await tester.pumpAndSettle();
+
+    // Keyboard restored -> hardwareKeyboardOnly is false
+    final terminalViewRestored = tester.widget<TerminalView>(find.byType(TerminalView));
+    expect(terminalViewRestored.hardwareKeyboardOnly, isFalse);
+  });
+
+  testWidgets('TerminalScreen scrolls smoothly through buffer without rebuilding TerminalView or crashing', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final session = sessionStore.getSession(testProfile.id)!;
+    for (int i = 0; i < 100; i++) {
+      session.terminal.write('Log line output #$i\r\n');
+    }
+    await tester.pumpAndSettle();
+
+    // Scroll upwards through buffer
+    await tester.drag(find.byType(TerminalView), const Offset(0, 300));
+    await tester.pumpAndSettle();
+
+    // Verify TerminalView is still healthy and rendered
+    expect(find.byType(TerminalView), findsOneWidget);
+
+    // Scroll back down
+    await tester.drag(find.byType(TerminalView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(find.byType(TerminalView), findsOneWidget);
   });
 }

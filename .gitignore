@@ -7,6 +7,10 @@
 *.jpg
 *.png
 !assets/**
+!android/app/src/main/res/**/*.png
+!ios/Runner/Assets.xcassets/**
+!web/**/*.png
+!web/**/*.ico
 .DS_Store
 .atom/
 .buildlog/
@@ -104,4 +108,3 @@ GoogleService-Info.plist
 # Agent deliberation & scratch files
 .agents/**
 !.agents/skills/**
-ORIGINAL_REQUEST.md

@@ -13,6 +13,8 @@ class TerminalSettingsStore extends ChangeNotifier {
   List<AccessoryKeyItem> _configuredAccessoryKeys = AccessoryBarConfig.initialConfiguredKeys;
   late List<TerminalKeyShortcut> _cachedAccessoryKeys = _buildAccessoryShortcuts();
   bool _hapticFeedbackEnabled = true;
+  bool _ctrlModifierEnabled = true;
+  bool _altModifierEnabled = true;
   bool _isLoaded = false;
 
   TerminalSettingsStore({StorageService? storageService})
@@ -24,6 +26,8 @@ class TerminalSettingsStore extends ChangeNotifier {
   List<AccessoryKeyItem> get configuredAccessoryKeys => List.unmodifiable(_configuredAccessoryKeys);
   List<TerminalKeyShortcut> get accessoryKeys => _cachedAccessoryKeys;
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
+  bool get ctrlModifierEnabled => _ctrlModifierEnabled;
+  bool get altModifierEnabled => _altModifierEnabled;
   bool get isLoaded => _isLoaded;
 
   TerminalThemePreset get activeThemePreset => TerminalThemePresets.getById(_themeId);
@@ -50,6 +54,8 @@ class TerminalSettingsStore extends ChangeNotifier {
     final keys = await _storageService.loadAccessoryKeys();
     _updateConfiguredKeys(keys);
     _hapticFeedbackEnabled = await _storageService.getHapticFeedbackEnabled();
+    _ctrlModifierEnabled = await _storageService.getCtrlModifierEnabled();
+    _altModifierEnabled = await _storageService.getAltModifierEnabled();
     _isLoaded = true;
     notifyListeners();
   }
@@ -76,6 +82,26 @@ class TerminalSettingsStore extends ChangeNotifier {
     _hapticFeedbackEnabled = enabled;
     await _storageService.setHapticFeedbackEnabled(enabled);
     notifyListeners();
+  }
+
+  Future<void> setCtrlModifierEnabled(bool enabled) async {
+    _ctrlModifierEnabled = enabled;
+    await _storageService.setCtrlModifierEnabled(enabled);
+    notifyListeners();
+  }
+
+  Future<void> toggleCtrlModifier() async {
+    await setCtrlModifierEnabled(!_ctrlModifierEnabled);
+  }
+
+  Future<void> setAltModifierEnabled(bool enabled) async {
+    _altModifierEnabled = enabled;
+    await _storageService.setAltModifierEnabled(enabled);
+    notifyListeners();
+  }
+
+  Future<void> toggleAltModifier() async {
+    await setAltModifierEnabled(!_altModifierEnabled);
   }
 
   Future<void> reorderAccessoryKeys(int oldIndex, int newIndex) async {
@@ -131,7 +157,13 @@ class TerminalSettingsStore extends ChangeNotifier {
 
   Future<void> resetAccessoryKeysToDefault() async {
     _updateConfiguredKeys(List.from(AccessoryBarConfig.initialConfiguredKeys));
-    await _storageService.saveAccessoryKeys(_configuredAccessoryKeys);
+    _ctrlModifierEnabled = true;
+    _altModifierEnabled = true;
+    await Future.wait([
+      _storageService.saveAccessoryKeys(_configuredAccessoryKeys),
+      _storageService.setCtrlModifierEnabled(true),
+      _storageService.setAltModifierEnabled(true),
+    ]);
     notifyListeners();
   }
 
@@ -140,12 +172,16 @@ class TerminalSettingsStore extends ChangeNotifier {
     _fontSize = TerminalConfig.fontSize;
     _fontFamily = TerminalConfig.fontFamily;
     _hapticFeedbackEnabled = true;
+    _ctrlModifierEnabled = true;
+    _altModifierEnabled = true;
     _updateConfiguredKeys(List.from(AccessoryBarConfig.initialConfiguredKeys));
     await Future.wait([
       _storageService.setTerminalThemeId(_themeId),
       _storageService.setTerminalFontSize(_fontSize),
       _storageService.setTerminalFontFamily(_fontFamily),
       _storageService.setHapticFeedbackEnabled(_hapticFeedbackEnabled),
+      _storageService.setCtrlModifierEnabled(true),
+      _storageService.setAltModifierEnabled(true),
       _storageService.saveAccessoryKeys(_configuredAccessoryKeys),
     ]);
     notifyListeners();

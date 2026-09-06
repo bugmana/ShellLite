@@ -236,4 +236,38 @@ class StorageService {
       await prefs.setBool(StorageConfig.hapticFeedbackKey, enabled);
     } catch (_) {}
   }
+
+  // ── Sticky Modifiers Setting ───────────────────────────────────────────────
+
+  Future<bool> getCtrlModifierEnabled() async {
+    try {
+      final prefs = await _sharedPrefs;
+      return prefs.getBool(StorageConfig.ctrlModifierEnabledKey) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> setCtrlModifierEnabled(bool enabled) async {
+    try {
+      final prefs = await _sharedPrefs;
+      await prefs.setBool(StorageConfig.ctrlModifierEnabledKey, enabled);
+    } catch (_) {}
+  }
+
+  Future<bool> getAltModifierEnabled() async {
+    try {
+      final prefs = await _sharedPrefs;
+      return prefs.getBool(StorageConfig.altModifierEnabledKey) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> setAltModifierEnabled(bool enabled) async {
+    try {
+      final prefs = await _sharedPrefs;
+      await prefs.setBool(StorageConfig.altModifierEnabledKey, enabled);
+    } catch (_) {}
+  }
 }

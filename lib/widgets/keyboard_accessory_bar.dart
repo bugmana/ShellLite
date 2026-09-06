@@ -211,6 +211,7 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
   ModifierState _altState = ModifierState.inactive;
   bool _isTmuxExpanded = false;
   bool _isKeypadExpanded = false;
+  bool? _userDrawerExpanded;
 
   void _triggerHaptic() {
     final store = context.maybeRead<TerminalSettingsStore>();
@@ -289,6 +290,9 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
     }
     setState(() {
       _isKeypadExpanded = !_isKeypadExpanded;
+      if (!_isKeypadExpanded) {
+        _userDrawerExpanded = null;
+      }
     });
   }
 
@@ -299,6 +303,9 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
     final activeKeys = widget.keys ?? settingsStore?.accessoryKeys ?? KeyboardAccessoryBar.defaultKeys;
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final dynamicHeight = (AccessoryBarConfig.barHeight * textScale.clamp(1.0, 1.35));
+
+    final ctrlEnabled = settingsStore?.ctrlModifierEnabled ?? true;
+    final altEnabled = settingsStore?.altModifierEnabled ?? true;
 
     return Focus(
       canRequestFocus: false,
@@ -339,34 +346,38 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
             ),
             child: Row(
               children: [
-                // Scrollable keys list (starts with sticky modifiers)
+                // Scrollable keys list (starts with sticky modifiers if enabled)
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
                     scrollDirection: Axis.horizontal,
                     children: [
                       // Sticky Ctrl Modifier
-                      StickyModifierKey(
-                        label: 'Ctrl',
-                        state: _ctrlState,
-                        onTap: _toggleCtrl,
-                        onDoubleTap: _lockCtrl,
-                        theme: theme,
-                      ),
-                      const SizedBox(width: 6),
-                      // Sticky Alt Modifier
-                      StickyModifierKey(
-                        label: 'Alt',
-                        state: _altState,
-                        onTap: _toggleAlt,
-                        onDoubleTap: _lockAlt,
-                        theme: theme,
-                      ),
-                      if (widget.isTmuxEnabled) ...[
+                      if (ctrlEnabled) ...[
+                        StickyModifierKey(
+                          label: 'Ctrl',
+                          state: _ctrlState,
+                          onTap: _toggleCtrl,
+                          onDoubleTap: _lockCtrl,
+                          theme: theme,
+                        ),
                         const SizedBox(width: 6),
-                        _buildTmuxTogglePill(theme),
                       ],
-                      const SizedBox(width: 6),
+                      // Sticky Alt Modifier
+                      if (altEnabled) ...[
+                        StickyModifierKey(
+                          label: 'Alt',
+                          state: _altState,
+                          onTap: _toggleAlt,
+                          onDoubleTap: _lockAlt,
+                          theme: theme,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      if (widget.isTmuxEnabled) ...[
+                        _buildTmuxTogglePill(theme),
+                        const SizedBox(width: 6),
+                      ],
                       ...activeKeys.map((k) => Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: _buildKeyButton(context, k, theme),
@@ -556,7 +567,11 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
 
   Widget _buildKeypadDrawer(BuildContext context, AppThemeExtension theme) {
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final drawerHeight = (180.0 * textScale.clamp(1.0, 1.35)).clamp(168.0, 220.0);
+    final isExpanded = _userDrawerExpanded ?? !widget.isKeyboardVisible;
+    final baseHeight = isExpanded ? 280.0 : 180.0;
+    final minH = isExpanded ? 260.0 : 168.0;
+    final maxH = isExpanded ? 340.0 : 220.0;
+    final drawerHeight = (baseHeight * textScale.clamp(1.0, 1.35)).clamp(minH, maxH);
 
     return DefaultTabController(
       length: 3,
@@ -598,6 +613,24 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
                           minWidth: AppTouchTarget.min,
                           minHeight: AppTouchTarget.min,
                         ),
+                        icon: Icon(
+                          isExpanded ? Icons.unfold_less_rounded : Icons.unfold_more_rounded,
+                          color: theme.secondaryAccent,
+                          size: 20,
+                        ),
+                        tooltip: isExpanded ? 'Compact drawer' : 'Expand drawer',
+                        onPressed: () {
+                          _triggerHaptic();
+                          setState(() {
+                            _userDrawerExpanded = !isExpanded;
+                          });
+                        },
+                      ),
+                      IconButton(
+                        constraints: const BoxConstraints(
+                          minWidth: AppTouchTarget.min,
+                          minHeight: AppTouchTarget.min,
+                        ),
                         icon: Icon(Icons.tune_rounded, color: theme.secondaryAccent, size: 18),
                         tooltip: 'Customize Accessory Keys',
                         onPressed: () {
@@ -613,7 +646,10 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
                         tooltip: 'Collapse keys',
                         onPressed: () {
                           _triggerHaptic();
-                          setState(() => _isKeypadExpanded = false);
+                          setState(() {
+                            _isKeypadExpanded = false;
+                            _userDrawerExpanded = null;
+                          });
                         },
                       ),
                     ],

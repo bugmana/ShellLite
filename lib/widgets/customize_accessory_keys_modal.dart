@@ -404,6 +404,50 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
               ),
             ),
             Divider(color: theme.border, height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'STICKY MODIFIERS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: theme.primaryAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildModifierTile(
+                    theme: theme,
+                    label: 'Ctrl',
+                    title: 'Ctrl Sticky Modifier',
+                    subtitle: 'Tap to latch next key, double-tap to lock (Ctrl+Key)',
+                    isEnabled: store.ctrlModifierEnabled,
+                    onChanged: (_) => store.toggleCtrlModifier(),
+                  ),
+                  _buildModifierTile(
+                    theme: theme,
+                    label: 'Alt',
+                    title: 'Alt / Meta Sticky Modifier',
+                    subtitle: 'Tap to prefix next key with ESC, double-tap to lock (Alt+Key)',
+                    isEnabled: store.altModifierEnabled,
+                    onChanged: (_) => store.toggleAltModifier(),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'SHORTCUT KEYS & MACROS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: theme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             // Reorderable list of keys
             Expanded(
               child: ReorderableListView.builder(
@@ -541,5 +585,71 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
       return 'Code: Ctrl+${String.fromCharCode(64 + seq.codeUnitAt(0))}';
     }
     return 'Text: "$seq"';
+  }
+
+  Widget _buildModifierTile({
+    required AppThemeExtension theme,
+    required String label,
+    required String title,
+    required String subtitle,
+    required bool isEnabled,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      decoration: BoxDecoration(
+        color: isEnabled ? theme.cardSurface : theme.cardSurface.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isEnabled ? theme.border : theme.border.withValues(alpha: 0.4),
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: isEnabled
+                ? theme.primaryAccent.withValues(alpha: 0.15)
+                : theme.surface,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isEnabled
+                  ? theme.primaryAccent.withValues(alpha: 0.5)
+                  : theme.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: isEnabled ? theme.textPrimary : theme.textSecondary,
+            ),
+          ),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isEnabled ? theme.textPrimary : theme.textSecondary,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 11,
+            color: theme.textSecondary,
+          ),
+        ),
+        trailing: Switch(
+          value: isEnabled,
+          activeThumbColor: theme.primaryAccent,
+          onChanged: onChanged,
+        ),
+      ),
+    );
   }
 }
