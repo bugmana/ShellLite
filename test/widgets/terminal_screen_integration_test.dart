@@ -148,32 +148,34 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('TerminalScreen handles popup menu actions and does not contain duplicate upload or paste', (tester) async {
+  testWidgets('TerminalScreen shows Disconnect action button in AppBar and handles session disconnect', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     final session = sessionStore.getSession(testProfile.id);
     expect(session, isNotNull);
+    expect(sessionStore.hasActiveSession(testProfile.id), isTrue);
 
-    // Open popup menu
-    final moreButton = find.byTooltip('More actions');
-    expect(moreButton, findsOneWidget);
-    await tester.tap(moreButton);
+    // Verify three-dots popup menu button is removed
+    expect(find.byTooltip('More actions'), findsNothing);
+    expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+
+    // Verify clear screen and reconnect are removed
+    expect(find.text('Clear Screen'), findsNothing);
+    expect(find.text('Reconnect'), findsNothing);
+
+    // Verify Disconnect button is present directly in AppBar
+    final disconnectButton = find.byTooltip('Disconnect Session');
+    expect(disconnectButton, findsOneWidget);
+    expect(find.byIcon(Icons.power_settings_new_rounded), findsOneWidget);
+
+    // Tap Disconnect button
+    await tester.tap(disconnectButton);
     await tester.pumpAndSettle();
 
-    // Verify clear screen, reconnect, disconnect are in menu, and gesture tips is removed
-    expect(find.text('Clear Screen'), findsOneWidget);
-    expect(find.text('Reconnect'), findsOneWidget);
-    expect(find.text('Disconnect Session'), findsOneWidget);
-    expect(find.text('Gesture Tips'), findsNothing);
-
-    // Verify duplicate upload and paste are removed from menu
-    expect(find.text('Upload File'), findsNothing);
-    expect(find.text('Paste'), findsNothing);
-
-    // Tap Clear Screen
-    await tester.tap(find.text('Clear Screen'));
-    await tester.pumpAndSettle();
+    // Verify session has been closed
+    expect(sessionStore.hasActiveSession(testProfile.id), isFalse);
+    expect(sessionStore.getSession(testProfile.id), isNull);
   });
 
   testWidgets('TerminalScreen shows Upload File action button in AppBar', (tester) async {

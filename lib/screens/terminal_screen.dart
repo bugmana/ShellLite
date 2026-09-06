@@ -128,11 +128,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     _focusTerminal();
   }
 
-  void _clearTerminal() {
-    _readTerminal(context).eraseDisplay();
-    _focusTerminal();
-  }
-
   void _openFileUpload(BuildContext context) {
     final session = _readSession(context);
     if (session == null || !session.sshService.isConnected) {
@@ -247,67 +242,15 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
             tooltip: 'Appearance & Themes',
             onPressed: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, size: 20),
-            tooltip: 'More actions',
-            color: theme.surface,
-            shape: RoundedRectangleBorder(
-              side: BorderSide(color: theme.border),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            onSelected: (val) {
-              switch (val) {
-                case 'clear':
-                  _clearTerminal();
-                  break;
-                case 'reconnect':
-                  if (session != null) {
-                    sessionStore?.reconnectSession(session.id);
-                  }
-                  _focusTerminal();
-                  break;
-                case 'disconnect':
-                  if (session != null) {
-                    sessionStore?.closeSession(session.id);
-                  }
-                  Navigator.of(context).maybePop();
-                  break;
+          IconButton(
+            icon: Icon(Icons.power_settings_new_rounded, size: 20, color: theme.error),
+            tooltip: 'Disconnect Session',
+            onPressed: () {
+              if (session != null) {
+                sessionStore?.closeSession(session.id);
               }
+              Navigator.of(context).maybePop();
             },
-            itemBuilder: (ctx) => [
-              PopupMenuItem(
-                value: 'clear',
-                child: Row(
-                  children: [
-                    Icon(Icons.clear_all_rounded, size: 18, color: theme.textSecondary),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Clear Screen')),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'reconnect',
-                child: Row(
-                  children: [
-                    Icon(Icons.refresh_rounded, size: 18, color: theme.textSecondary),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Reconnect')),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'disconnect',
-                child: Row(
-                  children: [
-                    Icon(Icons.power_settings_new_rounded, size: 18, color: theme.error),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text('Disconnect Session', style: TextStyle(color: theme.error)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),

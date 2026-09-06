@@ -133,11 +133,4 @@ class SessionStore extends ChangeNotifier {
     }
     notifyListeners();
   }
-
-  void reconnectSession(String sessionId) {
-    final session = _sessions[sessionId];
-    if (session != null && session.connectionState != SSHConnectionState.connecting) {
-      _connectSession(session);
-    }
-  }
 }
