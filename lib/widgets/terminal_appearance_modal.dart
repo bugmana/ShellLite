@@ -58,65 +58,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-
-            // Live Preview Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: settings.activeTheme.background,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: theme.border, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFF5F56), shape: BoxShape.circle)),
-                      const SizedBox(width: 5),
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
-                      const SizedBox(width: 5),
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Preview — ${settings.activeThemePreset.name}',
-                        style: TextStyle(
-                          color: settings.activeTheme.foreground.withValues(alpha: 0.6),
-                          fontSize: 11,
-                          fontFamily: settings.fontFamily,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'user@shell-lite',
-                          style: TextStyle(color: settings.activeTheme.green, fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text: ':~# ',
-                          style: TextStyle(color: settings.activeTheme.blue),
-                        ),
-                        TextSpan(
-                          text: 'echo "Ready to connect!"',
-                          style: TextStyle(color: settings.activeTheme.foreground),
-                        ),
-                      ],
-                    ),
-                    style: TextStyle(
-                      fontFamily: settings.fontFamily,
-                      fontSize: settings.fontSize,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
             // Color Themes Section
             Text(
