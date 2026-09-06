@@ -175,7 +175,7 @@ class AccessoryKeyItem {
 }
 
 class AccessoryBarConfig {
-  static const double barHeight = 46.0;
+  static const double barHeight = 52.0;
 
   static const List<TerminalKeyShortcut> defaultKeys = [
     TerminalKeyShortcut(label: 'Tab', sequence: '\t'),
@@ -213,6 +213,11 @@ class AccessoryBarConfig {
     TerminalKeyShortcut(label: '^Z', sequence: '\x1A', description: 'Suspend process (SIGTSTP)'),
     TerminalKeyShortcut(label: '^C', sequence: '\x03', description: 'Interrupt process (SIGINT)'),
     TerminalKeyShortcut(label: '^D', sequence: '\x04', description: 'EOF / Exit shell'),
+    TerminalKeyShortcut(label: '^O', sequence: '\x0F', description: 'Save file (nano)'),
+    TerminalKeyShortcut(label: '^X', sequence: '\x18', description: 'Exit (nano)'),
+    TerminalKeyShortcut(label: '^G', sequence: '\x07', description: 'Get Help (nano)'),
+    TerminalKeyShortcut(label: '^T', sequence: '\x14', description: 'Transpose chars'),
+    TerminalKeyShortcut(label: '^S', sequence: '\x13', description: 'Forward search / freeze'),
     TerminalKeyShortcut(label: '^B', sequence: '\x02', description: 'Cursor back / tmux prefix'),
     TerminalKeyShortcut(label: '^F', sequence: '\x06', description: 'Cursor forward'),
     TerminalKeyShortcut(label: '^P', sequence: '\x10', description: 'Previous command'),

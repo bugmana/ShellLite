@@ -73,6 +73,28 @@ extension AppThemeContextExtension on BuildContext {
   }
 }
 
+abstract final class AppSpacing {
+  static const double xxs = 2.0;
+  static const double xs  = 4.0;
+  static const double sm  = 8.0;
+  static const double md  = 12.0;
+  static const double lg  = 16.0;
+  static const double xl  = 24.0;
+  static const double xxl = 32.0;
+}
+
+abstract final class AppRadius {
+  static const double sm = 6.0;
+  static const double md = 10.0;
+  static const double lg = 14.0;
+  static const double xl = 18.0;
+}
+
+abstract final class AppTouchTarget {
+  static const double min = 44.0;         // Apple HIG minimum (44pt)
+  static const double recommended = 48.0; // Material 3 standard (48dp)
+}
+
 class AppTheme {
   static final AppThemeExtension defaultExtension = AppThemeExtension(
     palette: TerminalThemePresets.obsidian.palette,
@@ -80,8 +102,16 @@ class AppTheme {
 
   static TerminalTheme get terminalTheme => TerminalThemePresets.obsidian.theme;
 
+  /// Computes foreground color guaranteeing WCAG AA (>= 4.5:1) against primaryAccent.
+  /// (1.05) / (L + 0.05) < 4.5  =>  L > 0.1833
+  static Color computeOnPrimary(Color primaryAccent) {
+    final lum = primaryAccent.computeLuminance();
+    return lum > 0.1833 ? const Color(0xFF0B0F14) : Colors.white;
+  }
+
   static ThemeData buildTheme(TerminalThemePreset preset) {
     final p = preset.palette;
+    final onPrimary = computeOnPrimary(p.primaryAccent);
 
     return ThemeData(
       useMaterial3: true,
@@ -94,7 +124,7 @@ class AppTheme {
         secondary: p.secondaryAccent,
         surface: p.surface,
         error: p.error,
-        onPrimary: Colors.white,
+        onPrimary: onPrimary,
         onSecondary: Colors.white,
         onSurface: p.textPrimary,
         onError: Colors.white,
@@ -199,12 +229,21 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: p.primaryAccent,
-          foregroundColor: Colors.white,
+          foregroundColor: onPrimary,
+          minimumSize: const Size(0, AppTouchTarget.min),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
+      ),
+      textTheme: TextTheme(
+        headlineMedium: TextStyle(color: p.textPrimary, fontWeight: FontWeight.bold),
+        titleLarge: TextStyle(color: p.textPrimary, fontWeight: FontWeight.w600, fontSize: 18),
+        titleMedium: TextStyle(color: p.textPrimary, fontWeight: FontWeight.w600, fontSize: 15),
+        bodyLarge: TextStyle(color: p.textPrimary, fontSize: 14),
+        bodyMedium: TextStyle(color: p.textSecondary, fontSize: 13),
+        bodySmall: TextStyle(color: p.textMuted, fontSize: 11),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(

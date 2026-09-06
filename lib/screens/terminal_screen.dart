@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
 import '../config/app_config.dart';
@@ -122,12 +123,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   void _handleKeyTap(String sequence) {
     final session = _readSession(context);
     session?.sshService.sendInput(sequence);
-    _focusTerminal();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _focusTerminal();
-      }
-    });
   }
 
   Future<void> _pasteClipboard() async {
@@ -196,20 +191,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     final activeTheme = terminalSettings?.activeTheme ?? TerminalConfig.theme;
     final textStyle = terminalSettings?.terminalStyle ?? TerminalConfig.textStyle;
 
-    // Auto-pop to Server List when remote connection is exited via exit command or Ctrl+D
-    if (session != null &&
-        session.connectionState == SSHConnectionState.disconnected &&
-        session.wasConnected) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).maybePop();
-        }
-      });
-    }
-
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
+        centerTitle: MediaQuery.sizeOf(context).width >= 380,
         titleSpacing: 0,
         title: Column(
           mainAxisSize: MainAxisSize.min,
@@ -250,34 +234,30 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           IconButton(
             icon: const Icon(Icons.cloud_upload_outlined, size: 20),
             tooltip: 'Upload File to Server',
-            padding: const EdgeInsets.all(6),
-            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             visualDensity: VisualDensity.compact,
             onPressed: () => _openFileUpload(context),
           ),
           IconButton(
             icon: const Icon(Icons.paste_rounded, size: 20),
             tooltip: 'Paste',
-            padding: const EdgeInsets.all(6),
-            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             visualDensity: VisualDensity.compact,
             onPressed: _pasteClipboard,
           ),
           IconButton(
             icon: const Icon(Icons.tune_rounded, size: 20),
             tooltip: 'Terminal Settings',
-            padding: const EdgeInsets.all(6),
-            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             visualDensity: VisualDensity.compact,
             onPressed: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
           ),
-          IconButton(
-            icon: Icon(Icons.power_settings_new_rounded, size: 20, color: theme.error),
-            tooltip: 'Disconnect Session',
-            padding: const EdgeInsets.all(6),
-            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-            visualDensity: VisualDensity.compact,
-            onPressed: () {
+          HoldToDisconnectButton(
+            theme: theme,
+            onDisconnect: () {
               if (session != null) {
                 sessionStore?.closeSession(session.id);
               }
@@ -291,27 +271,38 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
         child: Column(
           children: [
             Expanded(
-              child: ListenableBuilder(
-                listenable: Listenable.merge([controller, _terminalScrollController]),
-                builder: (context, _) {
-                  final selection = controller.selection?.normalized;
-                  final hasSelection = selection != null;
-                  final renderTerminal = _renderTerminal;
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final canvasHeight = constraints.maxHeight;
+                  return ListenableBuilder(
+                    listenable: Listenable.merge([controller, _terminalScrollController]),
+                    builder: (context, _) {
+                      final selection = controller.selection?.normalized;
+                      final hasSelection = selection != null;
+                      final renderTerminal = _renderTerminal;
 
-                  Offset? startOffset;
-                  Offset? endOffset;
-                  double lineHeight = 16.0;
+                      Offset? startOffset;
+                      Offset? endOffset;
+                      double lineHeight = 16.0;
 
-                  if (hasSelection && renderTerminal != null) {
-                    try {
-                      lineHeight = renderTerminal.lineHeight as double;
-                      startOffset = renderTerminal.getOffset(selection.begin) as Offset;
-                      endOffset = renderTerminal.getOffset(selection.end) as Offset;
-                    } catch (_) {
-                      startOffset = null;
-                      endOffset = null;
-                    }
-                  }
+                      if (hasSelection && renderTerminal != null) {
+                        try {
+                          lineHeight = renderTerminal.lineHeight as double;
+                          startOffset = renderTerminal.getOffset(selection.begin) as Offset;
+                          endOffset = renderTerminal.getOffset(selection.end) as Offset;
+                        } catch (_) {
+                          startOffset = null;
+                          endOffset = null;
+                        }
+                      }
+
+                      final isStartNearBottom = startOffset != null &&
+                          (canvasHeight - (startOffset.dy + lineHeight)) < 32.0;
+                      final isEndNearBottom = endOffset != null &&
+                          (canvasHeight - (endOffset.dy + lineHeight)) < 32.0;
+
+                  final isDisconnected = connectionState == SSHConnectionState.disconnected ||
+                      connectionState == SSHConnectionState.error;
 
                   return Stack(
                     children: [
@@ -338,6 +329,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           offset: startOffset,
                           lineHeight: lineHeight,
                           color: theme.primaryAccent,
+                          invertStem: isStartNearBottom,
                           onDragUpdate: (details) => _handleStartHandleDrag(
                             details,
                             selection,
@@ -351,6 +343,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           offset: endOffset,
                           lineHeight: lineHeight,
                           color: theme.primaryAccent,
+                          invertStem: isEndNearBottom,
                           onDragUpdate: (details) => _handleEndHandleDrag(
                             details,
                             selection,
@@ -359,18 +352,114 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           ),
                         ),
                       ],
-                      if (hasSelection)
+                      if (isDisconnected)
                         Positioned(
-                          top: 10,
-                          right: 12,
-                          child: _buildFloatingCopyBar(theme, terminal, controller),
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: Semantics(
+                            liveRegion: true,
+                            label: 'Connection lost. Buffer preserved.',
+                            child: Container(
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: theme.cardSurface.withValues(alpha: 0.94),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: theme.warning.withValues(alpha: 0.5),
+                                    width: 1.0,
+                                  ),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, color: theme.warning, size: 20),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Text(
+                                      'Connection lost. Buffer preserved.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: theme.textPrimary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: theme.primaryAccent,
+                                      foregroundColor: AppTheme.computeOnPrimary(theme.primaryAccent),
+                                      minimumSize: const Size(0, 36),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    ),
+                                    onPressed: () {
+                                      if (session != null) {
+                                        sessionStore?.reconnectSession(session.id);
+                                      }
+                                    },
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.refresh_rounded, size: 16),
+                                        SizedBox(width: 4),
+                                        Text('Reconnect', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                     ],
                   );
                 },
-              ),
-            ),
-            KeyboardAccessoryBar(
+              );
+            },
+          ),
+        ),
+        ListenableBuilder(
+          listenable: controller,
+          builder: (context, _) => _buildBottomBar(context, theme, terminal, controller),
+        ),
+      ],
+    ),
+  ),
+);
+}
+
+  Widget _buildBottomBar(
+    BuildContext context,
+    AppThemeExtension theme,
+    Terminal terminal,
+    TerminalController controller,
+  ) {
+    final hasSelection = controller.selection != null;
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final dynamicHeight = (52.0 * textScale.clamp(1.0, 1.35)).clamp(52.0, 72.0);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOutCubic,
+      height: dynamicHeight + 1.0,
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border(top: BorderSide(color: theme.border, width: 1.0)),
+      ),
+      child: hasSelection
+          ? _buildContextualSelectionBar(context, theme, terminal, controller)
+          : KeyboardAccessoryBar(
               onKeyTap: _handleKeyTap,
               onInteraction: _focusTerminal,
               isKeyboardVisible: _isKeyboardVisible,
@@ -387,95 +476,144 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                 });
               },
             ),
-          ],
-        ),
+    );
+  }
+
+  Widget _buildContextualSelectionBar(
+    BuildContext context,
+    AppThemeExtension theme,
+    Terminal terminal,
+    TerminalController controller,
+  ) {
+    final onPrimary = AppTheme.computeOnPrimary(theme.primaryAccent);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          const SizedBox(width: AppSpacing.sm),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primaryAccent,
+              foregroundColor: onPrimary,
+              minimumSize: const Size(0, 44),
+            ),
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: const Text(
+              'Copy',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              final selection = controller.selection;
+              if (selection != null) {
+                final text = terminal.buffer.getText(selection);
+                Clipboard.setData(ClipboardData(text: text));
+                controller.clearSelection();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Copied to clipboard'),
+                    duration: const Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: theme.cardSurface,
+                  ),
+                );
+              }
+              SemanticsService.sendAnnouncement(
+                View.of(context),
+                'Selection copied to clipboard',
+                TextDirection.ltr,
+              );
+            },
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 44)),
+            onPressed: () => _expandSelectionToWord(terminal, controller),
+            child: const Text('Word'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            icon: const Icon(Icons.close_rounded, size: 20),
+            tooltip: 'Clear Selection',
+            onPressed: () => controller.clearSelection(),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // Pinned Emergency Keys: Eliminates CLI Key Lockout in vim/nano/tmux
+          Container(
+            height: 24,
+            width: 1,
+            color: theme.border,
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.cardSurface,
+              foregroundColor: theme.textPrimary,
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            onPressed: () => terminal.keyInput(TerminalKey.escape),
+            child: const Text('Esc'),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.cardSurface,
+              foregroundColor: theme.error,
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            onPressed: () => terminal.textInput('\x03'),
+            child: const Text('^C'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
       ),
     );
   }
 
-  Widget _buildFloatingCopyBar(AppThemeExtension theme, Terminal terminal, TerminalController controller) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          color: theme.cardSurface.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: theme.primaryAccent.withValues(alpha: 0.7),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                final selection = controller.selection;
-                if (selection != null) {
-                  final text = terminal.buffer.getText(selection);
-                  Clipboard.setData(ClipboardData(text: text));
-                  controller.clearSelection();
-                  HapticFeedback.lightImpact();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Copied to clipboard'),
-                      duration: const Duration(seconds: 1),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: theme.cardSurface,
-                    ),
-                  );
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.copy_rounded, size: 16, color: theme.primaryAccent),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Copy',
-                      style: TextStyle(
-                        color: theme.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Container(
-              height: 16,
-              width: 1,
-              color: theme.border,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-            ),
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => controller.clearSelection(),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(
-                  Icons.close_rounded,
-                  size: 16,
-                  color: theme.textSecondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _expandSelectionToWord(Terminal terminal, TerminalController controller) {
+    final selection = controller.selection?.normalized;
+    if (selection == null) return;
+
+    final lineIndex = selection.begin.y;
+    if (lineIndex < 0 || lineIndex >= terminal.buffer.lines.length) return;
+
+    final lineText = terminal.buffer.lines[lineIndex].getText();
+    if (lineText.isEmpty) return;
+
+    int col = selection.begin.x.clamp(0, lineText.length - 1);
+    bool isWordChar(String ch) {
+      final code = ch.codeUnitAt(0);
+      return (code >= 48 && code <= 57) || // 0-9
+          (code >= 65 && code <= 90) || // A-Z
+          (code >= 97 && code <= 122) || // a-z
+          code == 95 || // _
+          code == 45 || // -
+          code == 46; // .
+    }
+
+    int startCol = col;
+    while (startCol > 0 && isWordChar(lineText[startCol - 1])) {
+      startCol--;
+    }
+
+    int endCol = col;
+    while (endCol < lineText.length && isWordChar(lineText[endCol])) {
+      endCol++;
+    }
+
+    if (endCol > startCol) {
+      controller.setSelection(
+        terminal.buffer.createAnchor(startCol, lineIndex),
+        terminal.buffer.createAnchor(endCol, lineIndex),
+        mode: controller.selectionMode,
+      );
+      HapticFeedback.selectionClick();
+    }
   }
 
   void _handleStartHandleDrag(
@@ -557,5 +695,114 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
       );
       HapticFeedback.selectionClick();
     }
+  }
+}
+
+class HoldToDisconnectButton extends StatefulWidget {
+  final VoidCallback onDisconnect;
+  final AppThemeExtension theme;
+
+  const HoldToDisconnectButton({
+    super.key,
+    required this.onDisconnect,
+    required this.theme,
+  });
+
+  @override
+  State<HoldToDisconnectButton> createState() => _HoldToDisconnectButtonState();
+}
+
+class _HoldToDisconnectButtonState extends State<HoldToDisconnectButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _progressController;
+  Timer? _holdTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+  }
+
+  @override
+  void dispose() {
+    _holdTimer?.cancel();
+    _progressController.dispose();
+    super.dispose();
+  }
+
+  void _startHold() {
+    _progressController.forward(from: 0.0);
+    _holdTimer?.cancel();
+    _holdTimer = Timer(const Duration(milliseconds: 600), () {
+      HapticFeedback.heavyImpact();
+      widget.onDisconnect();
+    });
+  }
+
+  void _cancelHold() {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    if (_progressController.isAnimating || _progressController.value > 0.0) {
+      _progressController.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Disconnect Session',
+      triggerMode: TooltipTriggerMode.manual,
+      child: Semantics(
+        button: true,
+        label: 'Disconnect Session',
+        hint: 'Press and hold for 600 milliseconds to disconnect',
+        onLongPress: () {
+          HapticFeedback.heavyImpact();
+          widget.onDisconnect();
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (_) => _startHold(),
+          onTapUp: (_) => _cancelHold(),
+          onTapCancel: _cancelHold,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.all(10),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedBuilder(
+                  animation: _progressController,
+                  builder: (context, _) {
+                    if (_progressController.value == 0.0) {
+                      return const SizedBox(width: 24, height: 24);
+                    }
+                    return SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        value: _progressController.value,
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(widget.theme.error),
+                        backgroundColor: widget.theme.error.withValues(alpha: 0.2),
+                      ),
+                    );
+                  },
+                ),
+                Icon(
+                  Icons.power_settings_new_rounded,
+                  size: 20,
+                  color: widget.theme.error,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -6,13 +6,84 @@ import '../providers/terminal_settings_store.dart';
 import '../theme/app_theme.dart';
 import 'customize_accessory_keys_modal.dart';
 
-class KeyboardAccessoryBar extends StatelessWidget {
+enum ModifierState { inactive, latched, locked }
+
+class StickyModifierKey extends StatelessWidget {
+  final String label;
+  final ModifierState state;
+  final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
+  final AppThemeExtension theme;
+
+  const StickyModifierKey({
+    super.key,
+    required this.label,
+    required this.state,
+    required this.onTap,
+    required this.onDoubleTap,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeBg = state == ModifierState.locked
+        ? theme.primaryAccent
+        : theme.primaryAccent.withValues(alpha: 0.22);
+    final activeFg = state == ModifierState.locked
+        ? AppTheme.computeOnPrimary(theme.primaryAccent)
+        : theme.primaryAccent;
+
+    return Semantics(
+      toggled: state != ModifierState.inactive,
+      label: '$label modifier, ${state.name}',
+      hint: 'Tap to latch, double tap to lock',
+      child: GestureDetector(
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: state != ModifierState.inactive ? activeBg : theme.cardSurface,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            border: Border.all(
+              color: state != ModifierState.inactive ? theme.primaryAccent : theme.border,
+              width: state == ModifierState.locked ? 2.0 : 1.0,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: state != ModifierState.inactive ? activeFg : theme.textPrimary,
+                ),
+              ),
+              if (state == ModifierState.locked) ...[
+                const SizedBox(width: AppSpacing.xxs),
+                Icon(Icons.lock_rounded, size: 10, color: activeFg),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class KeyboardAccessoryBar extends StatefulWidget {
   final ValueChanged<String> onKeyTap;
   final VoidCallback? onExtendedKeysTap;
   final VoidCallback? onInteraction;
   final VoidCallback? onCloseKeyboard;
   final VoidCallback? onToggleKeyboard;
   final bool isKeyboardVisible;
+  final bool isTmuxEnabled;
   final List<TerminalKeyShortcut>? keys;
 
   static const List<TerminalKeyShortcut> defaultKeys = AccessoryBarConfig.defaultKeys;
@@ -25,26 +96,99 @@ class KeyboardAccessoryBar extends StatelessWidget {
     this.onCloseKeyboard,
     this.onToggleKeyboard,
     this.isKeyboardVisible = true,
+    this.isTmuxEnabled = false,
     this.keys,
   });
 
-  void _triggerHaptic(BuildContext context) {
+  @override
+  State<KeyboardAccessoryBar> createState() => _KeyboardAccessoryBarState();
+}
+
+class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
+  ModifierState _ctrlState = ModifierState.inactive;
+  ModifierState _altState = ModifierState.inactive;
+  bool _isTmuxExpanded = false;
+
+  void _triggerHaptic() {
     final store = context.maybeRead<TerminalSettingsStore>();
     if (store?.hapticFeedbackEnabled ?? true) {
       HapticFeedback.lightImpact();
     }
   }
 
+  void _toggleCtrl() {
+    _triggerHaptic();
+    setState(() {
+      _ctrlState = _ctrlState == ModifierState.inactive
+          ? ModifierState.latched
+          : ModifierState.inactive;
+    });
+  }
+
+  void _lockCtrl() {
+    _triggerHaptic();
+    setState(() {
+      _ctrlState = ModifierState.locked;
+    });
+  }
+
+  void _toggleAlt() {
+    _triggerHaptic();
+    setState(() {
+      _altState = _altState == ModifierState.inactive
+          ? ModifierState.latched
+          : ModifierState.inactive;
+    });
+  }
+
+  void _lockAlt() {
+    _triggerHaptic();
+    setState(() {
+      _altState = ModifierState.locked;
+    });
+  }
+
+  void _handleKey(String sequence) {
+    String output = sequence;
+
+    // Apply Ctrl modifier if active
+    if (_ctrlState != ModifierState.inactive) {
+      if (sequence.length == 1) {
+        final code = sequence.codeUnitAt(0);
+        if (code >= 97 && code <= 122) {
+          // lowercase a-z -> 1-26
+          output = String.fromCharCode(code - 96);
+        } else if (code >= 65 && code <= 90) {
+          // uppercase A-Z -> 1-26
+          output = String.fromCharCode(code - 64);
+        }
+      }
+      if (_ctrlState == ModifierState.latched) {
+        setState(() => _ctrlState = ModifierState.inactive);
+      }
+    }
+
+    // Apply Alt modifier if active (prefix with ESC \x1B)
+    if (_altState != ModifierState.inactive) {
+      output = '\x1B$output';
+      if (_altState == ModifierState.latched) {
+        setState(() => _altState = ModifierState.inactive);
+      }
+    }
+
+    widget.onKeyTap(output);
+  }
+
   void _openExtendedKeysModal(BuildContext context) {
-    if (onExtendedKeysTap != null) {
-      onExtendedKeysTap!();
+    if (widget.onExtendedKeysTap != null) {
+      widget.onExtendedKeysTap!();
       return;
     }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => ExtendedKeysSheet(onKeyTap: onKeyTap),
+      builder: (_) => ExtendedKeysSheet(onKeyTap: _handleKey),
     );
   }
 
@@ -52,50 +196,136 @@ class KeyboardAccessoryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final settingsStore = context.maybeWatch<TerminalSettingsStore>();
-    final activeKeys = keys ?? settingsStore?.accessoryKeys ?? defaultKeys;
+    final activeKeys = widget.keys ?? settingsStore?.accessoryKeys ?? KeyboardAccessoryBar.defaultKeys;
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final dynamicHeight = (AccessoryBarConfig.barHeight * textScale.clamp(1.0, 1.35));
 
     return Focus(
       canRequestFocus: false,
       descendantsAreFocusable: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Optional Tmux secondary contextual strip
+          if (widget.isTmuxEnabled && _isTmuxExpanded)
+            Container(
+              height: 38,
+              color: theme.cardSurface,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+              child: Row(
+                children: [
+                  _buildTmuxChip('+Win', '\x02c', theme),
+                  const SizedBox(width: 6),
+                  _buildTmuxChip('→Next', '\x02n', theme),
+                  const SizedBox(width: 6),
+                  _buildTmuxChip('←Prev', '\x02p', theme),
+                  const SizedBox(width: 6),
+                  _buildTmuxChip('📜Scroll', '\x02[', theme),
+                  const SizedBox(width: 6),
+                  _buildTmuxChip('⏏Detach', '\x02d', theme),
+                ],
+              ),
+            ),
+          Container(
+            height: dynamicHeight,
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border(
+                top: BorderSide(color: theme.border, width: 1),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Scrollable keys list (starts with sticky modifiers)
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      // Sticky Ctrl Modifier
+                      StickyModifierKey(
+                        label: 'Ctrl',
+                        state: _ctrlState,
+                        onTap: _toggleCtrl,
+                        onDoubleTap: _lockCtrl,
+                        theme: theme,
+                      ),
+                      const SizedBox(width: 6),
+                      // Sticky Alt Modifier
+                      StickyModifierKey(
+                        label: 'Alt',
+                        state: _altState,
+                        onTap: _toggleAlt,
+                        onDoubleTap: _lockAlt,
+                        theme: theme,
+                      ),
+                      if (widget.isTmuxEnabled) ...[
+                        const SizedBox(width: 6),
+                        _buildTmuxTogglePill(theme),
+                      ],
+                      const SizedBox(width: 6),
+                      ...activeKeys.map((k) => Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: _buildKeyButton(context, k, theme),
+                          )),
+                    ],
+                  ),
+                ),
+                // Pinned right action area (Extended Keys + Toggle Keyboard button)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    border: Border(left: BorderSide(color: theme.border, width: 1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildExtendedKeysButton(context, theme),
+                      if (widget.onToggleKeyboard != null || widget.onCloseKeyboard != null) ...[
+                        const SizedBox(width: 6),
+                        _buildToggleKeyboardButton(context, theme),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTmuxTogglePill(AppThemeExtension theme) {
+    return InkWell(
+      onTap: () {
+        _triggerHaptic();
+        setState(() => _isTmuxExpanded = !_isTmuxExpanded);
+      },
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
-        height: AccessoryBarConfig.barHeight,
+        constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border(
-            top: BorderSide(color: theme.border, width: 1),
+          color: _isTmuxExpanded ? theme.primaryAccent.withValues(alpha: 0.2) : theme.cardSurface,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(
+            color: _isTmuxExpanded ? theme.primaryAccent : theme.border,
           ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Scrollable keys list (Starts with Tab, ⇧Tab on far left)
-            Expanded(
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) => onInteraction?.call(),
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: activeKeys.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 6),
-                  itemBuilder: (context, index) => _buildKeyButton(context, activeKeys[index], theme),
-                ),
-              ),
-            ),
-            // Pinned right action area (Extended Keys + Toggle Keyboard button)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: theme.border, width: 1)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildExtendedKeysButton(context, theme),
-                  if (onToggleKeyboard != null || onCloseKeyboard != null) ...[
-                    const SizedBox(width: 6),
-                    _buildToggleKeyboardButton(context, theme),
-                  ],
-                ],
+            Icon(Icons.all_inclusive_rounded, size: 14, color: theme.primaryAccent),
+            const SizedBox(width: 4),
+            Text(
+              'tmux',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: theme.primaryAccent,
               ),
             ),
           ],
@@ -104,31 +334,63 @@ class KeyboardAccessoryBar extends StatelessWidget {
     );
   }
 
+  Widget _buildTmuxChip(String label, String sequence, AppThemeExtension theme) {
+    return InkWell(
+      onTap: () {
+        _triggerHaptic();
+        widget.onKeyTap(sequence);
+      },
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: theme.border),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: theme.primaryAccent,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildKeyButton(BuildContext context, TerminalKeyShortcut key, AppThemeExtension theme) {
+    final isInterrupt = key.label == '^C';
+
     return Material(
       color: theme.cardSurface,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
         canRequestFocus: false,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         onTapDown: (_) {
-          _triggerHaptic(context);
-          onInteraction?.call();
+          _triggerHaptic();
         },
         onTap: () {
-          onKeyTap(key.sequence);
+          _handleKey(key.sequence);
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11),
+          constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border.all(color: theme.border, width: 1),
-            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isInterrupt ? theme.error.withValues(alpha: 0.5) : theme.border,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Text(
             key.label,
             style: TextStyle(
-              color: theme.textPrimary,
+              color: isInterrupt ? theme.error : theme.textPrimary,
               fontSize: 13,
               fontFamily: 'monospace',
               fontWeight: FontWeight.w600,
@@ -144,22 +406,22 @@ class KeyboardAccessoryBar extends StatelessWidget {
       message: 'More keys',
       child: Material(
         color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: InkWell(
           canRequestFocus: false,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           onTap: () => _openExtendedKeysModal(context),
           child: Container(
-            width: 34,
-            height: 34,
+            width: AppTouchTarget.min,
+            height: AppTouchTarget.min,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border.all(color: theme.border, width: 1),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(
               Icons.keyboard_double_arrow_up_rounded,
-              size: 18,
+              size: 20,
               color: theme.secondaryAccent,
             ),
           ),
@@ -169,8 +431,8 @@ class KeyboardAccessoryBar extends StatelessWidget {
   }
 
   Widget _buildToggleKeyboardButton(BuildContext context, AppThemeExtension theme) {
-    final tooltip = isKeyboardVisible ? 'Hide keyboard' : 'Show keyboard';
-    final icon = isKeyboardVisible
+    final tooltip = widget.isKeyboardVisible ? 'Hide keyboard' : 'Show keyboard';
+    final icon = widget.isKeyboardVisible
         ? Icons.keyboard_arrow_down_rounded
         : Icons.keyboard_arrow_up_rounded;
 
@@ -178,25 +440,25 @@ class KeyboardAccessoryBar extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: InkWell(
           canRequestFocus: false,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           onTap: () {
-            _triggerHaptic(context);
-            if (onToggleKeyboard != null) {
-              onToggleKeyboard!();
+            _triggerHaptic();
+            if (widget.onToggleKeyboard != null) {
+              widget.onToggleKeyboard!();
             } else {
-              onCloseKeyboard?.call();
+              widget.onCloseKeyboard?.call();
             }
           },
           child: Container(
-            width: 34,
-            height: 34,
+            width: AppTouchTarget.min,
+            height: AppTouchTarget.min,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border.all(color: theme.border, width: 1),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(
               icon,
@@ -266,6 +528,7 @@ class ExtendedKeysSheet extends StatelessWidget {
                     Row(
                       children: [
                         IconButton(
+                          constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
                           icon: Icon(Icons.tune_rounded, color: theme.secondaryAccent, size: 20),
                           tooltip: 'Customize Accessory Keys',
                           onPressed: () {
@@ -274,6 +537,7 @@ class ExtendedKeysSheet extends StatelessWidget {
                           },
                         ),
                         IconButton(
+                          constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
                           icon: const Icon(Icons.close_rounded, size: 20),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
@@ -309,13 +573,16 @@ class ExtendedKeysSheet extends StatelessWidget {
   }
 
   Widget _buildGrid(BuildContext context, List<TerminalKeyShortcut> items, AppThemeExtension theme) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final childAspectRatio = (2.1 / textScale).clamp(1.1, 2.1);
+
     return GridView.builder(
       padding: const EdgeInsets.all(14),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 2.1,
+        childAspectRatio: childAspectRatio,
       ),
       itemCount: items.length,
       itemBuilder: (ctx, index) {
@@ -328,7 +595,7 @@ class ExtendedKeysSheet extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             onTap: () {
               _triggerHaptic(context);
-              Navigator.of(context).pop();
+              Navigator.of(ctx).pop();
               onKeyTap(item.sequence);
             },
             child: Container(

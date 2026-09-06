@@ -163,6 +163,11 @@ void main() {
   });
 
   testWidgets('ServerFormScreen validates invalid SSH key format', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 

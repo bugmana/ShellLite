@@ -69,79 +69,154 @@ class TerminalAppearanceModal extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 94,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: TerminalThemePresets.all.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final preset = TerminalThemePresets.all[index];
-                  final isSelected = preset.id == settings.themeId;
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.4,
+              ),
+              itemCount: TerminalThemePresets.all.length,
+              itemBuilder: (context, index) {
+                final preset = TerminalThemePresets.all[index];
+                final isSelected = preset.id == settings.themeId;
 
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () => settings.setTheme(preset.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 130,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: preset.previewPalette.first,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected ? preset.palette.primaryAccent : theme.border,
-                          width: isSelected ? 2 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  preset.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: preset.previewPalette.last,
-                                    fontSize: 12,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              if (isSelected)
-                                Icon(
-                                  Icons.check_circle_rounded,
-                                  color: preset.palette.primaryAccent,
-                                  size: 14,
-                                ),
-                            ],
-                          ),
-                          Row(
-                            children: preset.previewPalette.skip(1).take(4).map((c) {
-                              return Container(
-                                width: 14,
-                                height: 14,
-                                margin: const EdgeInsets.only(right: 5),
-                                decoration: BoxDecoration(
-                                  color: c,
-                                  shape: BoxShape.circle,
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
+                return InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => settings.setTheme(preset.id),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: preset.theme.background,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? preset.palette.primaryAccent : theme.border,
+                        width: isSelected ? 2 : 1,
                       ),
                     ),
-                  );
-                },
-              ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                preset.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: preset.palette.textPrimary,
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: preset.palette.primaryAccent,
+                                size: 14,
+                              ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(right: 4),
+                              decoration: BoxDecoration(
+                                color: preset.palette.primaryAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(right: 4),
+                              decoration: BoxDecoration(
+                                color: preset.palette.secondaryAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: preset.palette.warning,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Monospace CLI Preview Strip
+            Builder(
+              builder: (context) {
+                final activePreset = TerminalThemePresets.getById(settings.themeId);
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: activePreset.theme.background,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: (settings.fontSize * 0.9).clamp(10.0, 14.0),
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'user@server',
+                              style: TextStyle(
+                                color: activePreset.palette.primaryAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ':~# ',
+                              style: TextStyle(color: activePreset.palette.textSecondary),
+                            ),
+                            TextSpan(
+                              text: 'ls -la /var/log | grep error',
+                              style: TextStyle(color: activePreset.palette.textPrimary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'nginx/error.log  auth.log  syslog',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: (settings.fontSize * 0.9).clamp(10.0, 14.0),
+                          color: activePreset.palette.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
 
             // Font Size Controls
             Row(
@@ -156,17 +231,38 @@ class TerminalAppearanceModal extends StatelessWidget {
                     letterSpacing: 0.8,
                   ),
                 ),
-                Text(
-                  '${settings.fontSize.toStringAsFixed(1)} pt',
-                  style: TextStyle(
-                    color: theme.primaryAccent,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                Row(
+                  children: [
+                    IconButton(
+                      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                      icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
+                      color: theme.primaryAccent,
+                      tooltip: 'Decrease font size',
+                      onPressed: settings.fontSize > 10.0
+                          ? () => settings.setFontSize((settings.fontSize - 0.5).clamp(10.0, 22.0))
+                          : null,
+                    ),
+                    Text(
+                      '${settings.fontSize.toStringAsFixed(1)} pt',
+                      style: TextStyle(
+                        color: theme.primaryAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    IconButton(
+                      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                      icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                      color: theme.primaryAccent,
+                      tooltip: 'Increase font size',
+                      onPressed: settings.fontSize < 22.0
+                          ? () => settings.setFontSize((settings.fontSize + 0.5).clamp(10.0, 22.0))
+                          : null,
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 6),
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: theme.primaryAccent,
@@ -179,6 +275,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                 min: 10.0,
                 max: 22.0,
                 divisions: 24,
+                semanticFormatterCallback: (val) => '${val.toStringAsFixed(1)} points',
                 onChanged: (val) => settings.setFontSize(val),
               ),
             ),

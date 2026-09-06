@@ -109,16 +109,18 @@ class SessionStore extends ChangeNotifier {
           session.terminal.write(
             '\r\n\x1b[38;2;139;148;158mSession closed.\x1b[0m\r\n',
           );
-          if (session.wasConnected) {
-            _sessions.remove(session.id);
-            if (_activeSessionId == session.id) {
-              _activeSessionId = null;
-            }
-          }
         }
         notifyListeners();
       },
     );
+  }
+
+  Future<void> reconnectSession(String sessionId) async {
+    final session = _sessions[sessionId];
+    if (session == null) return;
+    session.connectionState = SSHConnectionState.connecting;
+    notifyListeners();
+    await _connectSession(session);
   }
 
   void closeSession(String sessionId) {

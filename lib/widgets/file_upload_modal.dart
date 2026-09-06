@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../providers/session_store.dart';
 import '../services/file_picker/file_picker_service.dart';
@@ -42,74 +41,7 @@ class FileUploadModal extends StatefulWidget {
   State<FileUploadModal> createState() => _FileUploadModalState();
 }
 
-class CelebrationParticle {
-  final double angle;
-  final double speed;
-  final double size;
-  final Color color;
-  final double rotationSpeed;
-
-  const CelebrationParticle({
-    required this.angle,
-    required this.speed,
-    required this.size,
-    required this.color,
-    required this.rotationSpeed,
-  });
-}
-
-class CelebrationBurstPainter extends CustomPainter {
-  final double progress;
-  final List<CelebrationParticle> particles;
-
-  CelebrationBurstPainter({
-    required this.progress,
-    required this.particles,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (progress <= 0.0 || progress >= 1.0) return;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    for (var i = 0; i < particles.length; i++) {
-      final p = particles[i];
-      // Ease out movement with gravity curve
-      final distance = p.speed * 85.0 * sin(progress * pi / 2);
-      final dx = center.dx + cos(p.angle) * distance;
-      final dy = center.dy + sin(p.angle) * distance + (progress * progress * 35.0);
-
-      // Fade out opacity towards the end
-      final alpha = (1.0 - progress).clamp(0.0, 1.0);
-      paint.color = p.color.withValues(alpha: alpha * 0.95);
-
-      final currentSize = p.size * (1.0 - progress * 0.4);
-
-      // Draw alternating shapes (sparkle circles and confetti rectangles)
-      if (i % 2 == 0) {
-        canvas.drawCircle(Offset(dx, dy), currentSize, paint);
-      } else {
-        canvas.save();
-        canvas.translate(dx, dy);
-        canvas.rotate(progress * p.rotationSpeed);
-        canvas.drawRect(
-          Rect.fromCenter(center: Offset.zero, width: currentSize * 2.2, height: currentSize * 1.2),
-          paint,
-        );
-        canvas.restore();
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CelebrationBurstPainter oldDelegate) {
-    return oldDelegate.progress != progress;
-  }
-}
-
-class _FileUploadModalState extends State<FileUploadModal> with TickerProviderStateMixin {
+class _FileUploadModalState extends State<FileUploadModal> {
   final TextEditingController _dirController = TextEditingController();
   final List<FileTransferItem> _selectedFiles = [];
 
@@ -124,88 +56,15 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
   int _currentFileTotalBytes = 0;
   final List<String> _completedFiles = [];
 
-  late final AnimationController _successAnimController;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _glowAnimation;
-  late final Animation<double> _fadeAnimation;
-
-  late final AnimationController _particleController;
-  final List<CelebrationParticle> _particles = [];
-
   @override
   void initState() {
     super.initState();
-    _initCelebrationAnimations();
     _initDirectory();
-  }
-
-  void _initCelebrationAnimations() {
-    _successAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.25)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
-        weight: 60,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.25, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 40,
-      ),
-    ]).animate(_successAnimController);
-
-    _glowAnimation = CurvedAnimation(
-      parent: _successAnimController,
-      curve: const Interval(0.2, 0.9, curve: Curves.easeOut),
-    );
-
-    _fadeAnimation = CurvedAnimation(
-      parent: _successAnimController,
-      curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
-    );
-
-    _particleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-
-    // Initialize 36 confetti/burst particles
-    final random = Random(42);
-    final colors = [
-      const Color(0xFF3FB950), // Emerald
-      const Color(0xFF58A6FF), // Cyan/Blue
-      const Color(0xFFF2CC60), // Amber
-      const Color(0xFFBC8CFF), // Purple
-      const Color(0xFFFF7B72), // Coral
-      const Color(0xFF39D353), // Bright Green
-    ];
-
-    for (var i = 0; i < 36; i++) {
-      final angle = (i * (2 * pi / 36)) + (random.nextDouble() * 0.2 - 0.1);
-      final speed = 0.5 + random.nextDouble() * 0.65;
-      final size = 2.5 + random.nextDouble() * 3.0;
-      final color = colors[random.nextInt(colors.length)];
-      final rotationSpeed = (random.nextDouble() - 0.5) * 8.0;
-
-      _particles.add(CelebrationParticle(
-        angle: angle,
-        speed: speed,
-        size: size,
-        color: color,
-        rotationSpeed: rotationSpeed,
-      ));
-    }
   }
 
   @override
   void dispose() {
     _dirController.dispose();
-    _successAnimController.dispose();
-    _particleController.dispose();
     super.dispose();
   }
 
@@ -353,8 +212,15 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
               _uploadComplete = true;
             });
 
-            _successAnimController.forward(from: 0.0);
-            _particleController.forward(from: 0.0);
+            // Auto-dismiss after 1500ms unless accessibility navigation is active
+            final isAccessible = MediaQuery.accessibleNavigationOf(context);
+            if (!isAccessible) {
+              Future.delayed(const Duration(milliseconds: 1500), () {
+                if (mounted && _uploadComplete) {
+                  Navigator.of(context).maybePop();
+                }
+              });
+            }
 
             // Print success message in the terminal scrollback
             final count = _completedFiles.length;
@@ -394,7 +260,7 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
         child: SafeArea(
           child: Container(
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
+              maxHeight: MediaQuery.of(context).size.height * 0.65,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -568,7 +434,34 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
             ),
           ),
         ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _buildQuickChip('.', 'Current', theme),
+            _buildQuickChip('~', '~ (Home)', theme),
+            _buildQuickChip('/tmp', '/tmp', theme),
+            _buildQuickChip('/var/www', '/var/www', theme),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _buildQuickChip(String path, String label, AppThemeExtension theme) {
+    return ActionChip(
+      label: Text(label, style: const TextStyle(fontSize: 11)),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      backgroundColor: theme.cardSurface,
+      side: BorderSide(color: theme.border),
+      onPressed: _isUploading
+          ? null
+          : () {
+              setState(() {
+                _dirController.text = path;
+              });
+            },
     );
   }
 
@@ -687,10 +580,10 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: overallProgress,
-              minHeight: 8,
+              minHeight: 4,
               backgroundColor: theme.border,
               valueColor: AlwaysStoppedAnimation<Color>(theme.primaryAccent),
             ),
@@ -723,188 +616,106 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
   }
 
   Widget _buildCompleteView(AppThemeExtension theme) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_successAnimController, _particleController]),
-      builder: (context, child) {
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-          decoration: BoxDecoration(
-            color: theme.cardSurface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: theme.success.withValues(alpha: 0.6),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
+    return GestureDetector(
+      onTap: () => Navigator.of(context).maybePop(),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.cardSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.success.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
                 color: theme.success.withValues(alpha: 0.15),
-                blurRadius: 20,
-                spreadRadius: 2,
+                shape: BoxShape.circle,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Custom Confetti & Checkmark Canvas Stack
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Confetti Particles Canvas
-                    CustomPaint(
-                      size: const Size(120, 120),
-                      painter: CelebrationBurstPainter(
-                        progress: _particleController.value,
-                        particles: _particles,
-                      ),
-                    ),
-                    // Outer Ripple Ring 1
-                    Opacity(
-                      opacity: (1.0 - _glowAnimation.value).clamp(0.0, 1.0),
-                      child: Container(
-                        width: 70 + (_glowAnimation.value * 35),
-                        height: 70 + (_glowAnimation.value * 35),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: theme.success.withValues(alpha: 0.4),
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Outer Ripple Ring 2
-                    Opacity(
-                      opacity: (1.0 - _glowAnimation.value * 0.8).clamp(0.0, 1.0),
-                      child: Container(
-                        width: 60 + (_glowAnimation.value * 20),
-                        height: 60 + (_glowAnimation.value * 20),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: theme.success.withValues(alpha: 0.6),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Bouncing Glowing Circle with Checkmark
-                    Transform.scale(
-                      scale: _scaleAnimation.value,
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: theme.success,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.success.withValues(alpha: 0.45),
-                              blurRadius: 18,
-                              spreadRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.check_rounded,
-                          size: 38,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              child: Icon(
+                Icons.check_circle_rounded,
+                size: 36,
+                color: theme.success,
               ),
-              const SizedBox(height: 16),
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'Upload Completed!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: theme.textPrimary,
-                  ),
-                ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Upload Complete',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: theme.textPrimary,
               ),
-              const SizedBox(height: 6),
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'Destination: ${_dirController.text.trim()}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                    color: theme.textSecondary,
-                  ),
-                ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_completedFiles.length} file(s) transferred to ${_dirController.text.trim()}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.textSecondary,
               ),
-              const SizedBox(height: 14),
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: _completedFiles.map((name) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: theme.success.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: theme.success.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check_circle_outline_rounded, size: 12, color: theme.success),
-                          const SizedBox(width: 4),
-                          Text(
-                            name,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: theme.textPrimary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.done_all_rounded, size: 18),
-                  label: const Text(
-                    'Done',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.primaryAccent,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 6,
+              children: _completedFiles.map((name) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.success.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: theme.success.withValues(alpha: 0.3),
                     ),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_rounded, size: 12, color: theme.success),
+                      const SizedBox(width: 4),
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.primaryAccent,
+                  foregroundColor: AppTheme.computeOnPrimary(theme.primaryAccent),
+                  minimumSize: const Size(0, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
+                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -964,7 +775,7 @@ class _FileUploadModalState extends State<FileUploadModal> with TickerProviderSt
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.primaryAccent,
-              foregroundColor: Colors.black,
+              foregroundColor: AppTheme.computeOnPrimary(theme.primaryAccent),
               disabledBackgroundColor: theme.border,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(

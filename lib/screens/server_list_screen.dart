@@ -128,12 +128,29 @@ class _ServerListScreenState extends State<ServerListScreen> {
         ),
         actions: [
           IconButton(
+            constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
             icon: const Icon(Icons.tune_rounded),
             tooltip: 'Terminal Settings',
             onPressed: () => TerminalAppearanceModal.show(context),
           ),
         ],
       ),
+      floatingActionButton: store.canAddServer
+          ? FloatingActionButton.extended(
+              onPressed: () => _openForm(),
+              backgroundColor: theme.primaryAccent,
+              foregroundColor: AppTheme.computeOnPrimary(theme.primaryAccent),
+              icon: const Icon(Icons.add_rounded, size: 24),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Add Server', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 4),
+                  Text('(${profiles.length}/${store.maxServers})', style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            )
+          : null,
       body: store.isLoading && store.profiles.isEmpty
           ? Center(child: CircularProgressIndicator(color: theme.primaryAccent))
           : profiles.isEmpty
@@ -143,62 +160,16 @@ class _ServerListScreenState extends State<ServerListScreen> {
                   backgroundColor: theme.surface,
                   onRefresh: _handleRefresh,
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: profiles.length + (store.canAddServer ? 1 : 0),
+                    padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: 88),
+                    itemCount: profiles.length,
                     itemBuilder: (context, index) {
-                      if (index < profiles.length) {
-                        final profile = profiles[index];
-                        return ServerCard(
-                          key: ValueKey(profile.id),
-                          profile: profile,
-                          onTap: () => _connect(profile),
-                          onEdit: () => _openForm(existingProfile: profile),
-                          onDelete: () => _confirmDelete(profile),
-                        );
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        child: Material(
-                          color: theme.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => _openForm(),
-                            child: Container(
-                              height: 48,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: theme.border),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_rounded, color: theme.primaryAccent, size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Add Server',
-                                    style: TextStyle(
-                                      color: theme.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '(${profiles.length}/${store.maxServers})',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: store.canAddServer ? theme.textSecondary : theme.warning,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      final profile = profiles[index];
+                      return ServerCard(
+                        key: ValueKey(profile.id),
+                        profile: profile,
+                        onTap: () => _connect(profile),
+                        onEdit: () => _openForm(existingProfile: profile),
+                        onDelete: () => _confirmDelete(profile),
                       );
                     },
                   ),

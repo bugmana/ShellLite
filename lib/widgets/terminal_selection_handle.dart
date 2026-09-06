@@ -14,6 +14,7 @@ class TerminalSelectionHandle extends StatelessWidget {
   final void Function(DragUpdateDetails) onDragUpdate;
   final VoidCallback? onDragStart;
   final VoidCallback? onDragEnd;
+  final bool invertStem;
 
   const TerminalSelectionHandle({
     super.key,
@@ -25,6 +26,7 @@ class TerminalSelectionHandle extends StatelessWidget {
     required this.onDragUpdate,
     this.onDragStart,
     this.onDragEnd,
+    this.invertStem = false,
   });
 
   @override
@@ -40,7 +42,7 @@ class TerminalSelectionHandle extends StatelessWidget {
     final isStart = position == TerminalHandlePosition.left;
     final lineLocalX = isStart ? 28.0 : 16.0;
     final leftPos = offset.dx - lineLocalX;
-    final topPos = offset.dy;
+    final topPos = invertStem ? (offset.dy - knobDiameter) : offset.dy;
 
     return Positioned(
       key: handleKey,
@@ -59,7 +61,7 @@ class TerminalSelectionHandle extends StatelessWidget {
             // Vertical line marker along the height of the line
             Positioned(
               left: lineLocalX - (lineWidth / 2),
-              top: 0,
+              top: invertStem ? knobDiameter : 0,
               width: lineWidth,
               height: lineHeight,
               child: Container(
@@ -76,10 +78,10 @@ class TerminalSelectionHandle extends StatelessWidget {
                 ),
               ),
             ),
-            // Bottom circular touch handle knob
+            // Circular touch handle knob (inverts to top if near bottom edge)
             Positioned(
               left: lineLocalX - (knobDiameter / 2),
-              top: lineHeight - 2,
+              top: invertStem ? 0 : (lineHeight - 2),
               width: knobDiameter,
               height: knobDiameter,
               child: Container(

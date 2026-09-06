@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shell_lite/config/app_config.dart';
 import 'package:shell_lite/providers/terminal_settings_store.dart';
 import 'package:shell_lite/services/storage_service.dart';
 import 'package:shell_lite/theme/app_theme.dart';
@@ -135,7 +136,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify custom key is gone and default length restored
-    expect(settingsStore.configuredAccessoryKeys.length, 7);
+    expect(settingsStore.configuredAccessoryKeys.length, AccessoryBarConfig.defaultKeys.length);
     expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'cust_reset'), isFalse);
   });
 }
