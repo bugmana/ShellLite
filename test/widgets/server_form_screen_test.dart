@@ -102,34 +102,47 @@ void main() {
     await tester.tap(find.text('SSH Key'));
     await tester.pumpAndSettle();
 
+    final keyFieldFinder = find.byWidgetPredicate(
+      (w) => w is TextField && (w.decoration?.hintText?.contains('BEGIN OPENSSH') ?? false),
+    );
+
     // Tap Generate
     await tester.tap(find.text('Generate'));
     await tester.pumpAndSettle();
 
-    // Dialog should open
-    expect(find.text('SSH Key Generator'), findsOneWidget);
-
-    // Tap 'Use Key in Profile'
-    await tester.tap(find.text('Use Key in Profile'));
-    await tester.pumpAndSettle();
-
-    // Verify the key text is populated and contains OPENSSH PRIVATE KEY
-    final keyFieldFinder = find.byWidgetPredicate(
-      (w) => w is TextField && (w.decoration?.hintText?.contains('BEGIN OPENSSH') ?? false),
-    );
+    // Verify the private key text is populated and contains OPENSSH PRIVATE KEY
     expect(keyFieldFinder, findsOneWidget);
     expect(
       (tester.widget(keyFieldFinder) as TextField).controller?.text,
       contains('BEGIN OPENSSH PRIVATE KEY'),
     );
+
+    // Scroll down until Copy Public Key button is visible
+    final outerScrollable = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(find.text('Copy Public Key'), 150, scrollable: outerScrollable);
+    await tester.pumpAndSettle();
+
+    // Verify inline Public Key card is displayed and copy button is available
+    expect(find.textContaining('Public Key'), findsWidgets);
+    expect(find.text('Copy Public Key'), findsOneWidget);
+
+    await tester.tap(find.text('Copy Public Key'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Copied!'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+
+    // Scroll back up until Clear button is visible
+    await tester.scrollUntilVisible(find.text('Clear'), -150, scrollable: outerScrollable);
+    await tester.pumpAndSettle();
     expect(find.text('Clear'), findsOneWidget);
 
     // Tap Clear
     await tester.tap(find.text('Clear'));
     await tester.pumpAndSettle();
 
-    // Verify key is cleared
+    // Verify key and public key card are cleared
     expect((tester.widget(keyFieldFinder) as TextField).controller?.text, isEmpty);
+    expect(find.text('Copy Public Key'), findsNothing);
   });
 
   testWidgets('ServerFormScreen validates required fields', (tester) async {

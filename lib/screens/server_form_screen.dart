@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,9 +7,9 @@ import '../config/app_config.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
 import '../providers/server_store.dart';
+import '../services/key_generator_service.dart';
 import '../services/key_parser.dart';
 import '../theme/app_theme.dart';
-import '../widgets/ssh_key_generator_dialog.dart';
 
 class ServerFormScreen extends StatefulWidget {
   final ServerProfile? existingProfile;
@@ -40,6 +41,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   bool _isLoadingCredential = false;
   bool _persistSession = false;
   String? _keyValidationError;
+  String? _generatedPublicKey;
+  bool _isCopiedPublic = false;
+  Timer? _copyResetTimer;
 
   @override
   void initState() {
@@ -86,6 +90,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
 
   @override
   void dispose() {
+    _copyResetTimer?.cancel();
     _nameController.dispose();
     _hostController.dispose();
     _portController.dispose();
@@ -125,9 +130,12 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   }
 
   void _clearKey() {
+    _copyResetTimer?.cancel();
     setState(() {
       _keyController.clear();
       _keyPassphraseController.clear();
+      _generatedPublicKey = null;
+      _isCopiedPublic = false;
       _obscureKey = false;
       _isKeyEncrypted = false;
       _keyValidationError = null;
@@ -135,24 +143,35 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   }
 
   Future<void> _generateNewKey() async {
-    final generated = await SSHKeyGeneratorDialog.show(context);
-    if (generated != null) {
-      setState(() {
-        _keyController.text = generated.privateKeyPem;
-        _keyPassphraseController.clear();
-        _obscureKey = false;
-        _validateKey(generated.privateKeyPem);
-      });
-      if (mounted) {
-        final theme = context.appTheme;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Generated Ed25519 key applied!'),
-            backgroundColor: theme.surface,
-            duration: const Duration(seconds: 3),
+    final generated = SSHKeyGeneratorService.generateEd25519(comment: 'shell-lite');
+    setState(() {
+      _keyController.text = generated.privateKeyPem;
+      _generatedPublicKey = generated.publicKeyOpenSSH;
+      _isCopiedPublic = false;
+      _keyPassphraseController.clear();
+      _obscureKey = false;
+      _validateKey(generated.privateKeyPem);
+    });
+
+    await Clipboard.setData(ClipboardData(text: generated.publicKeyOpenSSH));
+
+    if (mounted) {
+      final theme = context.appTheme;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Generated Ed25519 key! Public key copied to clipboard.'),
+              ),
+            ],
           ),
-        );
-      }
+          backgroundColor: theme.surface,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -567,6 +586,93 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                           }
                           return null;
                         },
+                      ),
+                    ],
+                    if (_generatedPublicKey != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: theme.primaryAccent.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.key_rounded, size: 16, color: theme.primaryAccent),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Public Key (Add to ~/.ssh/authorized_keys)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: theme.background,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: theme.border),
+                              ),
+                              child: SelectableText(
+                                _generatedPublicKey!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                  color: theme.textSecondary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: theme.cardSurface,
+                                  foregroundColor: _isCopiedPublic ? theme.success : theme.primaryAccent,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                    side: BorderSide(
+                                      color: _isCopiedPublic ? theme.success : theme.border,
+                                    ),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: _generatedPublicKey!));
+                                  _copyResetTimer?.cancel();
+                                  setState(() => _isCopiedPublic = true);
+                                  _copyResetTimer = Timer(const Duration(seconds: 2), () {
+                                    if (mounted) setState(() => _isCopiedPublic = false);
+                                  });
+                                },
+                                icon: Icon(
+                                  _isCopiedPublic ? Icons.check_circle_rounded : Icons.copy_rounded,
+                                  size: 14,
+                                ),
+                                label: Text(
+                                  _isCopiedPublic ? 'Copied!' : 'Copy Public Key',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                     const SizedBox(height: 12),
