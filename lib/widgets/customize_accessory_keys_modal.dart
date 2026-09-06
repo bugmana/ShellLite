@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/terminal_settings_store.dart';
@@ -405,93 +406,115 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
             Divider(color: theme.border, height: 1),
             // Reorderable list of keys
             Expanded(
-              child: ListView.builder(
+              child: ReorderableListView.builder(
+                buildDefaultDragHandles: false,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 itemCount: keys.length,
+                onReorderItem: (oldIndex, newIndex) {
+                  store.reorderAccessoryKeys(
+                    oldIndex,
+                    oldIndex < newIndex ? newIndex + 1 : newIndex,
+                  );
+                },
                 itemBuilder: (ctx, index) {
                   final item = keys[index];
-                  return Container(
+                  return Semantics(
                     key: ValueKey(item.id),
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      color: item.isEnabled ? theme.cardSurface : theme.cardSurface.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: item.isEnabled ? theme.border : theme.border.withValues(alpha: 0.4),
+                    customSemanticsActions: {
+                      if (index > 0)
+                        const CustomSemanticsAction(label: 'Move up'): () {
+                          store.reorderAccessoryKeys(index, index - 1);
+                        },
+                      if (index < keys.length - 1)
+                        const CustomSemanticsAction(label: 'Move down'): () {
+                          store.reorderAccessoryKeys(index, index + 2);
+                        },
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: item.isEnabled ? theme.cardSurface : theme.cardSurface.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: item.isEnabled ? theme.border : theme.border.withValues(alpha: 0.4),
+                        ),
                       ),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                      leading: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: item.isEnabled
-                              ? theme.primaryAccent.withValues(alpha: 0.15)
-                              : theme.surface,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                        leading: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
                             color: item.isEnabled
-                                ? theme.primaryAccent.withValues(alpha: 0.5)
-                                : theme.border,
+                                ? theme.primaryAccent.withValues(alpha: 0.15)
+                                : theme.surface,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: item.isEnabled
+                                  ? theme.primaryAccent.withValues(alpha: 0.5)
+                                  : theme.border,
+                            ),
+                          ),
+                          child: Text(
+                            item.label,
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: item.isEnabled ? theme.textPrimary : theme.textSecondary,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          item.label,
+                        title: Text(
+                          item.description ?? (item.isCustom ? 'Custom Macro' : 'Default Shortcut'),
                           style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                             color: item.isEnabled ? theme.textPrimary : theme.textSecondary,
                           ),
                         ),
-                      ),
-                      title: Text(
-                        item.description ?? (item.isCustom ? 'Custom Macro' : 'Default Shortcut'),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: item.isEnabled ? theme.textPrimary : theme.textSecondary,
-                        ),
-                      ),
-                      subtitle: Text(
-                        _formatSequencePreview(item.sequence),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontFamily: 'monospace',
-                          color: theme.textSecondary,
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_upward_rounded, size: 18),
-                            tooltip: 'Move up',
-                            color: index > 0 ? theme.textPrimary : theme.border,
-                            onPressed: index > 0
-                                ? () => store.reorderAccessoryKeys(index, index - 1)
-                                : null,
+                        subtitle: Text(
+                          _formatSequencePreview(item.sequence),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            color: theme.textSecondary,
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.arrow_downward_rounded, size: 18),
-                            tooltip: 'Move down',
-                            color: index < keys.length - 1 ? theme.textPrimary : theme.border,
-                            onPressed: index < keys.length - 1
-                                ? () => store.reorderAccessoryKeys(index, index + 2)
-                                : null,
-                          ),
-                          if (item.isCustom)
-                            IconButton(
-                              icon: Icon(Icons.delete_outline_rounded, color: theme.error, size: 20),
-                              tooltip: 'Delete custom key',
-                              onPressed: () => store.removeAccessoryKey(index),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (item.isCustom)
+                              IconButton(
+                                constraints: const BoxConstraints(
+                                  minWidth: AppTouchTarget.min,
+                                  minHeight: AppTouchTarget.min,
+                                ),
+                                icon: Icon(Icons.delete_outline_rounded, color: theme.error, size: 20),
+                                tooltip: 'Delete custom key',
+                                onPressed: () => store.removeAccessoryKey(index),
+                              ),
+                            Switch(
+                              value: item.isEnabled,
+                              activeThumbColor: theme.primaryAccent,
+                              onChanged: (_) => store.toggleAccessoryKeyVisibility(index),
                             ),
-                          Switch(
-                            value: item.isEnabled,
-                            activeThumbColor: theme.primaryAccent,
-                            onChanged: (_) => store.toggleAccessoryKeyVisibility(index),
-                          ),
-                        ],
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Container(
+                                constraints: const BoxConstraints(
+                                  minWidth: AppTouchTarget.min,
+                                  minHeight: AppTouchTarget.min,
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.drag_handle_rounded,
+                                  color: theme.textSecondary,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

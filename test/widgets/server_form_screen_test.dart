@@ -122,13 +122,18 @@ void main() {
     await tester.scrollUntilVisible(find.text('Copy Public Key'), 150, scrollable: outerScrollable);
     await tester.pumpAndSettle();
 
-    // Verify inline Public Key card is displayed and copy button is available
+    // Verify inline Public Key card is displayed and both copy buttons are available
     expect(find.textContaining('Public Key'), findsWidgets);
     expect(find.text('Copy Public Key'), findsOneWidget);
+    expect(find.text('Copy 1-Line Setup Script'), findsOneWidget);
 
     await tester.tap(find.text('Copy Public Key'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Copied!'), findsOneWidget);
+
+    await tester.tap(find.text('Copy 1-Line Setup Script'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Copied Script!'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
 
     // Scroll back up until Clear button is visible

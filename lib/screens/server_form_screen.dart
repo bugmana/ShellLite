@@ -45,6 +45,8 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   String? _generatedPublicKey;
   bool _isCopiedPublic = false;
   Timer? _copyResetTimer;
+  bool _isCopiedScript = false;
+  Timer? _copyScriptResetTimer;
 
   @override
   void initState() {
@@ -92,6 +94,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   @override
   void dispose() {
     _copyResetTimer?.cancel();
+    _copyScriptResetTimer?.cancel();
     _nameController.dispose();
     _hostController.dispose();
     _portController.dispose();
@@ -137,6 +140,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
       _keyPassphraseController.clear();
       _generatedPublicKey = null;
       _isCopiedPublic = false;
+      _isCopiedScript = false;
       _obscureKey = false;
       _isKeyEncrypted = false;
       _keyValidationError = null;
@@ -149,6 +153,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
       _keyController.text = generated.privateKeyPem;
       _generatedPublicKey = generated.publicKeyOpenSSH;
       _isCopiedPublic = false;
+      _isCopiedScript = false;
       _keyPassphraseController.clear();
       _obscureKey = false;
       _validateKey(generated.privateKeyPem);
@@ -701,38 +706,74 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: theme.cardSurface,
-                                  foregroundColor: _isCopiedPublic ? theme.success : theme.primaryAccent,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                    side: BorderSide(
-                                      color: _isCopiedPublic ? theme.success : theme.border,
+                            Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: AppSpacing.sm,
+                              runSpacing: AppSpacing.xs,
+                              children: [
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: theme.cardSurface,
+                                    foregroundColor: _isCopiedPublic ? theme.success : theme.primaryAccent,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                      side: BorderSide(
+                                        color: _isCopiedPublic ? theme.success : theme.border,
+                                      ),
                                     ),
                                   ),
+                                  onPressed: () {
+                                    Clipboard.setData(ClipboardData(text: _generatedPublicKey!));
+                                    _copyResetTimer?.cancel();
+                                    setState(() => _isCopiedPublic = true);
+                                    _copyResetTimer = Timer(const Duration(seconds: 2), () {
+                                      if (mounted) setState(() => _isCopiedPublic = false);
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _isCopiedPublic ? Icons.check_circle_rounded : Icons.copy_rounded,
+                                    size: 14,
+                                  ),
+                                  label: Text(
+                                    _isCopiedPublic ? 'Copied!' : 'Copy Public Key',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
                                 ),
-                                onPressed: () {
-                                  Clipboard.setData(ClipboardData(text: _generatedPublicKey!));
-                                  _copyResetTimer?.cancel();
-                                  setState(() => _isCopiedPublic = true);
-                                  _copyResetTimer = Timer(const Duration(seconds: 2), () {
-                                    if (mounted) setState(() => _isCopiedPublic = false);
-                                  });
-                                },
-                                icon: Icon(
-                                  _isCopiedPublic ? Icons.check_circle_rounded : Icons.copy_rounded,
-                                  size: 14,
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: theme.cardSurface,
+                                    foregroundColor: _isCopiedScript ? theme.success : theme.secondaryAccent,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                      side: BorderSide(
+                                        color: _isCopiedScript ? theme.success : theme.border,
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    final script =
+                                        "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${_generatedPublicKey!}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys";
+                                    Clipboard.setData(ClipboardData(text: script));
+                                    _copyScriptResetTimer?.cancel();
+                                    setState(() => _isCopiedScript = true);
+                                    _copyScriptResetTimer = Timer(const Duration(seconds: 2), () {
+                                      if (mounted) setState(() => _isCopiedScript = false);
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _isCopiedScript ? Icons.check_circle_rounded : Icons.bolt_rounded,
+                                    size: 14,
+                                  ),
+                                  label: Text(
+                                    _isCopiedScript ? 'Copied Script!' : 'Copy 1-Line Setup Script',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
                                 ),
-                                label: Text(
-                                  _isCopiedPublic ? 'Copied!' : 'Copy Public Key',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
-                              ),
+                              ],
                             ),
                           ],
                         ),

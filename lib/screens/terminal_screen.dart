@@ -499,7 +499,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       curve: Curves.easeOutCubic,
-      height: dynamicHeight + 1.0,
+      height: hasSelection ? dynamicHeight + 1.0 : null,
       decoration: BoxDecoration(
         color: theme.surface,
         border: Border(top: BorderSide(color: theme.border, width: 1.0)),
@@ -513,16 +513,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               onToggleKeyboard: _toggleKeyboard,
               onCloseKeyboard: _closeKeyboard,
               onPaste: _pasteClipboard,
-              onExtendedKeysTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => ExtendedKeysSheet(onKeyTap: _handleKeyTap),
-                ).then((_) {
-                  _focusTerminal();
-                });
-              },
             ),
     );
   }

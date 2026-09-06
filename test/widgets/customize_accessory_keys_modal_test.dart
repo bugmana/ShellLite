@@ -139,4 +139,27 @@ void main() {
     expect(settingsStore.configuredAccessoryKeys.length, AccessoryBarConfig.defaultKeys.length);
     expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'cust_reset'), isFalse);
   });
+
+  testWidgets('CustomizeAccessoryKeysModal renders ReorderableListView with drag handles and reorders items', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Verify ReorderableListView is present
+    expect(find.byType(ReorderableListView), findsOneWidget);
+
+    // Verify drag handle icon is present
+    final dragHandles = find.byIcon(Icons.drag_handle_rounded);
+    expect(dragHandles, findsWidgets);
+
+    final initialFirstKey = settingsStore.configuredAccessoryKeys[0].label;
+    final initialSecondKey = settingsStore.configuredAccessoryKeys[1].label;
+
+    // Trigger reorder item 0 to position 2
+    await settingsStore.reorderAccessoryKeys(0, 2);
+    await tester.pumpAndSettle();
+
+    // Verify positions swapped
+    expect(settingsStore.configuredAccessoryKeys[0].label, initialSecondKey);
+    expect(settingsStore.configuredAccessoryKeys[1].label, initialFirstKey);
+  });
 }
