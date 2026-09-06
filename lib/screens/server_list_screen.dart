@@ -128,8 +128,8 @@ class _ServerListScreenState extends State<ServerListScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.palette_outlined),
-            tooltip: 'Appearance & Themes',
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Terminal Settings',
             onPressed: () => TerminalAppearanceModal.show(context),
           ),
         ],

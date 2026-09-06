@@ -26,15 +26,16 @@ void main() {
       ),
     );
 
-    expect(find.text('Terminal Appearance'), findsOneWidget);
+    expect(find.text('Terminal Settings'), findsOneWidget);
     expect(find.text('COLOR SCHEME'), findsOneWidget);
     expect(find.text('FONT SIZE'), findsOneWidget);
+    expect(find.byType(Slider), findsOneWidget);
     expect(find.textContaining('Obsidian'), findsWidgets);
     expect(find.text('Catppuccin Mocha'), findsOneWidget);
     expect(find.text('Dracula'), findsOneWidget);
 
     expect(find.text('Haptic Feedback'), findsOneWidget);
-    expect(find.text('Customize Accessory Keys'), findsOneWidget);
+    expect(find.text('Customize Accessory Keys'), findsNothing);
 
     // Tap on Dracula theme preset
     await tester.tap(find.text('Dracula'));

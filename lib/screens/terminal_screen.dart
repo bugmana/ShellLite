@@ -249,8 +249,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
             onPressed: _pasteClipboard,
           ),
           IconButton(
-            icon: const Icon(Icons.palette_outlined, size: 20),
-            tooltip: 'Appearance & Themes',
+            icon: const Icon(Icons.tune_rounded, size: 20),
+            tooltip: 'Terminal Settings',
             onPressed: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
           ),
           IconButton(

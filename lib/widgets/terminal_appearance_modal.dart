@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/terminal_settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/terminal_theme_presets.dart';
-import 'customize_accessory_keys_modal.dart';
 
 class TerminalAppearanceModal extends StatelessWidget {
   const TerminalAppearanceModal({super.key});
@@ -41,7 +40,7 @@ class TerminalAppearanceModal extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Terminal Appearance',
+                  'Terminal Settings',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -168,40 +167,20 @@ class TerminalAppearanceModal extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
-                  color: theme.textSecondary,
-                  onPressed: settings.fontSize > 10
-                      ? () => settings.setFontSize(settings.fontSize - 0.5)
-                      : null,
-                ),
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: theme.primaryAccent,
-                      inactiveTrackColor: theme.border,
-                      thumbColor: theme.primaryAccent,
-                      overlayColor: theme.primaryAccent.withValues(alpha: 0.2),
-                    ),
-                    child: Slider(
-                      value: settings.fontSize,
-                      min: 10.0,
-                      max: 22.0,
-                      divisions: 24,
-                      onChanged: (val) => settings.setFontSize(val),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
-                  color: theme.textSecondary,
-                  onPressed: settings.fontSize < 22
-                      ? () => settings.setFontSize(settings.fontSize + 0.5)
-                      : null,
-                ),
-              ],
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: theme.primaryAccent,
+                inactiveTrackColor: theme.border,
+                thumbColor: theme.primaryAccent,
+                overlayColor: theme.primaryAccent.withValues(alpha: 0.2),
+              ),
+              child: Slider(
+                value: settings.fontSize,
+                min: 10.0,
+                max: 22.0,
+                divisions: 24,
+                onChanged: (val) => settings.setFontSize(val),
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -244,53 +223,11 @@ class TerminalAppearanceModal extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-
-            // Customize Accessory Keys Tile
-            InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () {
-                Navigator.of(context).pop();
-                CustomizeAccessoryKeysModal.show(context);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                decoration: BoxDecoration(
-                  color: theme.cardSurface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: theme.border),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.tune_rounded, color: theme.primaryAccent, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Customize Accessory Keys',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: theme.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            'Reorder, add custom macro keys, and toggle shortcuts',
-                            style: TextStyle(fontSize: 11, color: theme.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.chevron_right_rounded, color: theme.textSecondary, size: 20),
-                  ],
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 }
+
+typedef TerminalSettingsModal = TerminalAppearanceModal;
