@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/security_store.dart';
 import '../providers/terminal_settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/terminal_theme_presets.dart';
@@ -288,54 +287,6 @@ class TerminalAppearanceModal extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-
-            // Security & Biometrics
-            Consumer<SecurityStore?>(
-              builder: (context, secStore, _) {
-                if (secStore == null || !secStore.isBiometricsSupported) {
-                  return const SizedBox.shrink();
-                }
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: theme.cardSurface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: theme.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.fingerprint_rounded, color: theme.primaryAccent, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Biometric App Lock',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: theme.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              'Require Face ID / Fingerprint on launch',
-                              style: TextStyle(fontSize: 11, color: theme.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value: secStore.isBiometricEnabled,
-                        activeThumbColor: theme.primaryAccent,
-                        onChanged: (val) => secStore.setBiometricsEnabled(val),
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
           ],
         ),

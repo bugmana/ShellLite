@@ -6,8 +6,6 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>ShellLite</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>ShellLite uses Face ID to securely unlock your saved servers and terminal sessions.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
