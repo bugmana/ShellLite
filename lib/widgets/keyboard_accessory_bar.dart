@@ -280,6 +280,7 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
       }
     }
 
+    widget.onInteraction?.call();
     widget.onKeyTap(output);
   }
 
