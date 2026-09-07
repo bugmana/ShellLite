@@ -71,6 +71,7 @@ class SessionStore extends ChangeNotifier {
       terminal: terminal,
       controller: controller,
       sshService: sshService,
+      connectionState: SSHConnectionState.connecting,
     );
 
     _sessions[profile.id] = session;
@@ -118,6 +119,7 @@ class SessionStore extends ChangeNotifier {
   Future<void> reconnectSession(String sessionId) async {
     final session = _sessions[sessionId];
     if (session == null) return;
+    if (session.connectionState == SSHConnectionState.connecting) return;
     session.connectionState = SSHConnectionState.connecting;
     notifyListeners();
     await _connectSession(session);
@@ -134,5 +136,20 @@ class SessionStore extends ChangeNotifier {
       _activeSessionId = _sessions.isNotEmpty ? _sessions.keys.last : null;
     }
     notifyListeners();
+  }
+
+  void updateSessionConnectionState(
+    String sessionId,
+    SSHConnectionState state, {
+    bool? wasConnected,
+  }) {
+    final session = _sessions[sessionId];
+    if (session != null) {
+      session.connectionState = state;
+      if (wasConnected != null) {
+        session.wasConnected = wasConnected;
+      }
+      notifyListeners();
+    }
   }
 }

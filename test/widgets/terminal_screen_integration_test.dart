@@ -8,6 +8,7 @@ import 'package:shell_lite/models/server_profile.dart';
 import 'package:shell_lite/providers/session_store.dart';
 import 'package:shell_lite/providers/terminal_settings_store.dart';
 import 'package:shell_lite/screens/terminal_screen.dart';
+import 'package:shell_lite/services/ssh_service.dart';
 import 'package:shell_lite/services/storage_service.dart';
 import 'package:shell_lite/theme/app_theme.dart';
 import 'package:shell_lite/theme/terminal_theme_presets.dart';
@@ -433,5 +434,82 @@ void main() {
     await tester.drag(find.byType(TerminalView), const Offset(0, -300));
     await tester.pumpAndSettle();
     expect(find.byType(TerminalView), findsOneWidget);
+  });
+
+  testWidgets('TerminalView configures simulateScroll to false to prevent alt-screen command history traversal', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final terminalView = tester.widget<TerminalView>(find.byType(TerminalView));
+    expect(terminalView.simulateScroll, isFalse);
+  });
+
+  testWidgets('TerminalScreen shows reconnect banner without redundant buffer message and handles reconnect state', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Transition session to disconnected (with wasConnected = true)
+    sessionStore.updateSessionConnectionState(
+      testProfile.id,
+      SSHConnectionState.disconnected,
+      wasConnected: true,
+    );
+    await tester.pumpAndSettle();
+
+    // Verify banner shows clean 'Connection lost.' without 'Buffer preserved.'
+    expect(find.text('Connection lost.'), findsOneWidget);
+    expect(find.textContaining('Buffer preserved'), findsNothing);
+    final reconnectButton = find.widgetWithText(ElevatedButton, 'Reconnect');
+    expect(reconnectButton, findsOneWidget);
+
+    final session = sessionStore.getSession(testProfile.id)!;
+    final textBefore = session.terminal.buffer.getText();
+
+    // Tap Reconnect
+    await tester.tap(reconnectButton);
+    await tester.pumpAndSettle();
+
+    // Verify reconnect attempt logged to terminal buffer
+    final textAfter = session.terminal.buffer.getText();
+    expect(textAfter.length > textBefore.length, isTrue);
+
+    // Concurrently calling reconnectSession while connecting is safely guarded
+    sessionStore.updateSessionConnectionState(
+      testProfile.id,
+      SSHConnectionState.connecting,
+    );
+    await tester.pump();
+    expect(find.text('Connecting...'), findsOneWidget);
+
+    await sessionStore.reconnectSession(testProfile.id);
+    expect(session.connectionState, SSHConnectionState.connecting);
+  });
+
+  testWidgets('TerminalScreen updates keyboard visibility when external insets change', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Simulate mobile software keyboard appearing (bottom inset > 0)
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280.0);
+    await tester.pumpAndSettle();
+
+    // Toggle button shows 'Hide keyboard' (down arrow)
+    expect(find.byTooltip('Hide keyboard'), findsOneWidget);
+
+    // Simulate keyboard dismissal (e.g. system back gesture)
+    tester.view.viewInsets = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+
+    // Toggle button automatically updates to 'Show keyboard' (up arrow)
+    expect(find.byTooltip('Show keyboard'), findsOneWidget);
+
+    // Tap 'Show keyboard' to bring it back
+    await tester.tap(find.byTooltip('Show keyboard'));
+    await tester.pumpAndSettle();
+
+    // In widget tree, keyboard is restored and hardwareKeyboardOnly is false
+    final terminalView = tester.widget<TerminalView>(find.byType(TerminalView));
+    expect(terminalView.hardwareKeyboardOnly, isFalse);
+    expect(find.byTooltip('Hide keyboard'), findsOneWidget);
   });
 }

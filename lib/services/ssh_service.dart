@@ -59,6 +59,8 @@ class SSHService {
     required void Function(SSHConnectionState state, String? error) onStateChange,
     StorageService? storageService,
   }) async {
+    await disconnect();
+
     _terminalWidth = terminalWidth > 0 ? terminalWidth : _terminalWidth;
     _terminalHeight = terminalHeight > 0 ? terminalHeight : _terminalHeight;
     _pixelWidth = pixelWidth >= 0 ? pixelWidth : 0;
@@ -149,9 +151,12 @@ class SSHService {
         onOutput(data);
       });
 
-      _shellSession!.done.then((_) {
-        disconnect();
-        onStateChange(SSHConnectionState.disconnected, null);
+      final currentSession = _shellSession;
+      currentSession!.done.then((_) {
+        if (_shellSession == currentSession) {
+          disconnect();
+          onStateChange(SSHConnectionState.disconnected, null);
+        }
       });
 
       if (profile.persistSession) {

@@ -32,6 +32,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   final GlobalKey<TerminalViewState> _terminalViewKey = GlobalKey<TerminalViewState>();
 
   bool _isKeyboardVisible = true;
+  bool _hasObservedKeyboardInset = false;
 
   @override
   void initState() {
@@ -71,11 +72,20 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   void didChangeMetrics() {
     super.didChangeMetrics();
     final bottomInset = View.of(context).viewInsets.bottom;
-    final isVisible = bottomInset > 0 || _terminalFocusNode.hasFocus;
-    if (_isKeyboardVisible != isVisible && mounted) {
-      setState(() {
-        _isKeyboardVisible = isVisible;
-      });
+    if (bottomInset > 0) {
+      _hasObservedKeyboardInset = true;
+      if (!_isKeyboardVisible && mounted) {
+        setState(() {
+          _isKeyboardVisible = true;
+        });
+      }
+    } else if (_hasObservedKeyboardInset && bottomInset == 0) {
+      _hasObservedKeyboardInset = false;
+      if (_isKeyboardVisible && mounted) {
+        setState(() {
+          _isKeyboardVisible = false;
+        });
+      }
     }
   }
 
@@ -107,19 +117,34 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
 
   void _focusTerminal() {
     if (!mounted) return;
-    if (!_terminalFocusNode.hasFocus) {
-      _terminalFocusNode.requestFocus();
-    }
-    _terminalViewKey.currentState?.requestKeyboard();
-    if (!_isKeyboardVisible) {
+    final wasHidden = !_isKeyboardVisible;
+    if (wasHidden) {
       setState(() {
         _isKeyboardVisible = true;
       });
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_terminalFocusNode.hasFocus) {
+        _terminalFocusNode.requestFocus();
+      }
+      _terminalViewKey.currentState?.requestKeyboard();
+      SystemChannels.textInput.invokeMethod('TextInput.show');
+    });
+
+    if (!wasHidden) {
+      if (!_terminalFocusNode.hasFocus) {
+        _terminalFocusNode.requestFocus();
+      }
+      _terminalViewKey.currentState?.requestKeyboard();
+      SystemChannels.textInput.invokeMethod('TextInput.show');
     }
   }
 
   void _closeKeyboard() {
     if (!mounted) return;
+    _hasObservedKeyboardInset = false;
     _terminalViewKey.currentState?.closeKeyboard();
     _terminalFocusNode.unfocus();
     SystemChannels.textInput.invokeMethod('TextInput.hide');
@@ -346,6 +371,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           deleteDetection: true,
                           hardwareKeyboardOnly: !_isKeyboardVisible,
+                          simulateScroll: false,
                           onTapUp: (details, offset) => _focusTerminal(),
                         ),
                       ),
@@ -356,7 +382,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           right: 0,
                           child: Semantics(
                             liveRegion: true,
-                            label: 'Connection lost. Buffer preserved.',
+                            label: (session?.wasConnected ?? false)
+                                ? 'Connection lost.'
+                                : 'Connection failed.',
                             child: Container(
                               height: 48,
                               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -382,7 +410,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                                   const SizedBox(width: AppSpacing.sm),
                                   Expanded(
                                     child: Text(
-                                      'Connection lost. Buffer preserved.',
+                                      (session?.wasConnected ?? false)
+                                          ? 'Connection lost.'
+                                          : 'Connection failed.',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: theme.textPrimary,
@@ -400,17 +430,30 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                                       minimumSize: const Size(0, 36),
                                       padding: const EdgeInsets.symmetric(horizontal: 12),
                                     ),
-                                    onPressed: () {
-                                      if (session != null) {
-                                        sessionStore?.reconnectSession(session.id);
-                                      }
-                                    },
-                                    child: const Row(
+                                    onPressed: connectionState == SSHConnectionState.connecting
+                                        ? null
+                                        : () {
+                                            if (session != null) {
+                                              sessionStore?.reconnectSession(session.id);
+                                              _focusTerminal();
+                                            }
+                                          },
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.refresh_rounded, size: 16),
-                                        SizedBox(width: 4),
-                                        Text('Reconnect', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                        if (connectionState == SSHConnectionState.connecting)
+                                          SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: AppTheme.computeOnPrimary(theme.primaryAccent),
+                                            ),
+                                          )
+                                        else
+                                          const Icon(Icons.refresh_rounded, size: 16),
+                                        const SizedBox(width: 4),
+                                        const Text('Reconnect', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                       ],
                                     ),
                                   ),
