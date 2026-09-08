@@ -83,12 +83,13 @@ When creating your store listing in Google Play Console, you will need the follo
 
 ### Required Graphics Specifications
 
-| Asset | Dimensions | Format | Notes |
-| :--- | :--- | :--- | :--- |
-| **App Icon** | 512 × 512 px | 32-bit PNG (with alpha) | Max 1 MB. Clean app logo. |
-| **Feature Graphic** | 1024 × 500 px | JPEG or 24-bit PNG (no alpha) | Max 15 MB. Highlight brand/terminal interface. |
-| **Phone Screenshots** | Min 2, max 8 | JPEG or 24-bit PNG | Min 320px, max 3840px (16:9 or 9:16 aspect recommended). |
-| **7" & 10" Tablet Screenshots** | Optional but recommended | JPEG or 24-bit PNG | Shows responsive layout on tablets/foldables. |
+| Asset | Dimensions | Format | Generated File in Repository | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **App Icon** | 512 × 512 px | 32-bit PNG (with alpha) | [`docs/store_assets/play_store_icon_512x512.png`](file:///home/aron/projects/ShellLite/docs/store_assets/play_store_icon_512x512.png) | Master corgi logo, ready to upload. |
+| **Feature Graphic** | 1024 × 500 px | 24-bit PNG (no alpha) | [`docs/store_assets/feature_graphic_1024x500.png`](file:///home/aron/projects/ShellLite/docs/store_assets/feature_graphic_1024x500.png) | Obsidian terminal branding with glowing logo. |
+| **Phone Screenshot 1** | 1080 × 1920 px | 24-bit PNG (9:16) | [`docs/store_assets/phone_screenshot_1_terminal.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_1_terminal.png) | Interactive terminal session with `htop` & `neofetch`. |
+| **Phone Screenshot 2** | 1080 × 1920 px | 24-bit PNG (9:16) | [`docs/store_assets/phone_screenshot_2_servers.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_2_servers.png) | Server list & real-time telemetry metrics. |
+| **Phone Screenshot 3** | 1080 × 1920 px | 24-bit PNG (9:16) | [`docs/store_assets/phone_screenshot_3_themes_privacy.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_3_themes_privacy.png) | Theme presets, monospace CLI preview, & Privacy Policy. |
 
 ### Store Copy
 
@@ -216,8 +217,10 @@ To enable GitHub Actions to automatically sign `.aab` files:
 - [ ] Keystore generated & backed up offsite.
 - [ ] `android/key.properties` configured locally.
 - [ ] `flutter build appbundle --release` compiles without errors.
+- [x] App Icon (512x512) and Feature Graphic (1024x500) generated in `docs/store_assets/`.
+- [x] High-resolution phone screenshots (1080x1920) generated in `docs/store_assets/`.
 - [ ] Google Play App created (`com.bugmana.shell_lite`).
-- [ ] App Icon (512x512) and Feature Graphic (1024x500) uploaded.
+- [ ] Store graphics and screenshots uploaded to Google Play Console.
 - [ ] Store descriptions and Privacy Policy URL (`https://strandberg.dev/privacy/shelllite/`) entered in Play Console.
 - [ ] Mandatory questionnaires (Data Safety, Content Rating, Ads) completed using Section 4 declarations.
 - [ ] Upload `.aab` to Internal Testing track for first verification.
