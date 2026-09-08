@@ -31,7 +31,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Terminal Settings'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
     expect(find.text('COLOR SCHEME'), findsOneWidget);
     expect(find.text('FONT SIZE'), findsOneWidget);
     expect(find.byType(Slider), findsOneWidget);

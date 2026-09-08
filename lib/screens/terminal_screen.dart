@@ -317,7 +317,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                   children: [
                     Icon(Icons.tune_rounded, size: 18, color: theme.textSecondary),
                     const SizedBox(width: AppSpacing.sm),
-                    Text('Terminal Settings', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
+                    Text('Settings', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
                   ],
                 ),
               ),

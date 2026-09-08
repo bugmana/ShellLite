@@ -198,7 +198,7 @@ void main() {
     expect(find.text('Terminal session is not connected'), findsOneWidget);
   });
 
-  testWidgets('TerminalScreen opens Terminal Settings modal via Session Menu', (tester) async {
+  testWidgets('TerminalScreen opens Settings modal via Session Menu', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -209,13 +209,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // Tap settings item in menu
-    final settingsItem = find.text('Terminal Settings');
+    final settingsItem = find.text('Settings');
     expect(settingsItem, findsOneWidget);
     await tester.tap(settingsItem);
     await tester.pumpAndSettle();
 
     // Modal should be displayed
-    expect(find.text('Terminal Settings'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Catppuccin Mocha'), findsOneWidget);
 
     // Select Catppuccin Mocha

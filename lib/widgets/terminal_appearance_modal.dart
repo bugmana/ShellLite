@@ -40,7 +40,7 @@ class TerminalAppearanceModal extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Terminal Settings',
+                  'Settings',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -328,3 +328,4 @@ class TerminalAppearanceModal extends StatelessWidget {
 }
 
 typedef TerminalSettingsModal = TerminalAppearanceModal;
+typedef SettingsModal = TerminalAppearanceModal;

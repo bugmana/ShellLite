@@ -130,7 +130,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
           IconButton(
             constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
             icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Terminal Settings',
+            tooltip: 'Settings',
             onPressed: () => TerminalAppearanceModal.show(context),
           ),
         ],
