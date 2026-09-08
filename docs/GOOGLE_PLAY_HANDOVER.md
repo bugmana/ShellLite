@@ -113,6 +113,9 @@ ShellLite is a modern, fast, and secure SSH client and terminal emulator built w
 
 🔒 PRIVACY & SECURITY FIRST:
 ShellLite operates strictly on-device. Your SSH keys, passwords, and server connections never touch third-party servers.
+• Zero data collection, no analytics SDKs, and no ads.
+• Hardware-backed local encryption with Android KeyStore.
+• Complete transparency with in-app policy and canonical web policy: https://strandberg.dev/privacy/shelllite/
 ```
 
 ---
@@ -122,12 +125,19 @@ ShellLite operates strictly on-device. Your SSH keys, passwords, and server conn
 Google Play requires completion of several policy questionnaires before publishing:
 
 ### 1. Privacy Policy
-* **Requirement**: Publicly accessible URL.
-* **Recommended URL**: `https://strandberg.dev/privacy` (or a dedicated privacy section on `shell.strandberg.dev`).
-* **Key Points**:
-  - The app connects directly to SSH servers specified by the user.
-  - No user analytics, telemetry, or personal identity data is collected or sold.
-  - Credentials and private keys are stored locally using encrypted Android KeyStore.
+* **Requirement**: Publicly accessible HTTPS URL.
+* **Canonical URL (Enter in Google Play Console)**: `https://strandberg.dev/privacy/shelllite/`
+  *(Note: `https://strandberg.dev/privacy/` and `https://shell.strandberg.dev/privacy.html` also redirect to this canonical policy).*
+* **In-App Location**: Directly viewable in the app under **Settings > ABOUT & PRIVACY > Privacy Policy** (accessible completely offline).
+* **Hosted Repository**: Maintained in git repository [`bugmana/strandberg.dev`](https://github.com/bugmana/strandberg.dev) at `privacy/shelllite/index.md` and deployed via GitHub Pages CDN for 100% availability.
+* **Key Commitments & Disclosures**:
+  - **Zero Telemetry / Analytics**: No Firebase, Google Analytics, telemetry beacons, or ad tracking frameworks.
+  - **Hardware-Backed Encryption**: Credentials (passwords, private keys, passphrases) stored locally via `flutter_secure_storage` using Android KeyStore (AES-GCM-256).
+  - **Direct Connections**: Direct peer-to-peer TCP/SSH traffic to user hosts without any relay or proxy interception.
+  - **Local Key Generation**: Ed25519 keys generated locally on-device with PineNaCl; private keys never leave the hardware.
+  - **Transient Telemetry**: System metrics (CPU, RAM, Disk, Uptime) stay in ephemeral volatile memory and are never persisted or uploaded.
+  - **User Data Deletion**: Deleting a server profile purges all stored credentials; uninstalling purges all data.
+  - **Publisher Contact**: Aron Strandberg (`aron@strandberg.dev`).
 
 ### 2. App Access (Login Credentials for Reviewers)
 * **Select**: "All or some functionality is restricted" OR provide demo instructions.
@@ -149,11 +159,16 @@ Google Play requires completion of several policy questionnaires before publishi
 * **Appeal to children**: Select **"No"**.
 
 ### 6. Data Safety Declaration
-| Section | Question | Answer |
+Google Play Console requires answering specific Data Safety questions. Use these exact answers:
+
+| Section | Question | Answer & Explanatory Details |
 | :--- | :--- | :--- |
-| **Data Collection** | Does your app collect or share user data? | **No** (all credentials stay local on-device). |
-| **Security Practices** | Is data encrypted in transit? | **Yes** (SSH encrypted communication). |
-| **Data Deletion** | Can users delete their data? | **Yes** (deleting a server entry or uninstalling deletes all local secure storage). |
+| **Data Collection** | Does your app collect or share user data? | **No** (all credentials, keys, logs, and telemetry stay strictly local on-device). |
+| **Data Sharing** | Is any user data shared with third parties? | **No** (zero third-party SDKs, analytics, ads, or crash report beacons). |
+| **Data in Transit** | Is all user data encrypted in transit? | **Yes** (encrypted over standard SSHv2 / TLS WebSocket bridge directly to user servers). |
+| **Data at Rest** | Is data stored securely on the device? | **Yes** (hardware-backed Android KeyStore AES-GCM-256 encryption via `flutter_secure_storage`). |
+| **Data Deletion** | Can users delete their data? | **Yes** (deleting a server entry purges stored credentials immediately; uninstalling purges all local storage). |
+| **Privacy Policy URL**| Valid privacy policy URL | `https://strandberg.dev/privacy/shelllite/` |
 
 ---
 
@@ -197,11 +212,12 @@ To enable GitHub Actions to automatically sign `.aab` files:
 
 ## 📞 Support & Maintenance Checklist
 
+- [x] Privacy Policy published to `https://strandberg.dev/privacy/shelllite/` and integrated in-app under Settings.
 - [ ] Keystore generated & backed up offsite.
 - [ ] `android/key.properties` configured locally.
 - [ ] `flutter build appbundle --release` compiles without errors.
 - [ ] Google Play App created (`com.bugmana.shell_lite`).
 - [ ] App Icon (512x512) and Feature Graphic (1024x500) uploaded.
-- [ ] Store descriptions and Privacy Policy linked.
-- [ ] Mandatory questionnaires (Data Safety, Content Rating, Ads) completed.
+- [ ] Store descriptions and Privacy Policy URL (`https://strandberg.dev/privacy/shelllite/`) entered in Play Console.
+- [ ] Mandatory questionnaires (Data Safety, Content Rating, Ads) completed using Section 4 declarations.
 - [ ] Upload `.aab` to Internal Testing track for first verification.
