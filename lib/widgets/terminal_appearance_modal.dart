@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/terminal_settings_store.dart';
+import '../screens/privacy_policy_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/terminal_theme_presets.dart';
 
@@ -318,6 +319,63 @@ class TerminalAppearanceModal extends StatelessWidget {
                     onChanged: (val) => settings.setHapticFeedbackEnabled(val),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // About & Legal
+            Text(
+              'ABOUT & PRIVACY',
+              style: TextStyle(
+                color: theme.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: theme.cardSurface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.privacy_tip_outlined, color: theme.primaryAccent, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Privacy Policy',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: theme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'On-device processing & zero telemetry guarantee',
+                            style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: theme.textSecondary, size: 20),
+                  ],
+                ),
               ),
             ),
           ],

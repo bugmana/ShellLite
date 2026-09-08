@@ -5,6 +5,7 @@ import 'providers/server_store.dart';
 import 'providers/session_store.dart';
 import 'providers/telemetry_store.dart';
 import 'providers/terminal_settings_store.dart';
+import 'screens/privacy_policy_screen.dart';
 import 'screens/server_list_screen.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
@@ -70,6 +71,9 @@ class ShellLiteApp extends StatelessWidget {
       title: 'ShellLite',
       debugShowCheckedModeBanner: false,
       theme: themeData,
+      routes: {
+        '/privacy': (context) => const PrivacyPolicyScreen(),
+      },
       home: const ServerListScreen(),
     );
   }

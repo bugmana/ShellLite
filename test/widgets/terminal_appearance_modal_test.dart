@@ -40,6 +40,8 @@ void main() {
     expect(find.text('Dracula'), findsOneWidget);
 
     expect(find.text('Haptic Feedback'), findsOneWidget);
+    expect(find.text('ABOUT & PRIVACY'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
     expect(find.text('Customize Accessory Keys'), findsNothing);
 
     // Tap on Dracula theme preset
