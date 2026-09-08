@@ -87,9 +87,10 @@ When creating your store listing in Google Play Console, you will need the follo
 | :--- | :--- | :--- | :--- | :--- |
 | **App Icon** | 512 × 512 px | 32-bit PNG (with alpha) | [`docs/store_assets/play_store_icon_512x512.png`](file:///home/aron/projects/ShellLite/docs/store_assets/play_store_icon_512x512.png) | Master corgi logo, ready to upload. |
 | **Feature Graphic** | 1024 × 500 px | 24-bit PNG (no alpha) | [`docs/store_assets/feature_graphic_1024x500.png`](file:///home/aron/projects/ShellLite/docs/store_assets/feature_graphic_1024x500.png) | Obsidian terminal branding with glowing logo. |
-| **Phone Screenshot 1** | 1080 × 1920 px | 24-bit PNG (9:16) | [`docs/store_assets/phone_screenshot_1_terminal.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_1_terminal.png) | Interactive terminal session with `htop` & `neofetch`. |
-| **Phone Screenshot 2** | 1080 × 1920 px | 24-bit PNG (9:16) | [`docs/store_assets/phone_screenshot_2_servers.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_2_servers.png) | Server list & real-time telemetry metrics. |
-| **Phone Screenshot 3** | 1080 × 1920 px | 24-bit PNG (9:16) | [`docs/store_assets/phone_screenshot_3_themes_privacy.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_3_themes_privacy.png) | Theme presets, monospace CLI preview, & Privacy Policy. |
+| **Phone Screenshot 1 (Terminal)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_1_terminal.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_1_terminal.png) | Interactive terminal running `htop` & `docker ps` with accessory bar. |
+| **Phone Screenshot 2 (Server List)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_2_server_list.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_2_server_list.png) | Configured server card with live CPU, RAM, Disk, and Uptime metrics. |
+| **Phone Screenshot 3 (Settings & Themes)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_3_settings_themes.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_3_settings_themes.png) | Theme palette presets (Obsidian, Dracula, etc.), CLI preview, & Privacy Policy. |
+| **Phone Screenshot 4 (New Server)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_4_new_server.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_4_new_server.png) | Server connection form with clipboard parsing & key generator. |
 
 ### Store Copy
 
