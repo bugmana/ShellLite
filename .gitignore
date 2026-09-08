@@ -11,6 +11,7 @@
 !ios/Runner/Assets.xcassets/**
 !web/**/*.png
 !web/**/*.ico
+!docs/store_assets/**
 .DS_Store
 .atom/
 .buildlog/
