@@ -15,7 +15,6 @@ class StorageService {
       synchronizable: false,
     ),
     aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
       resetOnError: true,
     ),
     mOptions: MacOsOptions(

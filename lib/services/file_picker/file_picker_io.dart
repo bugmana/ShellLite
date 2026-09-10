@@ -2,24 +2,22 @@ import 'package:file_picker/file_picker.dart';
 import '../file_transfer_service.dart';
 
 Future<List<FileTransferItem>> platformPickFiles() async {
-  final result = await FilePicker.pickFiles(
-    allowMultiple: true,
-    withReadStream: true,
-  );
-
-  if (result == null || result.files.isEmpty) {
+  final files = await FilePicker.pickFiles();
+  if (files.isEmpty) {
     return [];
   }
 
-  return result.files
-      .map(
-        (f) => FileTransferItem(
-          name: f.name,
-          size: f.size,
-          localPath: f.path,
-          bytes: f.bytes,
-          readStream: f.readStream,
-        ),
-      )
-      .toList();
+  final items = <FileTransferItem>[];
+  for (final f in files) {
+    final size = f.lengthSync() ?? await f.length();
+    items.add(
+      FileTransferItem(
+        name: f.name,
+        size: size,
+        localPath: f.path,
+        readStream: f.readAsByteStream(),
+      ),
+    );
+  }
+  return items;
 }
