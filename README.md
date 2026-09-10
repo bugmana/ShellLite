@@ -15,7 +15,6 @@
 - **Multiple Theme Presets**: Pre-configured terminal and UI palettes (**Obsidian**, **Catppuccin Mocha**, **Dracula**, **Nord**, **Tokyo Night**, and **Solarized Dark**).
 - **Flexible Authentication & Key Generator**: Password auth, unencrypted OpenSSH keys (**Ed25519**, **ECDSA**, **RSA**), and a built-in **Ed25519 key generator**.
 - **Hardware-Backed Encryption**: Secure storage for server credentials via [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) (iOS Keychain / Android KeyStore / Linux Secret Service).
-- **Directional Navigation HUD**: Press-and-hold virtual joystick overlay for effortless cursor navigation and command history scrolling on mobile touchscreens.
 - **Live Server Telemetry**: Background health dashboard monitoring CPU load, memory usage, disk utilization, and uptime.
 - **Persistent Sessions (tmux)**: Automatic tmux session attach and reconnection resilience.
 - **Customizable Keyboard Accessory Bar**: Dedicated tactile shortcuts (`⇥ Tab`, `^C`, `^D`, `↑`, `↓`, `←`, `→`, `Esc`, macros) with drag-and-drop reordering and custom keys.
@@ -49,7 +48,7 @@ ShellLite/
 │   ├── screens/                    # ServerListScreen, ServerFormScreen, TerminalScreen
 │   ├── services/                   # KeyParser, KeyGenerator, SSHService, StorageService, TelemetryService
 │   ├── theme/                      # Dynamic multi-theme palettes & TerminalThemePresets
-│   └── widgets/                    # AccessoryBar, DirectionalHUD, SearchBar, Modals
+│   └── widgets/                    # AccessoryBar, SearchBar, Modals
 ├── test/                           # Comprehensive unit & widget test suites
 └── .github/workflows/              # Automated CI/CD & Multi-Platform Release workflows
 ```

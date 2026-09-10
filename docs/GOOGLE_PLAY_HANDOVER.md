@@ -108,7 +108,6 @@ ShellLite is a modern, fast, and secure SSH client and terminal emulator built w
 • Multiple Theme Presets: Choose from developer favorites including Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
 • Robust Key & Auth Management: Support for password auth, unencrypted OpenSSH keys (Ed25519, ECDSA, RSA), and a built-in on-device Ed25519 key generator.
 • Hardware-Backed Encryption: Server credentials and private keys are encrypted locally using Android KeyStore.
-• Directional Navigation HUD: Touchscreen virtual joystick for effortless cursor positioning and command navigation.
 • Customizable Quick Keyboard Bar: Rapid access to Tab, Ctrl+C, Ctrl+D, Esc, arrow keys, and custom macro keys.
 • Live Server Telemetry: Background health monitor tracking CPU load, memory usage, disk utilization, and system uptime.
 • Persistent Sessions: Seamless tmux session attach and reconnection resilience.

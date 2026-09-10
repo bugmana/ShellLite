@@ -9,19 +9,27 @@ import '../models/server_profile.dart';
 class StorageService {
   static const _profilesKey = StorageConfig.profilesKey;
 
+  static const Duration storageTimeout = Duration(seconds: 10);
+
   static const FlutterSecureStorage _defaultSecureStorage = FlutterSecureStorage(
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
       synchronizable: false,
     ),
     aOptions: AndroidOptions(
-      resetOnError: true,
+      resetOnError: false,
+      migrateWithBackup: true,
+      keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding,
+      storageCipherAlgorithm: StorageCipherAlgorithm.AES_GCM_NoPadding,
     ),
     mOptions: MacOsOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
     lOptions: LinuxOptions(),
+    wOptions: WindowsOptions(),
   );
+
+  static FlutterSecureStorage get defaultSecureStorage => _defaultSecureStorage;
 
   final FlutterSecureStorage _secureStorage;
   final Map<String, String> _inMemoryCredentials = {};
@@ -85,7 +93,7 @@ class StorageService {
     try {
       await _secureStorage
           .write(key: tag, value: value)
-          .timeout(const Duration(milliseconds: 300));
+          .timeout(storageTimeout);
     } catch (e) {
       debugPrint('StorageService.saveCredential secureStorage fallback to in-memory: $e');
     }
@@ -112,7 +120,7 @@ class StorageService {
     try {
       final val = await _secureStorage
           .read(key: tag)
-          .timeout(const Duration(milliseconds: 300));
+          .timeout(storageTimeout);
       if (val != null) {
         _inMemoryCredentials[tag] = val;
         return val;
@@ -135,7 +143,7 @@ class StorageService {
     try {
       await _secureStorage
           .delete(key: tag)
-          .timeout(const Duration(milliseconds: 300));
+          .timeout(storageTimeout);
     } catch (e) {
       debugPrint('StorageService.deleteCredential error: $e');
     }
