@@ -69,6 +69,10 @@ jobs:
         if: matrix.language == 'java-kotlin'
         run: echo "org.gradle.daemon=false" >> android/gradle.properties
 
+      - name: Pre-build iOS with Flutter
+        if: matrix.language == 'swift'
+        run: flutter build ios --no-codesign --simulator
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
@@ -81,7 +85,7 @@ jobs:
 
       - name: Build iOS Code (manual)
         if: matrix.language == 'swift'
-        run: flutter build ios --no-codesign --simulator
+        run: xcodebuild clean build -workspace ios/Runner.xcworkspace -scheme Runner -destination 'generic/platform=iOS Simulator' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO COMPILATION_CACHE_ENABLE_CACHING=NO SWIFT_ENABLE_COMPILE_CACHE=NO SWIFT_USE_INTEGRATED_DRIVER=NO
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
