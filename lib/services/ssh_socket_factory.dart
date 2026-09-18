@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'web_ssh_socket.dart';
 
 /// Factory providing transparent SSH socket creation across all platforms:
-/// - Native (Android, iOS, Linux, macOS, Windows): Direct TCP socket connection
+/// - Native (Android, iOS): Direct TCP socket connection
 /// - Web: Secure WebSocket bridge connection (`wss://<host>/ssh-ws`)
 class SSHSocketFactory {
   static Future<SSHSocket> connect({

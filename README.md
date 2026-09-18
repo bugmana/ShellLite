@@ -1,73 +1,172 @@
-# ShellLite ⚡
+# ShellLite
 
 [![CI](https://github.com/bugmana/ShellLite/actions/workflows/ci.yml/badge.svg)](https://github.com/bugmana/ShellLite/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Linux%20%7C%20Web-blue)](https://github.com/bugmana/ShellLite)
+[![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-blue)](https://github.com/bugmana/ShellLite)
 
-> Modern, secure, lightweight SSH client and terminal emulator for **iOS**, **Android**, **Linux**, and **Web**, built with Flutter & Dart.
-
----
-
-## ✨ Features
-
-- **Pure Dart SSHv2 Engine**: Powered by [`dartssh2`](https://pub.dev/packages/dartssh2) with interactive PTY shell sessions.
-- **Hardware-Accelerated Terminal**: ANSI/VT100 rendering via [`xterm.dart`](https://pub.dev/packages/xterm) with custom cursor styling, scrollback buffer, and dynamic resizing.
-- **Multiple Theme Presets**: Pre-configured terminal and UI palettes (**Obsidian**, **Catppuccin Mocha**, **Dracula**, **Nord**, **Tokyo Night**, and **Solarized Dark**).
-- **Flexible Authentication & Key Generator**: Password auth, unencrypted OpenSSH keys (**Ed25519**, **ECDSA**, **RSA**), and a built-in **Ed25519 key generator**.
-- **Hardware-Backed Encryption**: Secure storage for server credentials via [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) (iOS Keychain / Android KeyStore / Linux Secret Service).
-- **Live Server Telemetry**: Background health dashboard monitoring CPU load, memory usage, disk utilization, and uptime.
-- **Persistent Sessions (tmux)**: Automatic tmux session attach and reconnection resilience.
-- **Customizable Keyboard Accessory Bar**: Dedicated tactile shortcuts (`⇥ Tab`, `^C`, `^D`, `↑`, `↓`, `←`, `→`, `Esc`, macros) with drag-and-drop reordering and custom keys.
+SSH client and terminal emulator for iOS, Android, and Web, built with Flutter.
 
 ---
 
-## 📦 Download & Installation
+## Platforms
 
-### 🤖 Android
-- Download the latest **`ShellLite.apk`** from [GitHub Releases](https://github.com/bugmana/ShellLite/releases) and open it on your Android device to install directly.
-- Store distribution packages are also available as **`ShellLite.aab`** (Android App Bundle).
+ShellLite targets three platforms:
 
-### 🍏 iOS
-- Download the latest **`ShellLite.ipa`** from [GitHub Releases](https://github.com/bugmana/ShellLite/releases) and install via **SideStore**, **AltStore**, or **Sideloadly**.
-
-### 🌐 Web Demo
-- Try the live web version instantly in your browser at **[https://shell.strandberg.dev/](https://shell.strandberg.dev/)**.
+- **Android**: Distributed as standalone APK (`ShellLite.apk`) and Google Play Store App Bundle (`ShellLite.aab`).
+- **iOS**: Distributed as sideloadable IPA (`ShellLite.ipa`) for installation via SideStore, AltStore, or Sideloadly.
+- **Web**: Hosted single-page application connecting to SSH servers through a WebSocket bridge. Live deployment: [https://shell.strandberg.dev/](https://shell.strandberg.dev/).
 
 ---
 
-## 📁 Project Structure
+## Features
+
+### SSH and Terminal Emulation
+- Pure Dart SSHv2 protocol client via [`dartssh2`](https://pub.dev/packages/dartssh2).
+- ANSI/VT100 terminal emulation via [`xterm.dart`](https://pub.dev/packages/xterm) with dynamic PTY window resizing and configurable scrollback up to 10,000 lines.
+- Stateful UTF-8 stream decoding to prevent character truncation across network packet boundaries.
+- Six color presets: ShellLite Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
+- Adjustable terminal font size (10 to 22 pt) using JetBrains Mono with system fallbacks.
+- Touch text selection with draggable start/end handles and a floating copy/select-all toolbar.
+
+### Keyboard Accessory Bar
+- Mobile-optimized key row: Tab, Shift+Tab, arrow keys, Escape, and quick interrupt (`^C`).
+- Sticky modifier keys: `Ctrl` and `Alt` supporting single-tap latch (applies to next keystroke) and double-tap lock.
+- Customizable keys: Add custom keys with escape sequences (`\e`, `\t`, `\n`, `^C`, hex `\x1b`) and reorder via drag-and-drop.
+- Inline expandable drawer organizing Control, Navigation, and Function (F1–F12) keys.
+- Haptic feedback on keystroke (can be disabled in settings).
+
+### Authentication and Key Management
+- Password authentication and unencrypted or passphrase-encrypted OpenSSH private keys (Ed25519, ECDSA, RSA).
+- Built-in on-device Ed25519 key generator with one-tap public key copying and automated `authorized_keys` setup scripts.
+- Clipboard auto-parser for connection strings (extracts host, port, and user from `ssh -p <port> <user>@<host>`).
+- Credentials encrypted locally via hardware security: Apple Keychain on iOS and KeyStore on Android.
+- Limit of 10 configured server profiles.
+
+### File Transfer
+- Upload files directly to the remote server from within the terminal session.
+- Chunked streaming (32 KB chunks) with progress tracking and cancellation.
+- SFTP on native platforms; streamed standard input (`cat > remote_file`) on Web to circumvent JavaScript runtime limitations with 64-bit integer SFTP packet offsets.
+- Native file picker on iOS and Android; DOM file input element on Web.
+
+### Session Persistence and Telemetry
+- Optional automatic `tmux` session attach (`tmux new-session -A -s <name>`), falling back to standard shell if `tmux` is absent.
+- Initial command execution on connect when persistent session is disabled.
+- Server telemetry queried over SSH: CPU load/utilization, memory consumption, root disk usage, and uptime.
+
+### Privacy
+- All credentials, private keys, and session data remain on the local device.
+- Zero analytics SDKs, advertising frameworks, or tracking beacons.
+- In-app and web privacy policy: [https://strandberg.dev/privacy/shelllite/](https://strandberg.dev/privacy/shelllite/).
+
+---
+
+## Architecture
 
 ```text
-ShellLite/
-├── docs/                           # Publishing, deployment & handover guides
-│   └── GOOGLE_PLAY_HANDOVER.md     # Google Play Store publishing & release guide
-├── lib/                            # Application source code
-│   ├── config/                     # App constants, terminal, accessory & storage configs
-│   ├── models/                     # ServerProfile, AuthMethod, ServerTelemetry
-│   ├── providers/                  # ServerStore, SessionStore, TelemetryStore, TerminalSettingsStore
-│   ├── screens/                    # ServerListScreen, ServerFormScreen, TerminalScreen
-│   ├── services/                   # KeyParser, KeyGenerator, SSHService, StorageService, TelemetryService
-│   ├── theme/                      # Dynamic multi-theme palettes & TerminalThemePresets
-│   └── widgets/                    # AccessoryBar, SearchBar, Modals
-├── test/                           # Comprehensive unit & widget test suites
-└── .github/workflows/              # Automated CI/CD & Multi-Platform Release workflows
+               +---------------------------------------------------+
+               |                    ShellLite                      |
+               |       (Flutter UI + Provider State Stores)        |
+               +---------------------------------------------------+
+                                         |
+                      +------------------+------------------+
+                      |                                     |
+              [iOS / Android]                             [Web]
+                      |                                     |
+              Direct TCP Socket                    WebSocket (wss://)
+                      |                                     |
+                      |                           +-------------------+
+                      |                           | Reverse Proxy     |
+                      |                           | (Caddy / Nginx)   |
+                      |                           +-------------------+
+                      |                                     |
+                      |                           +-------------------+
+                      |                           | websockify        |
+                      |                           +-------------------+
+                      |                                     |
+                      |                                TCP Socket
+                      |                                     |
+                      +------------------+------------------+
+                                         |
+                                  SSH Server (:22)
+```
+
+Web browsers cannot establish raw TCP socket connections. For the Web target, ShellLite connects via a WebSocket bridge:
+1. ShellLite Web initiates a WebSocket connection to `wss://<host>/ssh-ws`.
+2. A reverse proxy (e.g., Caddy or Nginx) terminates TLS and routes `/ssh-ws` to `websockify`.
+3. `websockify` bridges WebSocket frames to the target SSH TCP port (`127.0.0.1:22`).
+
+Native targets (iOS and Android) connect directly to SSH servers over TCP.
+
+---
+
+## Development and Build
+
+### Prerequisites
+- Flutter SDK (3.24+ stable channel)
+- Java 17 (for Android builds)
+- Xcode 15+ and macOS (for iOS builds)
+
+### Setup
+```bash
+git clone https://github.com/bugmana/ShellLite.git
+cd ShellLite
+flutter pub get
+```
+
+### Build Commands
+
+#### Web
+```bash
+flutter build web --base-href /
+```
+
+#### Android
+```bash
+# APK
+flutter build apk --release
+
+# App Bundle (for Google Play Store)
+flutter build appbundle --release
+```
+
+#### iOS
+```bash
+flutter build ipa --release
+```
+
+### Verification
+```bash
+# Static analysis
+flutter analyze
+
+# Test suite
+flutter test
 ```
 
 ---
 
-## 🤝 Contributing
+## Project Structure
 
-Contributions are welcome! Please feel free to submit a Pull Request or open an Issue for bug reports and feature suggestions.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Ensure all tests pass (`flutter test && flutter analyze`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+```text
+ShellLite/
+├── docs/                     Documentation, release notes, and store assets
+│   ├── GOOGLE_PLAY_HANDOVER.md
+│   └── store_assets/
+├── lib/
+│   ├── config/               Application limits, terminal styles, key definitions
+│   ├── models/               ServerProfile, AuthMethod, ServerTelemetry
+│   ├── providers/            ServerStore, SessionStore, TelemetryStore, TerminalSettingsStore
+│   ├── screens/              Server list, server form, terminal, privacy policy
+│   ├── services/             SSH service, socket factory, file transfer, key generator, storage
+│   ├── theme/                Theme presets, application palettes, typography
+│   └── widgets/              Keyboard accessory bar, file upload, selection handles, modals
+├── test/                     Unit, widget, and integration test suites
+├── scripts/                  Version resolution and release automation
+└── .github/workflows/        CI/CD workflows for Android, iOS, and Web releases
+```
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

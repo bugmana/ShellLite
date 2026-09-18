@@ -9,7 +9,6 @@ description: Build commands, DevOps setup, testing policies, and git commit prac
 - Flutter SDK (3.24+ stable channel)
 - Java 17 (for Android builds)
 - Xcode (for iOS builds, macOS only)
-- Clang / CMake / GTK3 development headers (for Linux builds)
 
 ```bash
 flutter pub get
@@ -22,11 +21,6 @@ flutter pub get
 flutter build web --base-href /
 # Ensure web server user can read output
 chmod -R a+rX build/web
-```
-
-### Linux
-```bash
-flutter build linux --release
 ```
 
 ### Android

@@ -1,10 +1,10 @@
-# 🚀 ShellLite: Google Play Store Handover & Publishing Guide
+# ShellLite: Google Play Store Handover & Publishing Guide
 
 This document contains the complete end-to-end instructions, configurations, metadata, and checklists required to publish **ShellLite** to the Google Play Store using your Google Play Developer Account.
 
 ---
 
-## 📋 Quick Reference
+## Quick Reference
 
 | Field | Value |
 | :--- | :--- |
@@ -19,7 +19,7 @@ This document contains the complete end-to-end instructions, configurations, met
 
 ---
 
-## 🔑 1. Release Keystore Generation & Configuration
+## 1. Release Keystore Generation & Configuration
 
 Google Play requires all upload bundles (`.aab`) to be signed with a secure upload key.
 
@@ -49,7 +49,7 @@ storeFile=/absolute/path/to/shelllite-upload-keystore.jks
 
 ---
 
-## 📦 2. Building the Production Bundle (`.aab`)
+## 2. Building the Production Bundle (`.aab`)
 
 ### Local Build Command
 Run the standard Flutter release command:
@@ -77,7 +77,7 @@ version: 1.0.2+3
 
 ---
 
-## 🎨 3. Store Listing & Graphical Assets
+## 3. Store Listing & Graphical Assets
 
 When creating your store listing in Google Play Console, you will need the following assets:
 
@@ -99,29 +99,29 @@ When creating your store listing in Google Play Console, you will need the follo
 
 #### Full Description (Max 4000 characters)
 ```markdown
-ShellLite is a modern, fast, and secure SSH client and terminal emulator built with Flutter for developers, sysadmins, and DevOps engineers on the go.
+ShellLite is an SSH client and terminal emulator built with Flutter for Android.
 
-✨ KEY FEATURES:
+KEY FEATURES:
 
-• Pure SSHv2 Client: Fast interactive PTY terminal sessions powered by DartSSH.
-• Hardware-Accelerated Terminal: Full ANSI/VT100 rendering with dynamic resizing, custom cursors, and smooth scrollback buffers.
-• Multiple Theme Presets: Choose from developer favorites including Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
-• Robust Key & Auth Management: Support for password auth, unencrypted OpenSSH keys (Ed25519, ECDSA, RSA), and a built-in on-device Ed25519 key generator.
+• Pure SSHv2 Client: Interactive PTY terminal sessions powered by DartSSH.
+• Terminal Emulation: Full ANSI/VT100 rendering with dynamic resizing, custom cursors, and configurable scrollback buffers.
+• Theme Presets: Pre-configured palettes including Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
+• Key and Authentication Management: Support for password authentication, unencrypted OpenSSH keys (Ed25519, ECDSA, RSA), and an on-device Ed25519 key generator.
 • Hardware-Backed Encryption: Server credentials and private keys are encrypted locally using Android KeyStore.
-• Customizable Quick Keyboard Bar: Rapid access to Tab, Ctrl+C, Ctrl+D, Esc, arrow keys, and custom macro keys.
-• Live Server Telemetry: Background health monitor tracking CPU load, memory usage, disk utilization, and system uptime.
-• Persistent Sessions: Seamless tmux session attach and reconnection resilience.
+• Keyboard Accessory Bar: Direct access to Tab, Ctrl+C, Ctrl+D, Esc, arrow keys, and custom keys.
+• Server Telemetry: Background health monitor tracking CPU load, memory usage, disk utilization, and system uptime.
+• Persistent Sessions: tmux session attachment and reconnection support.
 
-🔒 PRIVACY & SECURITY FIRST:
-ShellLite operates strictly on-device. Your SSH keys, passwords, and server connections never touch third-party servers.
+PRIVACY AND SECURITY:
+ShellLite operates strictly on-device. SSH keys, passwords, and server connections remain local.
 • Zero data collection, no analytics SDKs, and no ads.
 • Hardware-backed local encryption with Android KeyStore.
-• Complete transparency with in-app policy and canonical web policy: https://strandberg.dev/privacy/shelllite/
+• Policy URL: https://strandberg.dev/privacy/shelllite/
 ```
 
 ---
 
-## 📝 4. Google Play Console Policy & Content Declarations
+## 4. Google Play Console Policy & Content Declarations
 
 Google Play requires completion of several policy questionnaires before publishing:
 
@@ -173,7 +173,7 @@ Google Play Console requires answering specific Data Safety questions. Use these
 
 ---
 
-## 🧪 5. Testing Tracks & Google Play Account Verification
+## 5. Testing Tracks & Google Play Account Verification
 
 If your Google Play Developer Account is a **Personal Account** created after November 2023, Google enforces a mandatory testing phase before production release:
 
@@ -195,7 +195,7 @@ If your Google Play Developer Account is a **Personal Account** created after No
 
 ---
 
-## 🤖 6. CI/CD GitHub Actions Automated Publishing (Optional)
+## 6. CI/CD GitHub Actions Automated Publishing (Optional)
 
 To enable GitHub Actions to automatically sign `.aab` files:
 
@@ -211,7 +211,7 @@ To enable GitHub Actions to automatically sign `.aab` files:
 
 ---
 
-## 📞 Support & Maintenance Checklist
+## Support & Maintenance Checklist
 
 - [x] Privacy Policy published to `https://strandberg.dev/privacy/shelllite/` and integrated in-app under Settings.
 - [ ] Keystore generated & backed up offsite.
