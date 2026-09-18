@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_lite/models/server_telemetry.dart';
 
 void main() {
-  test('ServerTelemetry parses standard Linux output with top CPU usage', () {
+  test('ServerTelemetry parses standard remote SSH host output with top CPU usage', () {
     const rawOutput = '''
  19:12:44 up 14 days,  3:22,  2 users,  load average: 0.15, 0.22, 0.18
 ---CPU---
@@ -25,7 +25,7 @@ Filesystem      Size  Used Avail Use% Mounted on
     expect(telemetry.diskUsage, '45G / 234G (21%)');
   });
 
-  test('ServerTelemetry parses Linux output with /proc/stat CPU metrics', () {
+  test('ServerTelemetry parses remote SSH host output with /proc/stat CPU metrics', () {
     const rawOutput = '''
  19:12:44 up 14 days,  3:22,  2 users,  load average: 0.15, 0.22, 0.18
 ---CPU---

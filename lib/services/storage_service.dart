@@ -22,11 +22,6 @@ class StorageService {
       keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding,
       storageCipherAlgorithm: StorageCipherAlgorithm.AES_GCM_NoPadding,
     ),
-    mOptions: MacOsOptions(
-      accessibility: KeychainAccessibility.first_unlock_this_device,
-    ),
-    lOptions: LinuxOptions(),
-    wOptions: WindowsOptions(),
   );
 
   static FlutterSecureStorage get defaultSecureStorage => _defaultSecureStorage;

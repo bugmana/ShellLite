@@ -79,8 +79,6 @@ symbols/
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
 
-# Linux related
-**/linux/flutter/ephemeral/
 
 # App packaging
 *.ipa
