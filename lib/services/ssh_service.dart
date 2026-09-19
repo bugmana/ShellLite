@@ -107,6 +107,24 @@ class SSHService {
             : null,
         identities: keyPairs,
         keepAliveInterval: SSHConfig.keepAliveInterval,
+        onVerifyHostKey: (String type, Uint8List fingerprintBytes) async {
+          final fp = utf8.decode(fingerprintBytes);
+          final knownFp = await _storageService.getKnownHostFingerprint(
+            profile.host,
+            profile.port,
+          );
+          if (knownFp == null) {
+            // TOFU (Trust-On-First-Use): Store fingerprint on initial connection
+            await _storageService.saveKnownHostFingerprint(
+              profile.host,
+              profile.port,
+              fp,
+            );
+            return true;
+          }
+          // Enforce strict matching to prevent MITM attacks
+          return knownFp == fp;
+        },
       );
 
       await _client!.authenticated;

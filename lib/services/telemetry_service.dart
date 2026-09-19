@@ -65,6 +65,22 @@ class TelemetryService {
             ? (request) => request.prompts.map((_) => credential).toList()
             : null,
         identities: keyPairs,
+        onVerifyHostKey: (String type, Uint8List fingerprintBytes) async {
+          final fp = utf8.decode(fingerprintBytes);
+          final knownFp = await storage.getKnownHostFingerprint(
+            profile.host,
+            profile.port,
+          );
+          if (knownFp == null) {
+            await storage.saveKnownHostFingerprint(
+              profile.host,
+              profile.port,
+              fp,
+            );
+            return true;
+          }
+          return knownFp == fp;
+        },
       );
 
       final result = await client.run(
