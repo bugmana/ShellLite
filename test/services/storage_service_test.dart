@@ -178,12 +178,26 @@ void main() {
 
       expect(androidMap['resetOnError'], 'false',
           reason: 'resetOnError must be false to prevent accidental storage wiping');
+      expect(androidMap['migrateOnAlgorithmChange'], 'true',
+          reason: 'migrateOnAlgorithmChange must be true for secure algorithm migration (SEC-STORAGE-02)');
       expect(androidMap['migrateWithBackup'], 'true',
           reason: 'migrateWithBackup must be true for crash-resistant migration');
       expect(androidMap['keyCipherAlgorithm'], 'RSA_ECB_OAEPwithSHA_256andMGF1Padding',
           reason: 'Must use recommended RSA-OAEP key wrapping algorithm');
       expect(androidMap['storageCipherAlgorithm'], 'AES_GCM_NoPadding',
           reason: 'Must use recommended AES-GCM-256 authenticated encryption');
+    });
+
+    test('Throws StorageException on secure storage write failure (SEC-STORAGE-03)', () async {
+      final faultStorage = FakeFlutterSecureStorage(
+        shouldThrowOnWrite: true,
+      );
+      final service = StorageService(secureStorage: faultStorage, prefs: prefs);
+
+      expect(
+        () => service.saveCredential('failing_key', 'val'),
+        throwsA(isA<StorageException>()),
+      );
     });
 
     test('Cross-instance persistence ensures credentials persist across app restarts', () async {

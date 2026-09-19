@@ -5,6 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/server_profile.dart';
 
+/// Exception thrown when secure storage operations fail (SEC-STORAGE-03).
+class StorageException implements Exception {
+  final String message;
+  const StorageException(this.message);
+
+  @override
+  String toString() => 'StorageException: $message';
+}
+
 /// Handles persistence for ServerProfiles and encrypted credentials.
 class StorageService {
   static const _profilesKey = StorageConfig.profilesKey;
@@ -18,6 +27,7 @@ class StorageService {
     ),
     aOptions: AndroidOptions(
       resetOnError: false,
+      migrateOnAlgorithmChange: true,
       migrateWithBackup: true,
       keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding,
       storageCipherAlgorithm: StorageCipherAlgorithm.AES_GCM_NoPadding,
@@ -91,7 +101,8 @@ class StorageService {
           .write(key: tag, value: value)
           .timeout(storageTimeout);
     } catch (e) {
-      debugPrint('StorageService.saveCredential secureStorage fallback to in-memory: $e');
+      debugPrint('StorageService.saveCredential error: $e');
+      throw StorageException('Failed to securely persist credential: $e');
     }
   }
 
@@ -133,6 +144,7 @@ class StorageService {
           .timeout(storageTimeout);
     } catch (e) {
       debugPrint('StorageService.deleteCredential error: $e');
+      throw StorageException('Failed to delete secure credential: $e');
     }
   }
 

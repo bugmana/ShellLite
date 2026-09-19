@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shell_lite/models/auth_method.dart';
@@ -13,6 +14,7 @@ void main() {
     late ServerStore store;
 
     setUp(() async {
+      FlutterSecureStorage.setMockInitialValues({});
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       storage = StorageService(prefs: prefs);
