@@ -186,6 +186,17 @@ class FileTransferService {
     }
   }
 
+  /// Sanitizes a filename to protect against path traversal attacks (SEC-INJECT-01).
+  /// Strips directory paths (POSIX and Windows separators), null bytes, and traversal tokens ('..').
+  static String sanitizeFileName(String fileName) {
+    var name = fileName.split('/').last.split(r'\').last.trim();
+    name = name.replaceAll('\x00', '').replaceAll('..', '');
+    if (name.isEmpty || name == '.' || name == '..') {
+      return 'upload_${DateTime.now().millisecondsSinceEpoch}';
+    }
+    return name;
+  }
+
   /// Streams binary file data directly into an SSH execution process (`cat > file`).
   static Future<void> _uploadViaExec({
     required SSHClient client,
@@ -203,7 +214,8 @@ class FileTransferService {
       targetDir = targetDir.substring(0, targetDir.length - 1);
     }
 
-    final remotePath = targetDir == '/' ? '/${item.name}' : '$targetDir/${item.name}';
+    final safeName = sanitizeFileName(item.name);
+    final remotePath = targetDir == '/' ? '/$safeName' : '$targetDir/$safeName';
     final escapedPath = remotePath.replaceAll("'", "'\\''");
 
     if (isCancelled?.call() == true) {
@@ -275,7 +287,8 @@ class FileTransferService {
         targetDir = targetDir.substring(0, targetDir.length - 1);
       }
 
-      final remotePath = targetDir == '/' ? '/${item.name}' : '$targetDir/${item.name}';
+      final safeName = sanitizeFileName(item.name);
+      final remotePath = targetDir == '/' ? '/$safeName' : '$targetDir/$safeName';
 
       final remoteFile = await sftp.open(
         remotePath,

@@ -110,4 +110,32 @@ void main() {
       expect(progress.error, isNull);
     });
   });
+
+  group('FileTransferService sanitizeFileName (SEC-INJECT-01)', () {
+    test('preserves clean filenames', () {
+      expect(FileTransferService.sanitizeFileName('document.pdf'), 'document.pdf');
+      expect(FileTransferService.sanitizeFileName('my_script_v1.0.tar.gz'), 'my_script_v1.0.tar.gz');
+    });
+
+    test('strips leading POSIX directory paths', () {
+      expect(FileTransferService.sanitizeFileName('/etc/shadow'), 'shadow');
+      expect(FileTransferService.sanitizeFileName('../../root/.ssh/authorized_keys'), 'authorized_keys');
+    });
+
+    test('strips Windows directory paths', () {
+      expect(FileTransferService.sanitizeFileName(r'C:\Windows\System32\cmd.exe'), 'cmd.exe');
+      expect(FileTransferService.sanitizeFileName(r'..\..\Windows\cmd.exe'), 'cmd.exe');
+    });
+
+    test('removes path traversal sequences and null bytes', () {
+      expect(FileTransferService.sanitizeFileName('..test..file..\x00.sh'), 'testfile.sh');
+    });
+
+    test('handles empty or pure traversal names with fallback', () {
+      final fallback = FileTransferService.sanitizeFileName('..');
+      expect(fallback.startsWith('upload_'), isTrue);
+      final emptyFallback = FileTransferService.sanitizeFileName('');
+      expect(emptyFallback.startsWith('upload_'), isTrue);
+    });
+  });
 }
