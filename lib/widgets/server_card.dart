@@ -30,8 +30,9 @@ class ServerCard extends StatelessWidget {
     final telemetry = telemetryStore?.getTelemetry(profile.id);
     final isLoadingTelemetry = telemetryStore?.isLoading(profile.id) ?? false;
 
-    // Auto-fetch telemetry once when card is rendered if not yet attempted
-    if (telemetry == null &&
+    // Only auto-fetch telemetry if explicitly enabled by user opt-in (SEC-NET-03)
+    if ((telemetryStore?.autoFetchEnabled ?? false) &&
+        telemetry == null &&
         !isLoadingTelemetry &&
         telemetryStore != null &&
         !telemetryStore.hasAttempted(profile.id)) {
@@ -236,7 +237,7 @@ class ServerCard extends StatelessWidget {
         ),
         onSelected: (action) {
           if (action == 'telemetry') {
-            telemetryStore?.refresh(profile);
+            telemetryStore?.refresh(profile, isManual: true);
           } else if (action == 'edit') {
             onEdit();
           } else if (action == 'delete') {
