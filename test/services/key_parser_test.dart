@@ -125,9 +125,29 @@ yQNiFax2/YOxWZ7KfgDT2Zkh4vipZAaOGkksVEfY6U49M6twUxvbQsq5gp26W819
       expect(SSHKeyParser.isEncrypted(testEncryptedRsaPEM), isTrue);
     });
 
+    test('Unencrypted key with comment containing ENCRYPTED is not detected as encrypted (SEC-CRYPTO-03)', () {
+      final keyWithComment = testEd25519PEM.replaceFirst(
+        '-----END OPENSSH PRIVATE KEY-----',
+        '# admin@ENCRYPTED-VPC\n-----END OPENSSH PRIVATE KEY-----',
+      );
+      expect(SSHKeyParser.isEncrypted(keyWithComment), isFalse);
+    });
+
     test('Rejects garbage text with InvalidKeyFormatException', () {
       expect(
         () => SSHKeyParser.parse('not a real key at all'),
+        throwsA(isA<InvalidKeyFormatException>()),
+      );
+    });
+
+    test('Malformed key body with valid header throws InvalidKeyFormatException (SEC-CRYPTO-01)', () {
+      const corruptKey = '''
+-----BEGIN OPENSSH PRIVATE KEY-----
+invalid_base64_payload_corrupted!!!
+-----END OPENSSH PRIVATE KEY-----
+''';
+      expect(
+        () => SSHKeyParser.parse(corruptKey, passphrase: 'test'),
         throwsA(isA<InvalidKeyFormatException>()),
       );
     });

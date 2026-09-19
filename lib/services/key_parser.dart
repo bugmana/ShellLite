@@ -32,8 +32,16 @@ class SSHKeyParser {
   /// Checks whether a PEM private key is passphrase-protected/encrypted.
   static bool isEncrypted(String pem) {
     final trimmed = pem.trim();
-    if (trimmed.contains('ENCRYPTED') || trimmed.contains('Proc-Type: 4,ENCRYPTED')) {
-      return true;
+    // Inspect PEM header lines strictly, avoiding global substring containment false-positives (SEC-CRYPTO-03)
+    final lines = trimmed.split('\n');
+    for (final line in lines) {
+      final l = line.trim();
+      if (l.startsWith('-----BEGIN') && l.contains('ENCRYPTED PRIVATE KEY')) {
+        return true;
+      }
+      if (l.startsWith('Proc-Type:') && l.contains('ENCRYPTED')) {
+        return true;
+      }
     }
     try {
       return SSHKeyPair.isEncryptedPem(trimmed);
@@ -67,8 +75,20 @@ class SSHKeyParser {
         rethrow;
       } on SSHKeyDecryptError {
         throw const InvalidKeyPassphraseException('Incorrect passphrase for SSH key.');
-      } catch (_) {
+      } on SSHKeyDecodeError {
         throw const InvalidKeyPassphraseException('Incorrect passphrase for SSH key.');
+      } on FormatException catch (e) {
+        throw InvalidKeyFormatException('Malformed key format: ${e.message}');
+      } catch (e) {
+        final msg = e.toString().toLowerCase();
+        if (msg.contains('passphrase') ||
+            msg.contains('decrypt') ||
+            msg.contains('decode') ||
+            msg.contains('cipher') ||
+            msg.contains('rangeerror')) {
+          throw const InvalidKeyPassphraseException('Incorrect passphrase for SSH key.');
+        }
+        throw InvalidKeyFormatException('Unable to parse private key: $e');
       }
     } else {
       try {
