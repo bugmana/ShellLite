@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -7,7 +8,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 /// for Flutter Web browser environments.
 class WebSocketSSHSocket implements SSHSocket {
   final WebSocketChannel _channel;
-  final StreamController<Uint8List> _streamController = StreamController<Uint8List>.broadcast();
+  // Single-subscription stream controller buffers packets arriving before listener attaches (SEC-NET-04)
+  final StreamController<Uint8List> _streamController = StreamController<Uint8List>();
   final StreamController<List<int>> _sinkController = StreamController<List<int>>();
   late final StreamSubscription _wsSub;
   late final StreamSubscription _sinkSub;
@@ -21,6 +23,9 @@ class WebSocketSSHSocket implements SSHSocket {
           _streamController.add(Uint8List.fromList(data));
         } else if (data is ByteBuffer) {
           _streamController.add(data.asUint8List());
+        } else if (data is String) {
+          // Convert text frames to UTF-8 bytes to prevent silent packet drops (SEC-NET-05)
+          _streamController.add(Uint8List.fromList(utf8.encode(data)));
         }
       },
       onError: (e, st) {
@@ -40,9 +45,15 @@ class WebSocketSSHSocket implements SSHSocket {
       (data) {
         _channel.sink.add(Uint8List.fromList(data));
       },
+      onError: (e, st) {
+        if (!_streamController.isClosed) {
+          _streamController.addError(e, st);
+        }
+      },
       onDone: () {
         _channel.sink.close();
       },
+      cancelOnError: false,
     );
   }
 
@@ -68,7 +79,9 @@ class WebSocketSSHSocket implements SSHSocket {
       await _sinkSub.cancel();
       await _wsSub.cancel();
       await _channel.sink.close();
-      await _streamController.close();
+      if (!_streamController.isClosed) {
+        await _streamController.close();
+      }
     } catch (_) {}
   }
 
