@@ -12,10 +12,14 @@ class SSHSocketFactory {
     Duration? timeout,
   }) async {
     if (kIsWeb) {
-      final scheme = Uri.base.scheme == 'http' ? 'ws' : 'wss';
-      final wsHost = Uri.base.host.isNotEmpty ? Uri.base.host : host;
+      // Always enforce wss:// unless connecting to explicit localhost development (SEC-NET-02)
+      final isLocal = Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1';
+      final scheme = (Uri.base.scheme == 'http' && isLocal) ? 'ws' : 'wss';
+      final wsHost = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
       final portSuffix = Uri.base.hasPort ? ':${Uri.base.port}' : '';
-      final wsUri = Uri.parse('$scheme://$wsHost$portSuffix/ssh-ws');
+      final wsUri = Uri.parse(
+        '$scheme://$wsHost$portSuffix/ssh-ws?targetHost=${Uri.encodeComponent(host)}&targetPort=$port',
+      );
       return WebSocketSSHSocket.connect(wsUri);
     } else {
       return SSHSocket.connect(
