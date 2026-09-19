@@ -24,10 +24,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@2783a703d080dd417336f4762a3725058718182a # v2.16.0
+        uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # v2.16.0
         with:
           channel: ${{ vars.FLUTTER_CHANNEL || 'stable' }}
           cache: true
@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload IPA Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb99ba8afd # v4.1.4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-iOS-IPA
           path: ${{ vars.APP_NAME || 'ShellLite' }}.ipa
