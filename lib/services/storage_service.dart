@@ -72,17 +72,18 @@ class StorageService {
   // ── Secure Credentials (Passwords & Private Keys) ──────────────────────────
 
   static const _webCredPrefix = 'shell_lite_wc_';
+  static const _knownHostPrefix = 'shell_lite_kh_';
 
   Future<void> saveCredential(String tag, String value) async {
     _inMemoryCredentials[tag] = value;
     if (kIsWeb) {
+      // In web mode, NEVER write cleartext or base64 credentials to browser localStorage (SEC-STORAGE-01).
+      // Web credentials are kept in ephemeral session memory only.
+      // Proactively scrub any legacy credentials stored in localStorage under this tag.
       try {
         final prefs = await _sharedPrefs;
-        final encoded = base64Encode(utf8.encode(value));
-        await prefs.setString('$_webCredPrefix$tag', encoded);
-      } catch (e) {
-        debugPrint('StorageService.saveCredential web error: $e');
-      }
+        await prefs.remove('$_webCredPrefix$tag');
+      } catch (_) {}
       return;
     }
     try {
@@ -99,17 +100,8 @@ class StorageService {
       return _inMemoryCredentials[tag];
     }
     if (kIsWeb) {
-      try {
-        final prefs = await _sharedPrefs;
-        final raw = prefs.getString('$_webCredPrefix$tag');
-        if (raw != null && raw.isNotEmpty) {
-          final decoded = utf8.decode(base64Decode(raw));
-          _inMemoryCredentials[tag] = decoded;
-          return decoded;
-        }
-      } catch (e) {
-        debugPrint('StorageService.retrieveCredential web error: $e');
-      }
+      // In web mode, unencrypted credentials in localStorage are disallowed (SEC-STORAGE-01).
+      // Only ephemeral in-memory session credentials are used.
       return null;
     }
     try {
@@ -142,6 +134,49 @@ class StorageService {
     } catch (e) {
       debugPrint('StorageService.deleteCredential error: $e');
     }
+  }
+
+  // ── Known Host Fingerprints (TOFU Host Key Verification - SEC-NET-01) ────────
+
+  Future<String?> getKnownHostFingerprint(String host, int port) async {
+    final key = '$_knownHostPrefix${host}_$port';
+    if (_inMemoryCredentials.containsKey(key)) {
+      return _inMemoryCredentials[key];
+    }
+    if (kIsWeb) {
+      try {
+        final prefs = await _sharedPrefs;
+        final fp = prefs.getString(key);
+        if (fp != null) {
+          _inMemoryCredentials[key] = fp;
+          return fp;
+        }
+      } catch (_) {}
+      return null;
+    }
+    try {
+      final fp = await _secureStorage.read(key: key).timeout(storageTimeout);
+      if (fp != null) {
+        _inMemoryCredentials[key] = fp;
+        return fp;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> saveKnownHostFingerprint(String host, int port, String fingerprint) async {
+    final key = '$_knownHostPrefix${host}_$port';
+    _inMemoryCredentials[key] = fingerprint;
+    if (kIsWeb) {
+      try {
+        final prefs = await _sharedPrefs;
+        await prefs.setString(key, fingerprint);
+      } catch (_) {}
+      return;
+    }
+    try {
+      await _secureStorage.write(key: key, value: fingerprint).timeout(storageTimeout);
+    } catch (_) {}
   }
 
   // ── Terminal Preferences ───────────────────────────────────────────────────
