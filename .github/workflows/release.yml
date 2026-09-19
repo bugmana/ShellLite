@@ -34,7 +34,7 @@ jobs:
       changelog: ${{ steps.versioning.outputs.changelog }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
@@ -85,22 +85,22 @@ jobs:
     runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Download iOS IPA Artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-iOS-IPA
 
       - name: Download Android APK Artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-APK
 
       - name: Download Android AAB Artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
         with:
           tag_name: "${{ needs.resolve-version.outputs.tag }}"
           name: "${{ vars.APP_NAME || 'ShellLite' }} ${{ needs.resolve-version.outputs.tag }}"

@@ -29,17 +29,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@8df1039502a140fb61166adf80d07770f56246ec # v4.0.0
         with:
           distribution: ${{ vars.JAVA_DISTRIBUTION || 'temurin' }}
           java-version: ${{ vars.JAVA_VERSION || '17' }}
           cache: 'gradle'
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@2783a703d080dd417336f4762a3725058718182a # v2.16.0
         with:
           channel: ${{ vars.FLUTTER_CHANNEL || 'stable' }}
           cache: true
@@ -66,13 +66,13 @@ jobs:
         run: |
           set -e
           echo "==> Building Flutter Android Release APK..."
-          flutter build apk --release --android-skip-build-dependency-validation --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
 
       - name: Build Android App Bundle (AAB)
         run: |
           set -e
           echo "==> Building Flutter Android Release AAB..."
-          flutter build appbundle --release --android-skip-build-dependency-validation --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+          flutter build appbundle --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
 
       - name: Prepare Artifacts
         if: inputs.upload_artifact
@@ -86,7 +86,7 @@ jobs:
 
       - name: Upload Android APK Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb99ba8afd # v4.1.4
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-APK
           path: ${{ vars.APP_NAME || 'ShellLite' }}.apk
@@ -94,7 +94,7 @@ jobs:
 
       - name: Upload Android AAB Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb99ba8afd # v4.1.4
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
           path: ${{ vars.APP_NAME || 'ShellLite' }}.aab
