@@ -40,18 +40,21 @@ jobs:
 
       - name: Resolve Version & Tag
         id: versioning
+        env:
+          BUMP_TYPE: ${{ inputs.bump_type || 'auto' }}
+          CUSTOM_VERSION: ${{ inputs.custom_version || '' }}
         run: |
           chmod +x scripts/resolve_version.sh
-          ./scripts/resolve_version.sh "${{ inputs.bump_type || 'auto' }}" "${{ inputs.custom_version || '' }}"
+          ./scripts/resolve_version.sh "$BUMP_TYPE" "$CUSTOM_VERSION"
 
       - name: Tag and Push Release
         if: steps.versioning.outputs.should_release == 'true'
+        env:
+          TAG: ${{ steps.versioning.outputs.tag }}
+          VERSION: ${{ steps.versioning.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          TAG="${{ steps.versioning.outputs.tag }}"
-          VERSION="${{ steps.versioning.outputs.version }}"
           echo "Creating annotated tag $TAG..."
           git tag -a "$TAG" -m "Release $VERSION via GitHub Actions"
           git push origin "$TAG"

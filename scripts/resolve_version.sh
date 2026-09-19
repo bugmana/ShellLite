@@ -165,8 +165,9 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
   echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
   echo "bump_type=$RESOLVED_BUMP" >> "$GITHUB_OUTPUT"
   
-  # Multiline output for changelog
-  echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+  # Multiline output for changelog with random delimiter to prevent delimiter collision / injection (SEC-CICD-01)
+  DELIMITER="EOF_$(cat /proc/sys/kernel/random/uuid 2>/dev/null || openssl rand -hex 16 2>/dev/null || date +%s%N)"
+  echo "changelog<<$DELIMITER" >> "$GITHUB_OUTPUT"
   echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
-  echo "EOF" >> "$GITHUB_OUTPUT"
+  echo "$DELIMITER" >> "$GITHUB_OUTPUT"
 fi
