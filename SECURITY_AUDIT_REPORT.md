@@ -1291,21 +1291,21 @@ During the audit, 21 areas were subjected to rigorous scrutiny and confirmed to 
 
 ## 5. Strategic Remediation Roadmap
 
-### Phase 1: Immediate P0 Hotfixes (24–48 Hours)
-- [ ] **SEC-STORAGE-01**: Disable cleartext Base64 storage in web `localStorage`. Enforce session-only in-memory storage for web.
-- [ ] **SEC-NET-01**: Implement mandatory host key verification with Trust On First Use (TOFU) in `ssh_service.dart` and `telemetry_service.dart`.
-- [ ] **SEC-INJECT-01**: Add filename sanitization (`sanitizeFileName`) in `file_transfer_service.dart` to block path traversal.
-- [ ] **SEC-CICD-01**: Refactor `.github/workflows/release.yml` to pass inputs via `env:` variables and randomize EOF delimiters in `resolve_version.sh`.
+### Phase 1: Immediate P0 Hotfixes (24–48 Hours) — COMPLETED
+- [x] **SEC-STORAGE-01**: Disable cleartext Base64 storage in web `localStorage`. Enforce session-only in-memory storage for web.
+- [x] **SEC-NET-01**: Implement mandatory host key verification with Trust On First Use (TOFU) in `ssh_service.dart` and `telemetry_service.dart`.
+- [x] **SEC-INJECT-01**: Add filename sanitization (`sanitizeFileName`) in `file_transfer_service.dart` to block path traversal.
+- [x] **SEC-CICD-01**: Refactor `.github/workflows/release.yml` to pass inputs via `env:` variables and randomize EOF delimiters in `resolve_version.sh`.
 
-### Phase 2: P1 High Priority Architecture Updates (1–2 Weeks)
-- [ ] **SEC-NET-03**: Disable automatic background telemetry; require explicit user opt-in and prior host verification.
-- [ ] **SEC-NET-02**: Enforce `wss://` exclusively and append target parameters in `ssh_socket_factory.dart`.
-- [ ] **SEC-CRYPTO-01**: Refactor `key_parser.dart` to cleanly differentiate passphrase errors from malformed keys.
-- [ ] **SEC-STORAGE-02**: Enable `encryptedSharedPreferences: true` in `AndroidOptions`.
-- [ ] **SEC-STORAGE-03**: Replace silent exception swallows in `storage_service.dart` with robust error propagation.
-- [ ] **SEC-CRYPTO-03**: Fix `isEncrypted` in `key_parser.dart` to inspect PEM header lines rather than global string containment.
-- [ ] **SEC-NET-04 & SEC-NET-05**: Convert `WebSocketSSHSocket` stream controller from broadcast to single-subscription; handle text frames and sink errors.
-- [ ] **SEC-CICD-02 & SEC-CICD-03**: Pin all GitHub Actions to full commit SHAs and remove `--android-skip-build-dependency-validation`.
+### Phase 2: P1 High Priority Architecture Updates (1–2 Weeks) — COMPLETED
+- [x] **SEC-NET-03**: Disable automatic background telemetry; require explicit user opt-in and prior host verification.
+- [x] **SEC-NET-02**: Enforce `wss://` exclusively and append target parameters in `ssh_socket_factory.dart`.
+- [x] **SEC-CRYPTO-01**: Refactor `key_parser.dart` to cleanly differentiate passphrase errors from malformed keys.
+- [x] **SEC-STORAGE-02**: Enable `migrateOnAlgorithmChange: true` in `AndroidOptions`.
+- [x] **SEC-STORAGE-03**: Replace silent exception swallows in `storage_service.dart` with robust error propagation.
+- [x] **SEC-CRYPTO-03**: Fix `isEncrypted` in `key_parser.dart` to inspect PEM header lines rather than global string containment.
+- [x] **SEC-NET-04 & SEC-NET-05**: Convert `WebSocketSSHSocket` stream controller from broadcast to single-subscription; handle text frames and sink errors.
+- [x] **SEC-CICD-02 & SEC-CICD-03**: Pin all GitHub Actions to full commit SHAs and remove `--android-skip-build-dependency-validation`.
 
 ### Phase 3: P2 Defense-in-Depth & Hardening (30 Days)
 - [ ] **SEC-STORAGE-06**: Update iOS Keychain accessibility to `KeychainAccessibility.unlocked_this_device`.
