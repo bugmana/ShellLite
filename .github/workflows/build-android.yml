@@ -29,17 +29,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Java JDK
-        uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: ${{ vars.JAVA_DISTRIBUTION || 'temurin' }}
           java-version: ${{ vars.JAVA_VERSION || '17' }}
           cache: 'gradle'
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # v2.16.0
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: ${{ vars.FLUTTER_CHANNEL || 'stable' }}
           cache: true
@@ -86,7 +86,7 @@ jobs:
 
       - name: Upload Android APK Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-APK
           path: ${{ vars.APP_NAME || 'ShellLite' }}.apk
@@ -94,7 +94,7 @@ jobs:
 
       - name: Upload Android AAB Artifact
         if: inputs.upload_artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
           path: ${{ vars.APP_NAME || 'ShellLite' }}.aab
