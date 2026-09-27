@@ -1,6 +1,6 @@
 # ShellLite: Google Play Store Handover & Publishing Guide
 
-This document contains the complete end-to-end instructions, configurations, metadata, and checklists required to publish **ShellLite** to the Google Play Store using your Google Play Developer Account.
+This document contains instructions, configurations, metadata, and checklists for publishing **ShellLite** (`com.bugmana.shell_lite`) to Google Play Console.
 
 ---
 
@@ -8,96 +8,77 @@ This document contains the complete end-to-end instructions, configurations, met
 
 | Field | Value |
 | :--- | :--- |
-| **App Name** | `ShellLite` (or `ShellLite - SSH & Terminal`) |
+| **App Name** | `ShellLite` |
 | **Package Name / Application ID** | `com.bugmana.shell_lite` |
-| **Current Target SDK** | `35` (Android 15) |
+| **Compile / Target SDK** | `36` (Android 16) |
 | **Minimum SDK** | `23` (Android 6.0+) |
 | **App Category** | Tools / Productivity |
 | **Content Rating** | Everyone (General Utility) |
 | **Primary Artifact** | Android App Bundle (`.aab`) |
-| **Default Build Output** | `build/app/outputs/bundle/release/app-release.aab` |
+| **Default Active Track** | Closed testing (`alpha`) |
+| **Automated Publishing** | Configured via GitHub Actions (`release.yml`, `deploy-play-store.yml`) |
 
 ---
 
-## 1. Release Keystore Generation & Configuration
+## 1. Keystore Configuration & Signing
 
-Google Play requires all upload bundles (`.aab`) to be signed with a secure upload key.
+Release builds (`.aab` and `.apk`) require signing with the project's upload key.
 
-### A. Generate Upload Keystore
-Run the following command on your local development machine to create your release keystore:
+### CI/CD Signing (Automated)
+The GitHub Actions workflow automates signing using four repository secrets:
+- `ANDROID_KEYSTORE_BASE64`: Base64-encoded upload keystore (`.jks`)
+- `ANDROID_KEYSTORE_PASSWORD`: Keystore password
+- `ANDROID_KEY_ALIAS`: Keystore alias (`shelllite-upload`)
+- `ANDROID_KEY_PASSWORD`: Key password
 
-```bash
-keytool -genkey -v -keystore ~/shelllite-upload-keystore.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias shelllite-upload
-```
-
-> [!CAUTION]
-> **Backup your keystore file safely!** If you lose your keystore and password, you will need to contact Google Play Developer Support to reset your upload key. Never commit `.jks` or `key.properties` to version control.
-
-### B. Configure `android/key.properties`
-Create the file `android/key.properties` (this file is already ignored in `.gitignore`):
-
-```properties
-storePassword=<YOUR_KEYSTORE_PASSWORD>
-keyPassword=<YOUR_KEY_PASSWORD>
-keyAlias=shelllite-upload
-storeFile=/absolute/path/to/shelllite-upload-keystore.jks
-```
-
-*(You can also use a relative path such as `../shelllite-upload-keystore.jks` if placed in the project root).*
+### Local Signing (Optional)
+To sign release builds locally:
+1. Place the upload keystore file on disk.
+2. Create `android/key.properties` (ignored by git):
+   ```properties
+   storePassword=<KEYSTORE_PASSWORD>
+   keyPassword=<KEY_PASSWORD>
+   keyAlias=shelllite-upload
+   storeFile=/path/to/shelllite-upload-keystore.jks
+   ```
 
 ---
 
-## 2. Building the Production Bundle (`.aab`)
+## 2. Building Artifacts
+
+### Via GitHub Actions (Standard)
+Releases are built automatically in CI. Build numbers (`versionCode`) increment monotonically with each workflow run, preventing version collision errors in Google Play Console.
+
+To manually offset build numbers, set the `BUILD_NUMBER_OFFSET` repository variable.
 
 ### Local Build Command
-Run the standard Flutter release command:
-
 ```bash
-cd /home/aron/projects/ShellLite
-flutter clean
 flutter pub get
 flutter build appbundle --release
 ```
-
-The output file will be generated at:
-```
-build/app/outputs/bundle/release/app-release.aab
-```
-
-### Version Bumping for New Releases
-Before building subsequent updates for Google Play, bump `version` in `pubspec.yaml`:
-```yaml
-# Format: versionName+versionCode
-# versionName is user-facing (e.g. 1.0.2)
-# versionCode must be an incrementing integer for every Play Store upload (e.g. 3, 4, 5...)
-version: 1.0.2+3
-```
+The output file is located at `build/app/outputs/bundle/release/app-release.aab`.
 
 ---
 
 ## 3. Store Listing & Graphical Assets
 
-When creating your store listing in Google Play Console, you will need the following assets:
+Store assets are located in [`docs/store_assets/`](file:///home/aron/projects/ShellLite/docs/store_assets/):
 
-### Required Graphics Specifications
-
-| Asset | Dimensions | Format | Generated File in Repository | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **App Icon** | 512 × 512 px | 32-bit PNG (with alpha) | [`docs/store_assets/play_store_icon_512x512.png`](file:///home/aron/projects/ShellLite/docs/store_assets/play_store_icon_512x512.png) | Master corgi logo, ready to upload. |
-| **Feature Graphic** | 1024 × 500 px | 24-bit PNG (no alpha) | [`docs/store_assets/feature_graphic_1024x500.png`](file:///home/aron/projects/ShellLite/docs/store_assets/feature_graphic_1024x500.png) | Obsidian terminal branding with glowing logo. |
-| **Phone Screenshot 1 (Terminal)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_1_terminal.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_1_terminal.png) | Interactive terminal running `htop` & `docker ps` with accessory bar. |
-| **Phone Screenshot 2 (Server List)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_2_server_list.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_2_server_list.png) | Configured server card with live CPU, RAM, Disk, and Uptime metrics. |
-| **Phone Screenshot 3 (Settings & Themes)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_3_settings_themes.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_3_settings_themes.png) | Theme palette presets (Obsidian, Dracula, etc.), CLI preview, & Privacy Policy. |
-| **Phone Screenshot 4 (New Server)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_4_new_server.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_4_new_server.png) | Server connection form with clipboard parsing & key generator. |
+| Asset | Dimensions | Format | File |
+| :--- | :--- | :--- | :--- |
+| **App Icon** | 512 × 512 px | 32-bit PNG | [`docs/store_assets/play_store_icon_512x512.png`](file:///home/aron/projects/ShellLite/docs/store_assets/play_store_icon_512x512.png) |
+| **Feature Graphic** | 1024 × 500 px | 24-bit PNG | [`docs/store_assets/feature_graphic_1024x500.png`](file:///home/aron/projects/ShellLite/docs/store_assets/feature_graphic_1024x500.png) |
+| **Screenshot 1 (Terminal)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_1_terminal.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_1_terminal.png) |
+| **Screenshot 2 (Server List)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_2_server_list.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_2_server_list.png) |
+| **Screenshot 3 (Settings & Themes)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_3_settings_themes.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_3_settings_themes.png) |
+| **Screenshot 4 (New Server)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_4_new_server.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_4_new_server.png) |
 
 ### Store Copy
 
-#### Short Description (Max 80 characters)
+#### Short Description (Max 80 chars)
 > Lightweight, secure SSH client & hardware-accelerated terminal emulator.
 
-#### Full Description (Max 4000 characters)
+#### Full Description (Max 4000 chars)
 ```markdown
 ShellLite is an SSH client and terminal emulator built with Flutter for Android.
 
@@ -121,106 +102,91 @@ ShellLite operates strictly on-device. SSH keys, passwords, and server connectio
 
 ---
 
-## 4. Google Play Console Policy & Content Declarations
-
-Google Play requires completion of several policy questionnaires before publishing:
+## 4. Policy & Content Declarations
 
 ### 1. Privacy Policy
-* **Requirement**: Publicly accessible HTTPS URL.
-* **Canonical URL (Enter in Google Play Console)**: `https://strandberg.dev/privacy/shelllite/`
-  *(Note: `https://strandberg.dev/privacy/` and `https://shell.strandberg.dev/privacy.html` also redirect to this canonical policy).*
-* **In-App Location**: Directly viewable in the app under **Settings > ABOUT & PRIVACY > Privacy Policy** (accessible completely offline).
-* **Hosted Repository**: Maintained in git repository [`bugmana/strandberg.dev`](https://github.com/bugmana/strandberg.dev) at `privacy/shelllite/index.md` and deployed via GitHub Pages CDN for 100% availability.
-* **Key Commitments & Disclosures**:
-  - **Zero Telemetry / Analytics**: No Firebase, Google Analytics, telemetry beacons, or ad tracking frameworks.
-  - **Hardware-Backed Encryption**: Credentials (passwords, private keys, passphrases) stored locally via `flutter_secure_storage` using Android KeyStore (AES-GCM-256).
-  - **Direct Connections**: Direct peer-to-peer TCP/SSH traffic to user hosts without any relay or proxy interception.
-  - **Local Key Generation**: Ed25519 keys generated locally on-device with PineNaCl; private keys never leave the hardware.
-  - **Transient Telemetry**: System metrics (CPU, RAM, Disk, Uptime) stay in ephemeral volatile memory and are never persisted or uploaded.
-  - **User Data Deletion**: Deleting a server profile purges all stored credentials; uninstalling purges all data.
-  - **Publisher Contact**: Aron Strandberg (`aron@strandberg.dev`).
+- **URL**: `https://strandberg.dev/privacy/shelllite/`
+- **In-App Location**: **Settings > About & Privacy > Privacy Policy**
+- **Disclosures**: Zero analytics/telemetry, hardware-backed local credential encryption, direct peer-to-peer SSH traffic without proxy servers.
 
-### 2. App Access (Login Credentials for Reviewers)
-* **Select**: "All or some functionality is restricted" OR provide demo instructions.
-* **Note for Reviewer**: *"ShellLite is an SSH client utility that connects to user-owned SSH servers. To test, enter any standard SSH server endpoint or use public test SSH services."*
+### 2. App Access
+- **Option**: "All or some functionality is restricted"
+- **Reviewer Note**: *"ShellLite is an SSH client that connects to user-owned SSH servers. To test, enter any standard SSH server endpoint or use public test SSH services."*
 
 ### 3. Ads
-* **Declaration**: Select **"No, my app does not contain ads"**.
+- **Declaration**: "No, my app does not contain ads".
 
 ### 4. Content Rating (IARC)
-* **Category**: Utility / Productivity / Tools.
-* **Answers**:
-  - Violence / Sexual content / Profanity: No
-  - User interaction: Connects to arbitrary servers (Utility)
-  - Location sharing: No
-* **Result**: Rating will be **Everyone (3+) / PEGI 3**.
+- **Category**: Utility / Productivity / Tools.
+- **Rating**: Everyone (3+) / PEGI 3.
 
-### 5. Target Audience & Content
-* **Target Age**: 18+ (or 13+).
-* **Appeal to children**: Select **"No"**.
+### 5. Target Audience
+- **Target Age**: 18+ (or 13+). Not targeted at children.
 
-### 6. Data Safety Declaration
-Google Play Console requires answering specific Data Safety questions. Use these exact answers:
-
-| Section | Question | Answer & Explanatory Details |
-| :--- | :--- | :--- |
-| **Data Collection** | Does your app collect or share user data? | **No** (all credentials, keys, logs, and telemetry stay strictly local on-device). |
-| **Data Sharing** | Is any user data shared with third parties? | **No** (zero third-party SDKs, analytics, ads, or crash report beacons). |
-| **Data in Transit** | Is all user data encrypted in transit? | **Yes** (encrypted over standard SSHv2 / TLS WebSocket bridge directly to user servers). |
-| **Data at Rest** | Is data stored securely on the device? | **Yes** (hardware-backed Android KeyStore AES-GCM-256 encryption via `flutter_secure_storage`). |
-| **Data Deletion** | Can users delete their data? | **Yes** (deleting a server entry purges stored credentials immediately; uninstalling purges all local storage). |
-| **Privacy Policy URL**| Valid privacy policy URL | `https://strandberg.dev/privacy/shelllite/` |
+### 6. Data Safety
+- **Data Collection**: No data collected or shared.
+- **Encryption**: Data encrypted in transit (SSHv2/TLS) and at rest (Android KeyStore AES-GCM-256 via `flutter_secure_storage`).
+- **Data Deletion**: Deleting server entries purges credentials; uninstalling removes all stored application data.
 
 ---
 
-## 5. Testing Tracks & Google Play Account Verification
+## 5. Google Play Testing Tracks
 
-If your Google Play Developer Account is a **Personal Account** created after November 2023, Google enforces a mandatory testing phase before production release:
-
-1. **Internal Testing Track**:
-   - Create an Internal Test track in Google Play Console.
-   - Add your own email addresses.
-   - Upload `app-release.aab`.
-   - You can install and verify updates immediately without waiting for review.
-
-2. **Closed Testing Track (20 Testers Requirement)**:
-   - Create a Closed Testing track.
-   - Invite at least **20 testers** (opt-in via Google Group or email list).
-   - Testers must remain opted-in for **14 consecutive days**.
-   - After 14 days, you can apply for Production access directly within the Play Console dashboard.
-
-3. **Production Track**:
-   - Promote your tested build from Closed Testing to Production.
-   - Rollout percentage: 100% (or staged rollout).
+1. **Internal Testing (`internal`)**:
+   - Skips Google review (updates available within minutes).
+   - Up to 100 testers per email list.
+2. **Closed Testing (`alpha`)**:
+   - Current active track for ShellLite testing.
+   - Requires Google review.
+   - Generates automated Firebase Test Lab pre-launch reports.
+3. **Production (`production`)**:
+   - Public store release after verification on closed testing.
 
 ---
 
-## 6. CI/CD GitHub Actions Automated Publishing (Optional)
+## 6. GitHub Actions Automated Publishing
 
-To enable GitHub Actions to automatically sign `.aab` files:
+Automated deployment is configured using the Google Play Developer API and a Google Cloud Service Account.
 
-1. Base64 encode your keystore:
-   ```bash
-   base64 -w 0 ~/shelllite-upload-keystore.jks > keystore_base64.txt
-   ```
-2. In your GitHub repository settings (**Settings > Secrets and variables > Actions**), add:
-   - `ANDROID_KEYSTORE_BASE64`: (content of `keystore_base64.txt`)
-   - `ANDROID_KEYSTORE_PASSWORD`: Keystore password
-   - `ANDROID_KEY_ALIAS`: Keystore alias (`shelllite-upload`)
-   - `ANDROID_KEY_PASSWORD`: Key password
+### Secrets Configuration
+- `PLAY_STORE_JSON_KEY`: Full JSON key file of the Google Cloud Service Account invited as Admin/Release Manager to `com.bugmana.shell_lite` in Google Play Console.
+- `ANDROID_KEYSTORE_*`: Android release keystore secrets for code signing.
+
+### Workflows
+
+#### 1. Multi-Platform Release (`release.yml`)
+Triggers an automated semantic release: calculates next semver tag, builds iOS IPA and Android APK/AAB, publishes GitHub Release, and uploads the `.aab` to Google Play Console:
+```bash
+gh workflow run release.yml -f bump_type=auto
+```
+*Defaults to `tracks: alpha` (Closed testing).*
+
+#### 2. On-Demand Play Store Deployment (`deploy-play-store.yml`)
+Publishes an existing release artifact directly to Google Play without rebuilding or retagging:
+```bash
+# Deploy latest release to Closed testing (default)
+gh workflow run deploy-play-store.yml -f track=alpha
+
+# Deploy to Internal testing
+gh workflow run deploy-play-store.yml -f track=internal
+
+# Deploy to Production
+gh workflow run deploy-play-store.yml -f track=production -f status=completed
+```
 
 ---
 
-## Support & Maintenance Checklist
+## Checklist
 
-- [x] Privacy Policy published to `https://strandberg.dev/privacy/shelllite/` and integrated in-app under Settings.
-- [ ] Keystore generated & backed up offsite.
-- [ ] `android/key.properties` configured locally.
-- [ ] `flutter build appbundle --release` compiles without errors.
-- [x] App Icon (512x512) and Feature Graphic (1024x500) generated in `docs/store_assets/`.
-- [x] High-resolution phone screenshots (1080x1920) generated in `docs/store_assets/`.
-- [ ] Google Play App created (`com.bugmana.shell_lite`).
-- [ ] Store graphics and screenshots uploaded to Google Play Console.
-- [ ] Store descriptions and Privacy Policy URL (`https://strandberg.dev/privacy/shelllite/`) entered in Play Console.
-- [ ] Mandatory questionnaires (Data Safety, Content Rating, Ads) completed using Section 4 declarations.
-- [ ] Upload `.aab` to Internal Testing track for first verification.
+- [x] Privacy Policy published to `https://strandberg.dev/privacy/shelllite/` and integrated in-app.
+- [x] Upload Keystore generated and configured in GitHub Secrets (`ANDROID_KEYSTORE_*`).
+- [x] Android release signing configured in `android/app/build.gradle` and CI workflows.
+- [x] Google Play App created (`com.bugmana.shell_lite`).
+- [x] Store assets (icon, feature graphic, screenshots) prepared in `docs/store_assets/`.
+- [x] Mandatory questionnaires (Data Safety, Content Rating, Ads) configured.
+- [x] Initial `.aab` uploaded to Google Play Console to enable API deployment.
+- [x] Google Cloud Service Account linked and added to GitHub Secrets (`PLAY_STORE_JSON_KEY`).
+- [x] Automated CI/CD deployment verified end-to-end.
+- [x] Closed testing (`alpha`) track active.
+- [ ] Complete closed testing period with testers.
+- [ ] Promote build to Production track.

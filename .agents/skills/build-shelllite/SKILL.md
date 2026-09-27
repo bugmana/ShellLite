@@ -161,8 +161,14 @@ The `release.yml` workflow orchestrates five main steps:
    - Publishes the GitHub Release tagged with `vX.Y.Z` and attaches all installer assets.
 5. **`deploy-play-store`**:
    - Downloads signed AAB artifact.
-   - Truncates release changelog into localized `whatsnew/whatsnew-en-US`.
-   - Uploads bundle to Google Play Console on the specified track (`internal`, `alpha`, `beta`, `production`).
+   - Generates localized release notes in `whatsnew/whatsnew-en-US`.
+   - Uploads bundle to Google Play Console (defaults to `alpha` / Closed testing; supports `internal`, `beta`, `production`).
+
+### On-Demand Google Play Deployment
+To publish an existing release artifact without triggering a new semantic release:
+```bash
+gh workflow run deploy-play-store.yml -f track=alpha
+```
 
 ### Monitoring & Verifying the Release
 Track the workflow progress:
