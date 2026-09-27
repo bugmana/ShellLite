@@ -11,6 +11,10 @@ import '../providers/server_store.dart';
 import '../services/key_generator_service.dart';
 import '../services/key_parser.dart';
 import '../theme/app_theme.dart';
+import 'server_form/key_auth_section.dart';
+import 'server_form/passphrase_section.dart';
+import 'server_form/password_auth_section.dart';
+import 'server_form/tmux_config_panel.dart';
 
 class ServerFormScreen extends StatefulWidget {
   final ServerProfile? existingProfile;
@@ -35,9 +39,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   late final TextEditingController _tmuxSessionNameController;
 
   AuthType _authType = AuthType.password;
-  bool _obscurePassword = true;
   bool _obscureKey = false;
-  bool _obscureKeyPassphrase = true;
   bool _isKeyEncrypted = false;
   bool _isLoadingCredential = false;
   bool _persistSession = false;
@@ -191,6 +193,28 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
         _validateKey(clean);
       });
     }
+  }
+
+  void _copyPublicKey() {
+    if (_generatedPublicKey == null) return;
+    Clipboard.setData(ClipboardData(text: _generatedPublicKey!));
+    _copyResetTimer?.cancel();
+    setState(() => _isCopiedPublic = true);
+    _copyResetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _isCopiedPublic = false);
+    });
+  }
+
+  void _copySetupScript() {
+    if (_generatedPublicKey == null) return;
+    final script =
+        "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${_generatedPublicKey!}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys";
+    Clipboard.setData(ClipboardData(text: script));
+    _copyScriptResetTimer?.cancel();
+    setState(() => _isCopiedScript = true);
+    _copyScriptResetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _isCopiedScript = false);
+    });
   }
 
   Future<void> _save() async {
@@ -384,7 +408,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                       ),
                       const SizedBox(width: AppSpacing.md),
                       SizedBox(
-                        width: 96.0, // Fixed 96px width for 5-digit port at large font scale
+                        width: 96.0,
                         child: TextFormField(
                           controller: _portController,
                           decoration: const InputDecoration(
@@ -448,393 +472,47 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  if (_authType == AuthType.password) ...[
-                    TextFormField(
+                  if (_authType == AuthType.password)
+                    PasswordAuthSection(
                       controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        hintText: isEditing && _passwordController.text.isEmpty
-                            ? '•••••••• (Stored password)'
-                            : 'Enter password',
-                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-                        suffixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_passwordController.text.isNotEmpty)
-                              IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18),
-                                tooltip: 'Clear password',
-                                onPressed: () => setState(() => _passwordController.clear()),
-                              ),
-                            IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                size: 20,
-                              ),
-                              tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-                              onPressed: () =>
-                                  setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                          ],
-                        ),
-                      ),
-                      validator: (val) {
-                        final hasStoredPass = isEditing &&
-                            widget.existingProfile!.authMethod.type == AuthType.password;
-                        if (!hasStoredPass && (val == null || val.isEmpty)) {
-                          return 'Password is required';
-                        }
-                        return null;
+                      isEditing: isEditing,
+                      hasStoredPassword: isEditing &&
+                          widget.existingProfile?.authMethod.type == AuthType.password,
+                      theme: theme,
+                    )
+                  else ...[
+                    KeyAuthSection(
+                      keyController: _keyController,
+                      isEditing: isEditing,
+                      hasStoredKey: isEditing &&
+                          widget.existingProfile?.authMethod.type == AuthType.sshKey,
+                      obscureKey: _obscureKey,
+                      onToggleObscureKey: () => setState(() => _obscureKey = !_obscureKey),
+                      onClearKey: _clearKey,
+                      onGenerateKey: _generateNewKey,
+                      onPasteKey: _pasteFromClipboard,
+                      onKeyChanged: (val) {
+                        _validateKey(val);
+                        setState(() {});
                       },
+                      generatedPublicKey: _generatedPublicKey,
+                      isCopiedPublic: _isCopiedPublic,
+                      onCopyPublicKey: _copyPublicKey,
+                      isCopiedScript: _isCopiedScript,
+                      onCopySetupScript: _copySetupScript,
+                      theme: theme,
                     ),
-                  ] else ...[
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        Text(
-                          'OpenSSH Private Key',
-                          style: TextStyle(
-                            color: theme.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            if (_keyController.text.trim().isNotEmpty) ...[
-                              if (_obscureKey)
-                                TextButton.icon(
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  onPressed: () => setState(() => _obscureKey = false),
-                                  icon: Icon(Icons.visibility_outlined, size: 14, color: theme.secondaryAccent),
-                                  label: Text('Show', style: TextStyle(fontSize: 12, color: theme.secondaryAccent)),
-                                )
-                              else
-                                TextButton.icon(
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  onPressed: () => setState(() => _obscureKey = true),
-                                  icon: Icon(Icons.visibility_off_outlined, size: 14, color: theme.secondaryAccent),
-                                  label: Text('Hide', style: TextStyle(fontSize: 12, color: theme.secondaryAccent)),
-                                ),
-                              TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: _clearKey,
-                                icon: Icon(Icons.clear_rounded, size: 14, color: theme.error),
-                                label: Text('Clear', style: TextStyle(fontSize: 12, color: theme.error)),
-                              ),
-                            ],
-                            TextButton.icon(
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              onPressed: _generateNewKey,
-                              icon: Icon(Icons.auto_awesome_rounded, size: 14, color: theme.primaryAccent),
-                              label: Text('Generate', style: TextStyle(fontSize: 12, color: theme.primaryAccent)),
-                            ),
-                            TextButton.icon(
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              onPressed: _pasteFromClipboard,
-                              icon: const Icon(Icons.paste_rounded, size: 14),
-                              label: const Text('Paste', style: TextStyle(fontSize: 12)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    if (_obscureKey && _keyController.text.trim().isNotEmpty) ...[
-                      Material(
-                        color: theme.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(10),
-                          onTap: () => setState(() => _obscureKey = false),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: theme.border),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.lock_rounded, color: theme.primaryAccent, size: 20),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Secure Private Key Stored',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: theme.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '••••••••••••••••••••••••••••••••••••',
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 12,
-                                          color: theme.textSecondary,
-                                          letterSpacing: 2.0,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: theme.cardSurface,
-                                    foregroundColor: theme.secondaryAccent,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                      side: BorderSide(color: theme.border),
-                                    ),
-                                  ),
-                                  onPressed: () => setState(() => _obscureKey = false),
-                                  icon: const Icon(Icons.visibility_outlined, size: 15),
-                                  label: const Text('Show Key', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      TextFormField(
-                        controller: _keyController,
-                        maxLines: 8,
-                        minLines: 4,
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 12,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: '-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----',
-                        ),
-                        onChanged: (val) {
-                          _validateKey(val);
-                          setState(() {});
-                        },
-                        validator: (val) {
-                          final hasStoredKey = isEditing &&
-                              widget.existingProfile!.authMethod.type == AuthType.sshKey;
-                          if (!hasStoredKey && (val == null || val.trim().isEmpty)) {
-                            return 'Private key is required';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                    if (_generatedPublicKey != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: theme.primaryAccent.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.key_rounded, size: 16, color: theme.primaryAccent),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    'Public Key (Add to ~/.ssh/authorized_keys)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: theme.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: theme.background,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: theme.border),
-                              ),
-                              child: SelectableText(
-                                _generatedPublicKey!,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontFamily: 'monospace',
-                                  color: theme.textSecondary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              alignment: WrapAlignment.end,
-                              spacing: AppSpacing.sm,
-                              runSpacing: AppSpacing.xs,
-                              children: [
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: theme.cardSurface,
-                                    foregroundColor: _isCopiedPublic ? theme.success : theme.primaryAccent,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                      side: BorderSide(
-                                        color: _isCopiedPublic ? theme.success : theme.border,
-                                      ),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    Clipboard.setData(ClipboardData(text: _generatedPublicKey!));
-                                    _copyResetTimer?.cancel();
-                                    setState(() => _isCopiedPublic = true);
-                                    _copyResetTimer = Timer(const Duration(seconds: 2), () {
-                                      if (mounted) setState(() => _isCopiedPublic = false);
-                                    });
-                                  },
-                                  icon: Icon(
-                                    _isCopiedPublic ? Icons.check_circle_rounded : Icons.copy_rounded,
-                                    size: 14,
-                                  ),
-                                  label: Text(
-                                    _isCopiedPublic ? 'Copied!' : 'Copy Public Key',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: theme.cardSurface,
-                                    foregroundColor: _isCopiedScript ? theme.success : theme.secondaryAccent,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                      side: BorderSide(
-                                        color: _isCopiedScript ? theme.success : theme.border,
-                                      ),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    final script =
-                                        "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${_generatedPublicKey!}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys";
-                                    Clipboard.setData(ClipboardData(text: script));
-                                    _copyScriptResetTimer?.cancel();
-                                    setState(() => _isCopiedScript = true);
-                                    _copyScriptResetTimer = Timer(const Duration(seconds: 2), () {
-                                      if (mounted) setState(() => _isCopiedScript = false);
-                                    });
-                                  },
-                                  icon: Icon(
-                                    _isCopiedScript ? Icons.check_circle_rounded : Icons.bolt_rounded,
-                                    size: 14,
-                                  ),
-                                  label: Text(
-                                    _isCopiedScript ? 'Copied Script!' : 'Copy 1-Line Setup Script',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextFormField(
+                    PassphraseSection(
                       controller: _keyPassphraseController,
-                      obscureText: _obscureKeyPassphrase,
-                      decoration: InputDecoration(
-                        labelText: _isKeyEncrypted
-                            ? 'Key Passphrase (Required)'
-                            : 'Key Passphrase (Optional)',
-                        hintText: isEditing &&
-                                _keyPassphraseController.text.isEmpty &&
-                                widget.existingProfile?.authMethod is SSHKeyAuth &&
-                                (widget.existingProfile!.authMethod as SSHKeyAuth).isPassphraseProtected
-                            ? '•••••••• (Stored passphrase)'
-                            : 'Enter passphrase if key is encrypted',
-                        prefixIcon: const Icon(Icons.password_rounded, size: 20),
-                        suffixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_keyPassphraseController.text.isNotEmpty)
-                              IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18),
-                                tooltip: 'Clear passphrase',
-                                onPressed: () {
-                                  setState(() => _keyPassphraseController.clear());
-                                  _validateKey(_keyController.text);
-                                },
-                              ),
-                            IconButton(
-                              icon: Icon(
-                                _obscureKeyPassphrase
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                size: 20,
-                              ),
-                              tooltip: _obscureKeyPassphrase ? 'Show passphrase' : 'Hide passphrase',
-                              onPressed: () =>
-                                  setState(() => _obscureKeyPassphrase = !_obscureKeyPassphrase),
-                            ),
-                          ],
-                        ),
-                      ),
-                      onChanged: (val) {
-                        _validateKey(_keyController.text, val);
-                      },
-                    ),
-                    if (_keyValidationError != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _keyValidationError!,
-                        style: TextStyle(color: theme.error, fontSize: 12),
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Text(
-                      'Supports OpenSSH keys (Ed25519, ECDSA, RSA) and password-protected / encrypted private keys.',
-                      style: TextStyle(color: theme.textSecondary, fontSize: 12),
+                      isEditing: isEditing,
+                      isKeyEncrypted: _isKeyEncrypted,
+                      hasStoredPassphrase: isEditing &&
+                          widget.existingProfile?.authMethod is SSHKeyAuth &&
+                          (widget.existingProfile!.authMethod as SSHKeyAuth).isPassphraseProtected,
+                      validationError: _keyValidationError,
+                      onChanged: (val) => _validateKey(_keyController.text, val),
+                      onClear: () => _validateKey(_keyController.text),
+                      theme: theme,
                     ),
                   ],
 
@@ -843,59 +521,11 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                   // ── Persistent Session (tmux) Section ───────────────────
                   _buildSectionHeader('PERSISTENT SESSION (TMUX)', theme),
                   const SizedBox(height: 8),
-                  Material(
-                    color: theme.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(
-                        color: _persistSession ? theme.primaryAccent.withValues(alpha: 0.5) : theme.border,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                          title: Text(
-                            'Persistent Session (tmux)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: theme.textPrimary,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Keeps background processes running across reconnections.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.textSecondary,
-                              height: 1.3,
-                            ),
-                          ),
-                          value: _persistSession,
-                          activeThumbColor: theme.primaryAccent,
-                          onChanged: (val) {
-                            setState(() {
-                              _persistSession = val;
-                            });
-                          },
-                        ),
-                        if (_persistSession) ...[
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                            child: TextFormField(
-                              controller: _tmuxSessionNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Session Name (optional, defaults to "shelllite")',
-                                hintText: 'shelllite',
-                                prefixIcon: Icon(Icons.terminal_rounded, size: 20),
-                              ),
-                              autocorrect: false,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                  TmuxConfigPanel(
+                    persistSession: _persistSession,
+                    onPersistChanged: (val) => setState(() => _persistSession = val),
+                    sessionNameController: _tmuxSessionNameController,
+                    theme: theme,
                   ),
 
                   const SizedBox(height: 24),

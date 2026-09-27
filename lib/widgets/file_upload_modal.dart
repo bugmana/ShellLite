@@ -1,8 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../providers/session_store.dart';
 import '../services/file_picker/file_picker_service.dart';
 import '../services/file_transfer_service.dart';
 import '../theme/app_theme.dart';
+import 'file_upload/file_directory_section.dart';
+import 'file_upload/file_picker_dropzone.dart';
+import 'file_upload/file_upload_complete_view.dart';
+import 'file_upload/file_upload_header.dart';
+import 'file_upload/file_upload_progress_view.dart';
+import 'file_upload/selected_file_list.dart';
+
+export 'file_upload/file_directory_section.dart';
+export 'file_upload/file_picker_dropzone.dart';
+export 'file_upload/file_upload_complete_view.dart';
+export 'file_upload/file_upload_header.dart';
+export 'file_upload/file_upload_progress_view.dart';
+export 'file_upload/selected_file_list.dart';
 
 class FileUploadModal extends StatefulWidget {
   final OpenSession session;
@@ -253,6 +267,15 @@ class _FileUploadModalState extends State<FileUploadModal> {
     final theme = context.appTheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
+    final currentFile = _selectedFiles.isNotEmpty ? _selectedFiles[_currentFileIndex] : null;
+    final fileProgress = (_currentFileTotalBytes > 0)
+        ? (_currentFileUploadedBytes / _currentFileTotalBytes).clamp(0.0, 1.0)
+        : 0.0;
+    final totalFiles = _selectedFiles.length;
+    final overallProgress = (totalFiles > 0)
+        ? ((_currentFileIndex + fileProgress) / totalFiles).clamp(0.0, 1.0)
+        : 0.0;
+
     return PopScope(
       canPop: !_isUploading,
       child: Padding(
@@ -266,7 +289,16 @@ class _FileUploadModalState extends State<FileUploadModal> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(theme),
+                FileUploadHeader(
+                  title: _uploadComplete ? 'Upload Successful' : 'Upload Files to Server',
+                  subtitle: _uploadComplete
+                      ? '${_completedFiles.length} file(s) transferred'
+                      : '${widget.session.profile.displayName} (${widget.session.profile.username}@${widget.session.profile.host})',
+                  isComplete: _uploadComplete,
+                  canClose: !_isUploading,
+                  onClose: () => Navigator.of(context).pop(),
+                  theme: theme,
+                ),
                 const Divider(height: 1),
                 Flexible(
                   child: SingleChildScrollView(
@@ -275,18 +307,47 @@ class _FileUploadModalState extends State<FileUploadModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!_uploadComplete) ...[
-                          _buildDirectorySection(theme),
+                          FileDirectorySection(
+                            controller: _dirController,
+                            isLoading: _isLoadingDirectory,
+                            isUploading: _isUploading,
+                            onRefresh: _initDirectory,
+                            onQuickSelect: (path) => setState(() => _dirController.text = path),
+                            theme: theme,
+                          ),
                           const SizedBox(height: 16),
                         ],
                         if (_uploadComplete)
-                          _buildCompleteView(theme)
-                        else if (_isUploading)
-                          _buildProgressView(theme)
+                          FileUploadCompleteView(
+                            destinationDir: _dirController.text.trim(),
+                            completedFiles: _completedFiles,
+                            onDone: () => Navigator.of(context).maybePop(),
+                            theme: theme,
+                          )
+                        else if (_isUploading && currentFile != null)
+                          FileUploadProgressView(
+                            fileName: currentFile.name,
+                            fileIndex: _currentFileIndex,
+                            totalFiles: totalFiles,
+                            uploadedBytes: _currentFileUploadedBytes,
+                            totalBytes: _currentFileTotalBytes,
+                            overallProgress: overallProgress,
+                            onCancel: _cancelUpload,
+                            theme: theme,
+                          )
                         else ...[
-                          _buildFilePickerSection(theme),
+                          FilePickerDropzone(
+                            onTap: _pickFiles,
+                            theme: theme,
+                          ),
                           if (_selectedFiles.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            _buildFileList(theme),
+                            SelectedFileList(
+                              files: _selectedFiles,
+                              isUploading: _isUploading,
+                              onRemove: _removeFile,
+                              theme: theme,
+                            ),
                           ],
                           if (_errorMessage != null) ...[
                             const SizedBox(height: 12),
@@ -302,418 +363,6 @@ class _FileUploadModalState extends State<FileUploadModal> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(AppThemeExtension theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 10, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: theme.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: _uploadComplete
-                      ? theme.success.withValues(alpha: 0.18)
-                      : theme.primaryAccent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  _uploadComplete
-                      ? Icons.check_circle_rounded
-                      : Icons.cloud_upload_outlined,
-                  size: 20,
-                  color: _uploadComplete ? theme.success : theme.primaryAccent,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _uploadComplete ? 'Upload Successful' : 'Upload Files to Server',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: theme.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      _uploadComplete
-                          ? '${_completedFiles.length} file(s) transferred'
-                          : '${widget.session.profile.displayName} (${widget.session.profile.username}@${widget.session.profile.host})',
-                      style: TextStyle(fontSize: 12, color: theme.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              if (!_isUploading)
-                IconButton(
-                  icon: Icon(Icons.close_rounded, size: 20, color: theme.textSecondary),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDirectorySection(AppThemeExtension theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Remote Destination Folder',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: theme.textSecondary,
-              ),
-            ),
-            if (_isLoadingDirectory)
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              GestureToRefresh(
-                onTap: _initDirectory,
-                theme: theme,
-              ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _dirController,
-          enabled: !_isUploading,
-          style: TextStyle(
-            color: theme.textPrimary,
-            fontSize: 13,
-            fontFamily: 'monospace',
-          ),
-          decoration: InputDecoration(
-            hintText: '/home/user or ~',
-            hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.6)),
-            prefixIcon: Icon(Icons.folder_open_rounded, size: 18, color: theme.primaryAccent),
-            filled: true,
-            fillColor: theme.cardSurface,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: theme.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: theme.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: theme.primaryAccent, width: 1.5),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            _buildQuickChip('.', 'Current', theme),
-            _buildQuickChip('~', '~ (Home)', theme),
-            _buildQuickChip('/tmp', '/tmp', theme),
-            _buildQuickChip('/var/www', '/var/www', theme),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickChip(String path, String label, AppThemeExtension theme) {
-    return ActionChip(
-      label: Text(label, style: const TextStyle(fontSize: 11)),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      backgroundColor: theme.cardSurface,
-      side: BorderSide(color: theme.border),
-      onPressed: _isUploading
-          ? null
-          : () {
-              setState(() {
-                _dirController.text = path;
-              });
-            },
-    );
-  }
-
-  Widget _buildFilePickerSection(AppThemeExtension theme) {
-    return InkWell(
-      onTap: _pickFiles,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.cardSurface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: theme.primaryAccent.withValues(alpha: 0.35),
-            style: BorderStyle.solid,
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.file_upload_outlined, size: 36, color: theme.primaryAccent),
-            const SizedBox(height: 8),
-            Text(
-              'Select Files to Upload',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: theme.textPrimary,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Tap to choose one or more files from your device',
-              style: TextStyle(color: theme.textSecondary, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFileList(AppThemeExtension theme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.border),
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _selectedFiles.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: theme.border),
-        itemBuilder: (context, index) {
-          final file = _selectedFiles[index];
-          return ListTile(
-            dense: true,
-            leading: Icon(Icons.insert_drive_file_outlined, size: 20, color: theme.primaryAccent),
-            title: Text(
-              file.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, color: theme.textPrimary, fontWeight: FontWeight.w500),
-            ),
-            subtitle: Text(
-              file.formattedSize,
-              style: TextStyle(fontSize: 11, color: theme.textSecondary),
-            ),
-            trailing: IconButton(
-              icon: Icon(Icons.close, size: 16, color: theme.textSecondary),
-              onPressed: () => _removeFile(index),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildProgressView(AppThemeExtension theme) {
-    final currentFile = _selectedFiles[_currentFileIndex];
-    final fileProgress = _currentFileTotalBytes > 0
-        ? (_currentFileUploadedBytes / _currentFileTotalBytes).clamp(0.0, 1.0)
-        : 0.0;
-    final totalFiles = _selectedFiles.length;
-    final overallProgress = (totalFiles > 0)
-        ? ((_currentFileIndex + fileProgress) / totalFiles).clamp(0.0, 1.0)
-        : 0.0;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Uploading (${_currentFileIndex + 1}/$totalFiles): ${currentFile.name}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: theme.textPrimary, fontSize: 13),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${(overallProgress * 100).toStringAsFixed(0)}%',
-                style: TextStyle(fontWeight: FontWeight.bold, color: theme.primaryAccent, fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: overallProgress,
-              minHeight: 4,
-              backgroundColor: theme.border,
-              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryAccent),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${FileTransferService.formatBytes(_currentFileUploadedBytes)} of ${FileTransferService.formatBytes(_currentFileTotalBytes)}',
-                style: TextStyle(fontSize: 11, color: theme.textSecondary),
-              ),
-              TextButton(
-                onPressed: _cancelUpload,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(50, 24),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: theme.error, fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompleteView(AppThemeExtension theme) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).maybePop(),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.cardSurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.success.withValues(alpha: 0.5),
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: theme.success.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.check_circle_rounded,
-                size: 36,
-                color: theme.success,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Upload Complete',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: theme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${_completedFiles.length} file(s) transferred to ${_dirController.text.trim()}',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 6,
-              runSpacing: 6,
-              children: _completedFiles.map((name) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: theme.success.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: theme.success.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check_rounded, size: 12, color: theme.success),
-                      const SizedBox(width: 4),
-                      Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.textPrimary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryAccent,
-                  foregroundColor: AppTheme.computeOnPrimary(theme.primaryAccent),
-                  minimumSize: const Size(0, 44),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -785,34 +434,6 @@ class _FileUploadModalState extends State<FileUploadModal> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class GestureToRefresh extends StatelessWidget {
-  final VoidCallback onTap;
-  final AppThemeExtension theme;
-
-  const GestureToRefresh({super.key, required this.onTap, required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: Row(
-          children: [
-            Icon(Icons.refresh_rounded, size: 13, color: theme.primaryAccent),
-            const SizedBox(width: 3),
-            Text(
-              'Re-detect',
-              style: TextStyle(fontSize: 11, color: theme.primaryAccent, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

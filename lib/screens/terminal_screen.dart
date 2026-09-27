@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
 import '../config/app_config.dart';
@@ -14,7 +12,9 @@ import '../theme/app_theme.dart';
 import '../widgets/file_upload_modal.dart';
 import '../widgets/keyboard_accessory_bar.dart';
 import '../widgets/terminal_appearance_modal.dart';
-import '../widgets/terminal_selection_handle.dart';
+import 'terminal/terminal_connection_banner.dart';
+import 'terminal/terminal_selection_overlay.dart';
+import 'terminal/terminal_session_menu.dart';
 
 class TerminalScreen extends StatefulWidget {
   final ServerProfile profile;
@@ -321,72 +321,16 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           ],
         ),
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert_rounded, color: theme.textPrimary, size: 20),
-            tooltip: 'Session Menu',
-            padding: const EdgeInsets.all(10),
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            color: theme.cardSurface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              side: BorderSide(color: theme.border, width: 1),
-            ),
-            onSelected: (value) {
-              switch (value) {
-                case 'upload':
-                  _openFileUpload(context);
-                  break;
-                case 'settings':
-                  TerminalAppearanceModal.show(context).then((_) => _focusTerminal());
-                  break;
-                case 'disconnect':
-                  if (session != null) {
-                    sessionStore?.closeSession(session.id);
-                  }
-                  Navigator.of(context).maybePop();
-                  break;
+          TerminalSessionMenu(
+            onUpload: () => _openFileUpload(context),
+            onSettings: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
+            onDisconnect: () {
+              if (session != null) {
+                sessionStore?.closeSession(session.id);
               }
+              Navigator.of(context).maybePop();
             },
-            itemBuilder: (context) => [
-              PopupMenuItem<String>(
-                value: 'upload',
-                child: Row(
-                  children: [
-                    Icon(Icons.cloud_upload_outlined, size: 18, color: theme.textSecondary),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text('Upload File', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.tune_rounded, size: 18, color: theme.textSecondary),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text('Settings', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem<String>(
-                value: 'disconnect',
-                child: Row(
-                  children: [
-                    Icon(Icons.power_settings_new_rounded, size: 18, color: theme.error),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'Disconnect',
-                      style: TextStyle(
-                        color: theme.error,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            theme: theme,
           ),
           const SizedBox(width: 4),
         ],
@@ -423,172 +367,27 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                         ),
                       ),
                       if (isDisconnected)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: Semantics(
-                            liveRegion: true,
-                            label: (session?.wasConnected ?? false)
-                                ? 'Connection lost.'
-                                : 'Connection failed.',
-                            child: Container(
-                              height: 48,
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                              decoration: BoxDecoration(
-                                color: theme.cardSurface.withValues(alpha: 0.94),
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: theme.warning.withValues(alpha: 0.5),
-                                    width: 1.0,
-                                  ),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.warning_amber_rounded, color: theme.warning, size: 20),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Expanded(
-                                    child: Text(
-                                      (session?.wasConnected ?? false)
-                                          ? 'Connection lost.'
-                                          : 'Connection failed.',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: theme.textPrimary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: theme.primaryAccent,
-                                      foregroundColor: AppTheme.computeOnPrimary(theme.primaryAccent),
-                                      minimumSize: const Size(0, 36),
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    ),
-                                    onPressed: connectionState == SSHConnectionState.connecting
-                                        ? null
-                                        : () {
-                                            if (session != null) {
-                                              sessionStore?.reconnectSession(session.id);
-                                              _focusTerminal();
-                                            }
-                                          },
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (connectionState == SSHConnectionState.connecting)
-                                          SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: AppTheme.computeOnPrimary(theme.primaryAccent),
-                                            ),
-                                          )
-                                        else
-                                          const Icon(Icons.refresh_rounded, size: 16),
-                                        const SizedBox(width: 4),
-                                        const Text('Reconnect', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        TerminalConnectionBanner(
+                          wasConnected: session?.wasConnected ?? false,
+                          isConnecting: connectionState == SSHConnectionState.connecting,
+                          onReconnect: () {
+                            if (session != null) {
+                              sessionStore?.reconnectSession(session.id);
+                              _focusTerminal();
+                            }
+                          },
+                          theme: theme,
                         ),
-                      ListenableBuilder(
-                        listenable: Listenable.merge([controller, _terminalScrollController]),
-                        builder: (context, _) {
-                          final selection = controller.selection?.normalized;
-                          if (selection == null) return const SizedBox.shrink();
-                          final renderTerminal = _renderTerminal;
-                          if (renderTerminal == null) return const SizedBox.shrink();
-
-                          final Offset startOffset;
-                          final Offset endOffset;
-                          double lineHeight = 16.0;
-
-                          try {
-                            lineHeight = renderTerminal.lineHeight as double;
-                            startOffset = renderTerminal.getOffset(selection.begin) as Offset;
-                            endOffset = renderTerminal.getOffset(selection.end) as Offset;
-                          } catch (_) {
-                            return const SizedBox.shrink();
-                          }
-
-                          final isStartVisible =
-                              startOffset.dy + lineHeight >= 0 && startOffset.dy <= canvasHeight;
-                          final isEndVisible =
-                              endOffset.dy + lineHeight >= 0 && endOffset.dy <= canvasHeight;
-                          final isAnyVisible =
-                              isStartVisible || isEndVisible || (startOffset.dy < 0 && endOffset.dy > canvasHeight);
-                          if (!isAnyVisible) return const SizedBox.shrink();
-
-                          final isStartNearBottom =
-                              (canvasHeight - (startOffset.dy + lineHeight)) < 32.0;
-                          final isEndNearBottom =
-                              (canvasHeight - (endOffset.dy + lineHeight)) < 32.0;
-
-                          return Stack(
-                            children: [
-                              if (isStartVisible)
-                                TerminalSelectionHandle(
-                                  handleKey: const Key('terminal_selection_handle_start'),
-                                  position: TerminalHandlePosition.left,
-                                  offset: startOffset,
-                                  lineHeight: lineHeight,
-                                  color: theme.primaryAccent,
-                                  invertStem: isStartNearBottom,
-                                  onDragUpdate: (details) => _handleStartHandleDrag(
-                                    details,
-                                    selection,
-                                    terminal,
-                                    controller,
-                                  ),
-                                ),
-                              if (isEndVisible)
-                                TerminalSelectionHandle(
-                                  handleKey: const Key('terminal_selection_handle_end'),
-                                  position: TerminalHandlePosition.right,
-                                  offset: endOffset,
-                                  lineHeight: lineHeight,
-                                  color: theme.primaryAccent,
-                                  invertStem: isEndNearBottom,
-                                  onDragUpdate: (details) => _handleEndHandleDrag(
-                                    details,
-                                    selection,
-                                    terminal,
-                                    controller,
-                                  ),
-                                ),
-                              _buildFloatingSelectionToolbar(
-                                context: context,
-                                theme: theme,
-                                terminal: terminal,
-                                controller: controller,
-                                startOffset: startOffset,
-                                endOffset: endOffset,
-                                lineHeight: lineHeight,
-                                canvasWidth: canvasWidth,
-                                canvasHeight: canvasHeight,
-                                isDisconnected: isDisconnected,
-                              ),
-                            ],
-                          );
-                        },
+                      TerminalSelectionOverlay(
+                        terminal: terminal,
+                        controller: controller,
+                        scrollController: _terminalScrollController,
+                        renderTerminal: _renderTerminal,
+                        terminalViewKey: _terminalViewKey,
+                        canvasWidth: canvasWidth,
+                        canvasHeight: canvasHeight,
+                        isDisconnected: isDisconnected,
+                        theme: theme,
                       ),
                     ],
                   );
@@ -596,11 +395,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               ),
             ),
             _buildBottomBar(context, theme),
-      ],
-    ),
-  ),
-);
-}
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildBottomBar(
     BuildContext context,
@@ -620,237 +419,5 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
         onPaste: _pasteClipboard,
       ),
     );
-  }
-
-  Widget _buildFloatingSelectionToolbar({
-    required BuildContext context,
-    required AppThemeExtension theme,
-    required Terminal terminal,
-    required TerminalController controller,
-    required Offset startOffset,
-    required Offset endOffset,
-    required double lineHeight,
-    required double canvasWidth,
-    required double canvasHeight,
-    required bool isDisconnected,
-  }) {
-    const toolbarHeight = 38.0;
-    const estimatedWidth = 196.0;
-
-    final isSingleLine = (endOffset.dy - startOffset.dy).abs() < lineHeight * 1.5;
-    final centerX = isSingleLine ? (startOffset.dx + endOffset.dx) / 2 : startOffset.dx;
-    final left = (centerX - (estimatedWidth / 2)).clamp(
-      AppSpacing.sm,
-      math.max(AppSpacing.sm, canvasWidth - estimatedWidth - AppSpacing.sm),
-    ).toDouble();
-
-    final topBoundary = (isDisconnected ? 48.0 : 0.0) + 8.0;
-    final preferredTop = startOffset.dy - toolbarHeight - 10.0;
-    final top = (preferredTop >= topBoundary
-        ? preferredTop
-        : (endOffset.dy + lineHeight + 10.0).clamp(
-            topBoundary,
-            math.max(topBoundary, canvasHeight - toolbarHeight - 8.0),
-          )).toDouble();
-
-    return Positioned(
-      left: left,
-      top: top,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          height: toolbarHeight,
-          decoration: BoxDecoration(
-            color: theme.cardSurface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: theme.border, width: 1.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                InkWell(
-                  key: const Key('terminal_selection_copy_button'),
-                  onTap: () => _copySelection(context, theme, terminal, controller),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.copy_rounded, size: 15, color: theme.primaryAccent),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Copy',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: theme.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 18,
-                  color: theme.border,
-                ),
-                InkWell(
-                  key: const Key('terminal_selection_select_all_button'),
-                  onTap: () => _selectAll(terminal, controller),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.select_all_rounded, size: 16, color: theme.textSecondary),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Select All',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: theme.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _copySelection(
-    BuildContext context,
-    AppThemeExtension theme,
-    Terminal terminal,
-    TerminalController controller,
-  ) {
-    HapticFeedback.lightImpact();
-    final selection = controller.selection;
-    if (selection != null) {
-      final text = terminal.buffer.getText(selection);
-      Clipboard.setData(ClipboardData(text: text));
-      controller.clearSelection();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Copied to clipboard'),
-          duration: const Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: theme.cardSurface,
-        ),
-      );
-    }
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      'Selection copied to clipboard',
-      TextDirection.ltr,
-    );
-  }
-
-  void _selectAll(Terminal terminal, TerminalController controller) {
-    HapticFeedback.selectionClick();
-    if (terminal.buffer.lines.length == 0) return;
-    final lastLine = terminal.buffer.lines.length - 1;
-    final lastCol = terminal.viewWidth;
-    controller.setSelection(
-      terminal.buffer.createAnchor(0, 0),
-      terminal.buffer.createAnchor(lastCol, lastLine),
-    );
-  }
-
-  void _handleStartHandleDrag(
-    DragUpdateDetails details,
-    BufferRange normalized,
-    Terminal terminal,
-    TerminalController controller,
-  ) {
-    final renderBox = _terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
-    final renderTerminal = _renderTerminal;
-    if (renderBox == null || renderTerminal == null) return;
-
-    final localPos = renderBox.globalToLocal(details.globalPosition);
-    final lineHeight = renderTerminal.lineHeight as double;
-
-    // Aim for the vertical center of the character cell
-    final targetOffset = Offset(localPos.dx, localPos.dy - (lineHeight * 0.5));
-    final cellOffset = renderTerminal.getCellOffset(targetOffset) as CellOffset;
-
-    // The start marker cannot be dragged past the last character of the selection
-    final currentEnd = normalized.end;
-    CellOffset lastValidStart;
-    if (currentEnd.x > 0) {
-      lastValidStart = CellOffset(currentEnd.x - 1, currentEnd.y);
-    } else if (currentEnd.y > 0) {
-      lastValidStart = CellOffset(terminal.viewWidth - 1, currentEnd.y - 1);
-    } else {
-      lastValidStart = const CellOffset(0, 0);
-    }
-
-    final newStart = cellOffset.isAfter(lastValidStart) ? lastValidStart : cellOffset;
-
-    if (!newStart.isEqual(normalized.begin)) {
-      controller.setSelection(
-        terminal.buffer.createAnchorFromOffset(newStart),
-        terminal.buffer.createAnchorFromOffset(currentEnd),
-        mode: controller.selectionMode,
-      );
-      HapticFeedback.selectionClick();
-    }
-  }
-
-  void _handleEndHandleDrag(
-    DragUpdateDetails details,
-    BufferRange normalized,
-    Terminal terminal,
-    TerminalController controller,
-  ) {
-    final renderBox = _terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
-    final renderTerminal = _renderTerminal;
-    if (renderBox == null || renderTerminal == null) return;
-
-    final localPos = renderBox.globalToLocal(details.globalPosition);
-    final lineHeight = renderTerminal.lineHeight as double;
-
-    // Aim for the vertical center of the character cell
-    final targetOffset = Offset(localPos.dx, localPos.dy - (lineHeight * 0.5));
-    final cellOffset = renderTerminal.getCellOffset(targetOffset) as CellOffset;
-
-    // Target cell should be included in selection, so end boundary is cellOffset.x + 1
-    final targetEnd = CellOffset(
-      (cellOffset.x + 1).clamp(1, terminal.viewWidth),
-      cellOffset.y,
-    );
-
-    // End marker cannot be dragged before or same as the start marker
-    final minEnd = CellOffset(
-      (normalized.begin.x + 1).clamp(1, terminal.viewWidth),
-      normalized.begin.y,
-    );
-
-    final newEnd = targetEnd.isBefore(minEnd) ? minEnd : targetEnd;
-
-    if (!newEnd.isEqual(normalized.end)) {
-      controller.setSelection(
-        terminal.buffer.createAnchorFromOffset(normalized.begin),
-        terminal.buffer.createAnchorFromOffset(newEnd),
-        mode: controller.selectionMode,
-      );
-      HapticFeedback.selectionClick();
-    }
   }
 }
