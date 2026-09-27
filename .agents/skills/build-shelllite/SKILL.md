@@ -237,7 +237,18 @@ gh release view
 ```
 
 ## Git Commit & Push Workflow
-- **Commit Convention**: Conventional Commits format with scope:
+
+### Commit Policy (Commit Proactively)
+- **Always commit completed, verified changes locally**. Keep changes logically grouped into atomic commits with clean Conventional Commit messages.
+- Do not leave dirty working trees after finishing a feature, refactor, test, or documentation change.
+
+### Push Policy (Push ONLY When Asked)
+- **Do NOT push automatically**.
+- **Only push to remote (`git push`) when the user explicitly requests it** (e.g., "push", "commit and push", "release").
+- Keeping commits local until explicitly asked prevents unnecessary remote CI/CD workflow runs and gives the user full control over what and when code is pushed to upstream.
+
+### Commit Conventions
+- Conventional Commits format with scope:
   ```text
   <type>(<scope>): <short description>
   ```
@@ -251,4 +262,3 @@ gh release view
     - `docs`: Documentation, guides, or readme updates.
     - `test`: Unit, widget, or integration test additions.
     - `chore`: Dependency updates or build configuration tweaks.
-- **Push Policy**: Do **not** push on every commit. Stage and commit logically grouped changes locally, and push only when a complete milestone or feature is ready.
