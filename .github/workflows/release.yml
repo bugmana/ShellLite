@@ -43,6 +43,16 @@ on:
           - completed
           - draft
           - inProgress
+      custom_changelog:
+        description: 'Custom GitHub release notes (leave empty to generate automatically)'
+        required: false
+        default: ''
+        type: string
+      custom_play_store_notes:
+        description: 'Custom Google Play release notes (max 500 chars, leave empty to generate automatically)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
@@ -56,6 +66,7 @@ jobs:
       tag: ${{ steps.versioning.outputs.tag }}
       should_release: ${{ steps.versioning.outputs.should_release }}
       changelog: ${{ steps.versioning.outputs.changelog }}
+      play_store_notes: ${{ steps.versioning.outputs.play_store_notes }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -135,7 +146,7 @@ jobs:
           body: |
             ## ${{ vars.APP_NAME || 'ShellLite' }} ${{ needs.resolve-version.outputs.tag }}
 
-            ${{ needs.resolve-version.outputs.changelog }}
+            ${{ inputs.custom_changelog != '' && inputs.custom_changelog || needs.resolve-version.outputs.changelog }}
 
             ### 📦 Download & Install
 
@@ -176,12 +187,39 @@ jobs:
       - name: Prepare Release Notes
         if: env.PLAY_STORE_JSON_KEY != ''
         env:
-          CHANGELOG: ${{ needs.resolve-version.outputs.changelog }}
+          CUSTOM_NOTES: ${{ inputs.custom_play_store_notes }}
+          GENERATED_NOTES: ${{ needs.resolve-version.outputs.play_store_notes }}
         run: |
           set -e
           mkdir -p whatsnew
-          # Google Play enforces a maximum limit of 500 characters for localized release notes
-          echo "$CHANGELOG" | head -c 500 > whatsnew/whatsnew-en-US
+          if [ -n "$CUSTOM_NOTES" ]; then
+            echo "$CUSTOM_NOTES" > whatsnew/whatsnew-en-US
+          elif [ -n "$GENERATED_NOTES" ]; then
+            echo "$GENERATED_NOTES" > whatsnew/whatsnew-en-US
+          else
+            echo "• Performance improvements and bug fixes." > whatsnew/whatsnew-en-US
+          fi
+
+          # Validate and guarantee strictly within Google Play's 500-char limit
+          python3 - << 'PYEOF'
+          with open("whatsnew/whatsnew-en-US", "r", encoding="utf-8") as f:
+              content = f.read().strip()
+          if len(content) > 500:
+              lines = content.splitlines()
+              trimmed = []
+              total = 0
+              for line in lines:
+                  add = len(line) + (1 if trimmed else 0)
+                  if total + add <= 500:
+                      trimmed.append(line)
+                      total += add
+                  else:
+                      break
+              content = "\n".join(trimmed) if trimmed else content[:500]
+              with open("whatsnew/whatsnew-en-US", "w", encoding="utf-8") as f:
+                  f.write(content)
+          PYEOF
+
           echo "==> Prepared whatsnew/whatsnew-en-US:"
           cat whatsnew/whatsnew-en-US
 

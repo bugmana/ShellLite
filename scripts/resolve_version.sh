@@ -143,6 +143,77 @@ if [ -z "$CHANGELOG" ]; then
   CHANGELOG="Release $NEW_TAG"$'\n'
 fi
 
+# 5b. Generate Google Play Store What's New (Strictly user-facing, <= 500 chars)
+PLAY_STORE_NOTES=""
+if [ "$COMMIT_COUNT" -gt 0 ]; then
+  PLAY_STORE_NOTES=$(python3 - << 'PYEOF'
+import sys, re, subprocess
+
+commit_range = sys.argv[1] if len(sys.argv) > 1 else ""
+if not commit_range:
+    print("• Performance improvements and bug fixes.")
+    sys.exit(0)
+
+try:
+    log_output = subprocess.check_output(
+        ["git", "log", commit_range, "--pretty=format:%s"],
+        stderr=subprocess.DEVNULL
+    ).decode("utf-8", errors="replace")
+except Exception:
+    log_output = ""
+
+bullets = []
+for line in log_output.splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    # Only include user-facing changes: feat, fix, perf, and breaking changes
+    m = re.match(r'^(feat|fix|perf)(?:\(([^)]+)\))?!?: (.+)', line, re.I)
+    if m:
+        scope = m.group(2)
+        desc = m.group(3).strip()
+        desc = desc[0].upper() + desc[1:] if desc else ""
+        if scope:
+            scope_fmt = scope.replace('_', ' ').replace('-', ' ').title()
+            bullets.append(f"• {scope_fmt}: {desc}")
+        else:
+            bullets.append(f"• {desc}")
+    elif re.match(r'^[a-zA-Z]+(?:\([^)]+\))?!: (.+)', line):
+        m_break = re.match(r'^[a-zA-Z]+(?:\(([^)]+)\))?!: (.+)', line)
+        scope = m_break.group(1) if m_break else None
+        desc = m_break.group(2).strip() if m_break else line
+        desc = desc[0].upper() + desc[1:] if desc else ""
+        if scope:
+            scope_fmt = scope.replace('_', ' ').replace('-', ' ').title()
+            bullets.append(f"• {scope_fmt}: {desc}")
+        else:
+            bullets.append(f"• {desc}")
+
+# Fallback if no user-facing commits were found (e.g. only CI/docs/chores)
+if not bullets:
+    bullets.append("• Performance improvements, internal maintenance, and bug fixes.")
+
+# Enforce Google Play's 500-character limit cleanly without mid-line cutting
+selected_bullets = []
+current_len = 0
+for b in bullets:
+    additional_len = len(b) + (1 if selected_bullets else 0)
+    if current_len + additional_len <= 500:
+        selected_bullets.append(b)
+        current_len += additional_len
+    else:
+        break
+
+if not selected_bullets:
+    selected_bullets = ["• Performance improvements and bug fixes."]
+
+print("\n".join(selected_bullets))
+PYEOF
+"$COMMIT_RANGE" 2>/dev/null || echo "• Performance improvements and bug fixes.")
+else
+  PLAY_STORE_NOTES="• Performance improvements and bug fixes."
+fi
+
 echo "=========================================="
 echo "Semantic Release Resolution Summary"
 echo "=========================================="
@@ -157,6 +228,9 @@ echo "=========================================="
 echo "Generated Changelog:"
 echo "$CHANGELOG"
 echo "=========================================="
+echo "Generated Play Store Notes (<= 500 chars):"
+echo "$PLAY_STORE_NOTES"
+echo "=========================================="
 
 # 6. Export to GitHub Actions if in CI
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
@@ -170,4 +244,9 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
   echo "changelog<<$DELIMITER" >> "$GITHUB_OUTPUT"
   echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
   echo "$DELIMITER" >> "$GITHUB_OUTPUT"
+
+  DELIMITER_PS="EOF_$(cat /proc/sys/kernel/random/uuid 2>/dev/null || openssl rand -hex 16 2>/dev/null || date +%s%N)"
+  echo "play_store_notes<<$DELIMITER_PS" >> "$GITHUB_OUTPUT"
+  echo "$PLAY_STORE_NOTES" >> "$GITHUB_OUTPUT"
+  echo "$DELIMITER_PS" >> "$GITHUB_OUTPUT"
 fi
