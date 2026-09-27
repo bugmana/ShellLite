@@ -199,14 +199,14 @@ The `release.yml` workflow orchestrates five main steps:
 5. **`deploy-play-store`**:
    - Downloads signed AAB artifact.
    - Validates localized release notes in `whatsnew/whatsnew-en-US` (user-facing, <= 500 chars).
-   - Uploads bundle to Google Play Console (defaults to `alpha` / Closed testing; supports `internal`, `beta`, `production`).
+   - Uploads bundle to Google Play Console (defaults to `internal` for immediate test availability; supports `alpha`, `beta`, `production`).
 
 ### On-Demand Google Play Deployment
 To publish an existing release artifact or update track/notes without triggering a new semantic release:
 ```bash
 gh workflow run deploy-play-store.yml \
-  -f track=alpha \
-  -f release_tag=v1.8.2 \
+  -f track=internal \
+  -f release_tag=v1.8.3 \
   -f custom_play_store_notes="• Terminal: Improved mouse wheel scrolling in persistent tmux sessions."
 ```
 

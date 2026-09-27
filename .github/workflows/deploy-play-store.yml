@@ -6,11 +6,11 @@ on:
       track:
         description: 'Google Play release track'
         required: true
-        default: 'alpha'
+        default: 'internal'
         type: choice
         options:
-          - alpha
           - internal
+          - alpha
           - beta
           - production
       status:
@@ -66,75 +66,22 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Download Release AAB and Release Notes
+      - name: Download Release AAB
         env:
           TAG: ${{ steps.target-release.outputs.tag }}
           APP: ${{ vars.APP_NAME || 'ShellLite' }}
-          CUSTOM_NOTES: ${{ inputs.custom_play_store_notes }}
         run: |
           set -e
           echo "Downloading ${APP}.aab from release ${TAG}..."
           gh release download "$TAG" -p "${APP}.aab"
-          
-          mkdir -p whatsnew
-          if [ -n "$CUSTOM_NOTES" ]; then
-            echo "$CUSTOM_NOTES" > whatsnew/whatsnew-en-US
-          else
-            # Extract user-facing release notes from GitHub Release body
-            python3 - << 'PYEOF'
-            import subprocess, re, os
-            tag = os.environ.get("TAG", "")
-            try:
-                body = subprocess.check_output(
-                    ["gh", "release", "view", tag, "--json", "body", "-q", ".body"]
-                ).decode("utf-8", errors="replace")
-            except Exception:
-                body = ""
-            
-            bullets = []
-            for line in body.splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "Download to your device" in line or "install via" in line or "Access the live" in line:
-                    continue
-                if line.startswith("- ") or line.startswith("• "):
-                    clean = re.sub(r' \(`[a-f0-9]+`\)$', '', line[2:].strip())
-                    clean = re.sub(r' \([a-f0-9]+\)$', '', clean)
-                    # Skip internal CI / Dependabot / Docs lines
-                    if re.match(r'^(ci|chore|docs|test)(\([^)]+\))?:', clean, re.I):
-                        continue
-                    m = re.match(r'^(feat|fix|perf)(?:\(([^)]+)\))?!?: (.+)', clean, re.I)
-                    if m:
-                        scope = m.group(2)
-                        desc = m.group(3).strip()
-                        desc = desc[0].upper() + desc[1:] if desc else ""
-                        if scope:
-                            scope_fmt = scope.replace('_', ' ').replace('-', ' ').title()
-                            bullets.append(f"• {scope_fmt}: {desc}")
-                        else:
-                            bullets.append(f"• {desc}")
-                    else:
-                        bullets.append(f"• {clean}")
-            
-            if not bullets:
-                bullets.append("• Performance improvements, internal maintenance, and bug fixes.")
-            
-            selected = []
-            cur = 0
-            for b in bullets:
-                add = len(b) + (1 if selected else 0)
-                if cur + add <= 500:
-                    selected.append(b)
-                    cur += add
-                else:
-                    break
-            
-            with open("whatsnew/whatsnew-en-US", "w", encoding="utf-8") as f:
-                f.write("\n".join(selected))
-            PYEOF
-          fi
 
-          echo "==> Prepared whatsnew/whatsnew-en-US:"
-          cat whatsnew/whatsnew-en-US
+      - name: Prepare Release Notes
+        env:
+          TAG: ${{ steps.target-release.outputs.tag }}
+          CUSTOM_NOTES: ${{ inputs.custom_play_store_notes }}
+        run: |
+          set -e
+          python3 scripts/prepare_play_store_notes.py --tag "$TAG" --custom "$CUSTOM_NOTES"
 
       - name: Upload AAB to Google Play
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5

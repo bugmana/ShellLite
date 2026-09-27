@@ -159,16 +159,16 @@ Triggers an automated semantic release: calculates next semver tag, builds iOS I
 ```bash
 gh workflow run release.yml -f bump_type=auto
 ```
-*Defaults to `tracks: alpha` (Closed testing).*
+*Defaults to `tracks: internal` (Internal testing for immediate tester availability).*
 
 #### 2. On-Demand Play Store Deployment (`deploy-play-store.yml`)
 Publishes an existing release artifact directly to Google Play without rebuilding or retagging:
 ```bash
-# Deploy latest release to Closed testing (default)
-gh workflow run deploy-play-store.yml -f track=alpha
-
-# Deploy to Internal testing
+# Deploy latest release to Internal testing (default)
 gh workflow run deploy-play-store.yml -f track=internal
+
+# Deploy to Closed testing (alpha)
+gh workflow run deploy-play-store.yml -f track=alpha
 
 # Deploy to Production
 gh workflow run deploy-play-store.yml -f track=production -f status=completed
