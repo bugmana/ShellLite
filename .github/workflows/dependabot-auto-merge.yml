@@ -12,7 +12,7 @@ permissions:
 jobs:
   dependabot-auto-merge:
     name: Enable Dependabot Auto-Merge
-    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || 'ubuntu-slim' }}
     if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Fetch Dependabot Metadata

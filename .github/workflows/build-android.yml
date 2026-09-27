@@ -63,6 +63,7 @@ jobs:
           echo "Release keystore configured successfully."
 
       - name: Build Android Release APK
+        if: inputs.upload_artifact
         run: |
           set -e
           echo "==> Building Flutter Android Release APK..."
