@@ -34,12 +34,16 @@ class SSHService {
   int _pixelWidth = 0;
   int _pixelHeight = 0;
 
+  int _connectionEpoch = 0;
+
   SSHService({StorageService? storageService})
       : _storageService = storageService ?? StorageService();
 
   SSHConnectionState get state => _state;
   String? get lastError => _lastError;
   bool get isConnected => _state == SSHConnectionState.connected;
+  bool get isSocketAlive =>
+      _client != null && !_client!.isClosed && _shellSession != null;
   SSHClient? get client => _client;
   int get terminalWidth => _terminalWidth;
   int get terminalHeight => _terminalHeight;
@@ -60,6 +64,7 @@ class SSHService {
     StorageService? storageService,
   }) async {
     await disconnect();
+    final currentEpoch = ++_connectionEpoch;
 
     _terminalWidth = terminalWidth > 0 ? terminalWidth : _terminalWidth;
     _terminalHeight = terminalHeight > 0 ? terminalHeight : _terminalHeight;
@@ -98,6 +103,11 @@ class SSHService {
         timeout: SSHConfig.connectTimeout,
       );
 
+      if (currentEpoch != _connectionEpoch) {
+        socket.destroy();
+        return;
+      }
+
       _client = SSHClient(
         socket,
         username: profile.username,
@@ -128,6 +138,12 @@ class SSHService {
       );
 
       await _client!.authenticated;
+
+      if (currentEpoch != _connectionEpoch) {
+        _client?.close();
+        _client = null;
+        return;
+      }
 
       // Start PTY shell with latest resolved dimensions
       _shellSession = await _client!.shell(
@@ -199,6 +215,7 @@ class SSHService {
         sendInput('$cmd\n');
       }
     } catch (e) {
+      if (currentEpoch != _connectionEpoch) return;
       _state = SSHConnectionState.error;
       _lastError = e.toString();
       onStateChange(_state, _lastError);
@@ -231,6 +248,7 @@ class SSHService {
   }
 
   Future<void> disconnect() async {
+    _connectionEpoch++;
     await _stdoutSub?.cancel();
     await _stderrSub?.cancel();
     _stdoutSub = null;

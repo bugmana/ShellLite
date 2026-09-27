@@ -30,6 +30,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   late final FocusNode _terminalFocusNode;
   final ScrollController _terminalScrollController = ScrollController();
   final GlobalKey<TerminalViewState> _terminalViewKey = GlobalKey<TerminalViewState>();
+  ScrollPosition? _attachedScrollPosition;
 
   bool _isKeyboardVisible = true;
   bool _hasObservedKeyboardInset = false;
@@ -53,17 +54,57 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     });
   }
 
-  void _handleTerminalScroll() {
+  void _attachScrollPositionListener() {
     if (!_terminalScrollController.hasClients) return;
     final pos = _terminalScrollController.position;
-    // When user scrolls to within 4px of the bottom and scrolling settles,
-    // ensure exact alignment with maxScrollExtent so xterm's floating-point
-    // _stickToBottom check reliably activates and streams incoming output.
+    if (_attachedScrollPosition != pos) {
+      _attachedScrollPosition?.isScrollingNotifier.removeListener(_handleScrollSettled);
+      _attachedScrollPosition = pos;
+      _attachedScrollPosition?.isScrollingNotifier.addListener(_handleScrollSettled);
+    }
+  }
+
+  void _handleScrollSettled() {
+    if (!mounted || !_terminalScrollController.hasClients) return;
+    final pos = _terminalScrollController.position;
+    // When scroll inertia settles within 16px of bottom, snap to maxScrollExtent
+    // so xterm's _stickToBottom check stays active for subsequent streaming output.
+    if (!pos.isScrollingNotifier.value) {
+      if (pos.pixels > 0 &&
+          pos.pixels < pos.maxScrollExtent &&
+          pos.pixels >= pos.maxScrollExtent - 16.0) {
+        _terminalScrollController.jumpTo(pos.maxScrollExtent);
+      }
+    }
+  }
+
+  void _handleTerminalScroll() {
+    _attachScrollPositionListener();
+    if (!_terminalScrollController.hasClients) return;
+    final pos = _terminalScrollController.position;
     if (pos.pixels > 0 &&
         pos.pixels < pos.maxScrollExtent &&
         pos.pixels >= pos.maxScrollExtent - 4.0) {
       if (!pos.isScrollingNotifier.value) {
         _terminalScrollController.jumpTo(pos.maxScrollExtent);
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && mounted) {
+      final session = _readSession(context);
+      if (session != null && session.connectionState == SSHConnectionState.connected) {
+        if (!session.sshService.isSocketAlive) {
+          session.sshService.disconnect();
+          context.maybeRead<SessionStore>()?.updateSessionConnectionState(
+            session.id,
+            SSHConnectionState.disconnected,
+            wasConnected: true,
+          );
+        }
       }
     }
   }
@@ -92,6 +133,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _attachedScrollPosition?.isScrollingNotifier.removeListener(_handleScrollSettled);
+    _attachedScrollPosition = null;
     _terminalScrollController.removeListener(_handleTerminalScroll);
     _terminalScrollController.dispose();
     _terminalFocusNode.dispose();
@@ -482,6 +525,14 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                             return const SizedBox.shrink();
                           }
 
+                          final isStartVisible =
+                              startOffset.dy + lineHeight >= 0 && startOffset.dy <= canvasHeight;
+                          final isEndVisible =
+                              endOffset.dy + lineHeight >= 0 && endOffset.dy <= canvasHeight;
+                          final isAnyVisible =
+                              isStartVisible || isEndVisible || (startOffset.dy < 0 && endOffset.dy > canvasHeight);
+                          if (!isAnyVisible) return const SizedBox.shrink();
+
                           final isStartNearBottom =
                               (canvasHeight - (startOffset.dy + lineHeight)) < 32.0;
                           final isEndNearBottom =
@@ -489,34 +540,36 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
 
                           return Stack(
                             children: [
-                              TerminalSelectionHandle(
-                                handleKey: const Key('terminal_selection_handle_start'),
-                                position: TerminalHandlePosition.left,
-                                offset: startOffset,
-                                lineHeight: lineHeight,
-                                color: theme.primaryAccent,
-                                invertStem: isStartNearBottom,
-                                onDragUpdate: (details) => _handleStartHandleDrag(
-                                  details,
-                                  selection,
-                                  terminal,
-                                  controller,
+                              if (isStartVisible)
+                                TerminalSelectionHandle(
+                                  handleKey: const Key('terminal_selection_handle_start'),
+                                  position: TerminalHandlePosition.left,
+                                  offset: startOffset,
+                                  lineHeight: lineHeight,
+                                  color: theme.primaryAccent,
+                                  invertStem: isStartNearBottom,
+                                  onDragUpdate: (details) => _handleStartHandleDrag(
+                                    details,
+                                    selection,
+                                    terminal,
+                                    controller,
+                                  ),
                                 ),
-                              ),
-                              TerminalSelectionHandle(
-                                handleKey: const Key('terminal_selection_handle_end'),
-                                position: TerminalHandlePosition.right,
-                                offset: endOffset,
-                                lineHeight: lineHeight,
-                                color: theme.primaryAccent,
-                                invertStem: isEndNearBottom,
-                                onDragUpdate: (details) => _handleEndHandleDrag(
-                                  details,
-                                  selection,
-                                  terminal,
-                                  controller,
+                              if (isEndVisible)
+                                TerminalSelectionHandle(
+                                  handleKey: const Key('terminal_selection_handle_end'),
+                                  position: TerminalHandlePosition.right,
+                                  offset: endOffset,
+                                  lineHeight: lineHeight,
+                                  color: theme.primaryAccent,
+                                  invertStem: isEndNearBottom,
+                                  onDragUpdate: (details) => _handleEndHandleDrag(
+                                    details,
+                                    selection,
+                                    terminal,
+                                    controller,
+                                  ),
                                 ),
-                              ),
                               _buildFloatingSelectionToolbar(
                                 context: context,
                                 theme: theme,
