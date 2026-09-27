@@ -146,7 +146,7 @@ fi
 # 5b. Generate Google Play Store What's New (Strictly user-facing, <= 500 chars)
 PLAY_STORE_NOTES=""
 if [ "$COMMIT_COUNT" -gt 0 ]; then
-  PLAY_STORE_NOTES=$(python3 - << 'PYEOF'
+  PLAY_STORE_NOTES=$(python3 - "$COMMIT_RANGE" << 'PYEOF'
 import sys, re, subprocess
 
 commit_range = sys.argv[1] if len(sys.argv) > 1 else ""
@@ -209,7 +209,7 @@ if not selected_bullets:
 
 print("\n".join(selected_bullets))
 PYEOF
-"$COMMIT_RANGE" 2>/dev/null || echo "• Performance improvements and bug fixes.")
+  )
 else
   PLAY_STORE_NOTES="• Performance improvements and bug fixes."
 fi
