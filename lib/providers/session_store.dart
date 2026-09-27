@@ -4,6 +4,7 @@ import '../config/app_config.dart';
 import '../models/server_profile.dart';
 import '../services/ssh_service.dart';
 import '../services/storage_service.dart';
+import '../services/terminal_mouse_handler.dart';
 
 class OpenSession {
   final String id;
@@ -53,7 +54,10 @@ class SessionStore extends ChangeNotifier {
       return _sessions[profile.id]!;
     }
 
-    final terminal = Terminal(maxLines: TerminalConfig.maxScrollbackLines);
+    final terminal = Terminal(
+      maxLines: TerminalConfig.maxScrollbackLines,
+      mouseHandler: const ShellLiteMouseHandler(),
+    );
     final controller = TerminalController();
     final sshService = SSHService(storageService: _storageService);
 

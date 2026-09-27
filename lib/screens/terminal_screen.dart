@@ -9,6 +9,7 @@ import '../models/server_profile.dart';
 import '../providers/session_store.dart';
 import '../providers/terminal_settings_store.dart';
 import '../services/ssh_service.dart';
+import '../services/terminal_mouse_handler.dart';
 import '../theme/app_theme.dart';
 import '../widgets/file_upload_modal.dart';
 import '../widgets/keyboard_accessory_bar.dart';
@@ -40,7 +41,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    _fallbackTerminal = Terminal(maxLines: TerminalConfig.maxScrollbackLines);
+    _fallbackTerminal = Terminal(
+      maxLines: TerminalConfig.maxScrollbackLines,
+      mouseHandler: const ShellLiteMouseHandler(),
+    );
     _fallbackController = TerminalController();
     _terminalFocusNode = FocusNode();
     _terminalScrollController.addListener(_handleTerminalScroll);
