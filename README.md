@@ -149,8 +149,7 @@ flutter test
 
 ```text
 ShellLite/
-├── docs/                     Documentation and store assets
-│   ├── GOOGLE_PLAY.md
+├── docs/                     Store graphical assets
 │   └── store_assets/
 ├── lib/
 │   ├── config/               Application limits, terminal styles, key definitions

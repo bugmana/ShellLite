@@ -201,14 +201,27 @@ The `release.yml` workflow orchestrates five main steps:
    - Validates localized release notes in `whatsnew/whatsnew-en-US` (user-facing, <= 500 chars).
    - Uploads bundle to Google Play Console (defaults to `internal` for immediate test availability; supports `alpha`, `beta`, `production`).
 
-### On-Demand Google Play Deployment
-To publish an existing release artifact or update track/notes without triggering a new semantic release:
-```bash
-gh workflow run deploy-play-store.yml \
-  -f track=internal \
-  -f release_tag=v1.8.3 \
-  -f custom_play_store_notes="• Terminal: Improved mouse wheel scrolling in persistent tmux sessions."
-```
+### Google Play Store Publishing Reference
+
+- **App Package / ID**: `com.bugmana.shell_lite`
+- **SDK Targets**: Compile/Target SDK `36` (Android 16), Min SDK `23` (Android 6.0+).
+- **Testing Tracks**:
+  - **Internal Testing (`internal`)**: Default active track in `release.yml`. Skips Google review; available to internal testers within minutes.
+  - **Closed Testing (`alpha`)**: Requires Google review queue approval.
+  - **Production (`production`)**: Public release. Promoted directly in Google Play Console from tested builds.
+- **CI/CD Secrets**:
+  - `PLAY_STORE_JSON_KEY`: Google Cloud Service Account JSON key invited to Google Play Console.
+  - `ANDROID_KEYSTORE_*`: Base64 upload keystore, passwords, and alias (`shelllite-upload`).
+- **Store Graphical Assets**: Stored in [`docs/store_assets/`](file:///home/aron/projects/ShellLite/docs/store_assets/) (512x512 app icon, 1024x500 feature graphic, 1080x2410 screenshots).
+- **Store Listing Copy**:
+  - **Short Description** (Max 80 chars): `Lightweight, secure SSH client & hardware-accelerated terminal emulator.`
+  - **Full Description Highlights**: Pure SSHv2 client via DartSSH, ANSI/VT100 terminal emulation via xterm, theme presets, hardware-backed Android KeyStore credential encryption, mobile keyboard accessory bar, server telemetry, tmux persistent sessions, zero telemetry.
+- **Mandatory Policy Questionnaire Answers**:
+  - **Data Safety**: No data collected or shared. Hardware-backed encryption at rest. Purged on profile delete or app uninstall.
+  - **Content Rating**: Everyone / PEGI 3 (Tools & Productivity).
+  - **App Access**: Restricted (SSH client). Reviewer note: *"ShellLite is an SSH client that connects to user-owned SSH servers. To test, enter any standard SSH server endpoint or use public test SSH services."*
+  - **Ads**: No ads.
+  - **Privacy Policy**: `https://strandberg.dev/privacy/shelllite/` (integrated in-app under Settings).
 
 ### Monitoring & Verifying the Release
 Track the workflow progress:
