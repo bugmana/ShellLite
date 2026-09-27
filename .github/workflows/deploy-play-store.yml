@@ -6,11 +6,11 @@ on:
       track:
         description: 'Google Play release track'
         required: true
-        default: 'internal'
+        default: 'alpha'
         type: choice
         options:
-          - internal
           - alpha
+          - internal
           - beta
           - production
       status:

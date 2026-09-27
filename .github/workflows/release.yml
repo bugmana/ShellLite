@@ -27,11 +27,11 @@ on:
       play_store_track:
         description: 'Google Play release track'
         required: false
-        default: 'internal'
+        default: 'alpha'
         type: choice
         options:
-          - internal
           - alpha
+          - internal
           - beta
           - production
       play_store_status:
@@ -192,7 +192,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: com.bugmana.shell_lite
           releaseFiles: ${{ vars.APP_NAME || 'ShellLite' }}.aab
-          tracks: ${{ inputs.play_store_track || 'internal' }}
+          tracks: ${{ inputs.play_store_track || 'alpha' }}
           status: ${{ inputs.play_store_status || 'completed' }}
           whatsNewDirectory: whatsnew
 
