@@ -143,20 +143,14 @@ flutter analyze
 flutter test
 ```
 
-### Releases & CI/CD
-Multi-platform releases are automated via GitHub Actions:
-- **`release.yml`**: Computes semantic versioning from conventional commits, creates release tags, builds all platform artifacts (Android APK/AAB, iOS IPA), publishes GitHub Releases, and deploys `.aab` bundles directly to Google Play Console.
-- **`deploy-play-store.yml`**: On-demand deployment of any release `.aab` to Google Play Console tracks (`alpha`, `internal`, `beta`, `production`).
-- **Google Play Guide**: See [`docs/GOOGLE_PLAY_HANDOVER.md`](docs/GOOGLE_PLAY_HANDOVER.md) for complete Play Console configuration, signing, and track details.
-
 ---
 
 ## Project Structure
 
 ```text
 ShellLite/
-├── docs/                     Documentation, release notes, and store assets
-│   ├── GOOGLE_PLAY_HANDOVER.md
+├── docs/                     Documentation and store assets
+│   ├── GOOGLE_PLAY.md
 │   └── store_assets/
 ├── lib/
 │   ├── config/               Application limits, terminal styles, key definitions

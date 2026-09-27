@@ -1,6 +1,6 @@
-# ShellLite: Google Play Store Handover & Publishing Guide
+# ShellLite: Google Play Store Guide
 
-This document contains instructions, configurations, metadata, and checklists for publishing **ShellLite** (`com.bugmana.shell_lite`) to Google Play Console.
+This document contains instructions, configurations, metadata, and checklists for managing and publishing **ShellLite** (`com.bugmana.shell_lite`) on the Google Play Console.
 
 ---
 
@@ -15,8 +15,8 @@ This document contains instructions, configurations, metadata, and checklists fo
 | **App Category** | Tools / Productivity |
 | **Content Rating** | Everyone (General Utility) |
 | **Primary Artifact** | Android App Bundle (`.aab`) |
-| **Default Active Track** | Closed testing (`alpha`) |
-| **Automated Publishing** | Configured via GitHub Actions (`release.yml`, `deploy-play-store.yml`) |
+| **Default Active Track** | Internal testing (`internal`) |
+| **Automated Publishing** | Automated via GitHub Actions (see [SKILL.md](../.agents/skills/build-shelllite/SKILL.md)) |
 
 ---
 
@@ -44,34 +44,18 @@ To sign release builds locally:
 
 ---
 
-## 2. Building Artifacts
+## 2. Store Listing & Graphical Assets
 
-### Via GitHub Actions (Standard)
-Releases are built automatically in CI. Build numbers (`versionCode`) increment monotonically with each workflow run, preventing version collision errors in Google Play Console.
-
-To manually offset build numbers, set the `BUILD_NUMBER_OFFSET` repository variable.
-
-### Local Build Command
-```bash
-flutter pub get
-flutter build appbundle --release
-```
-The output file is located at `build/app/outputs/bundle/release/app-release.aab`.
-
----
-
-## 3. Store Listing & Graphical Assets
-
-Store assets are located in [`docs/store_assets/`](file:///home/aron/projects/ShellLite/docs/store_assets/):
+Store assets are located in [`docs/store_assets/`](store_assets/):
 
 | Asset | Dimensions | Format | File |
 | :--- | :--- | :--- | :--- |
-| **App Icon** | 512 × 512 px | 32-bit PNG | [`docs/store_assets/play_store_icon_512x512.png`](file:///home/aron/projects/ShellLite/docs/store_assets/play_store_icon_512x512.png) |
-| **Feature Graphic** | 1024 × 500 px | 24-bit PNG | [`docs/store_assets/feature_graphic_1024x500.png`](file:///home/aron/projects/ShellLite/docs/store_assets/feature_graphic_1024x500.png) |
-| **Screenshot 1 (Terminal)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_1_terminal.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_1_terminal.png) |
-| **Screenshot 2 (Server List)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_2_server_list.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_2_server_list.png) |
-| **Screenshot 3 (Settings & Themes)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_3_settings_themes.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_3_settings_themes.png) |
-| **Screenshot 4 (New Server)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_4_new_server.png`](file:///home/aron/projects/ShellLite/docs/store_assets/phone_screenshot_4_new_server.png) |
+| **App Icon** | 512 × 512 px | 32-bit PNG | [`docs/store_assets/play_store_icon_512x512.png`](store_assets/play_store_icon_512x512.png) |
+| **Feature Graphic** | 1024 × 500 px | 24-bit PNG | [`docs/store_assets/feature_graphic_1024x500.png`](store_assets/feature_graphic_1024x500.png) |
+| **Screenshot 1 (Terminal)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_1_terminal.png`](store_assets/phone_screenshot_1_terminal.png) |
+| **Screenshot 2 (Server List)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_2_server_list.png`](store_assets/phone_screenshot_2_server_list.png) |
+| **Screenshot 3 (Settings & Themes)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_3_settings_themes.png`](store_assets/phone_screenshot_3_settings_themes.png) |
+| **Screenshot 4 (New Server)** | 1080 × 2410 px | 24-bit PNG | [`docs/store_assets/phone_screenshot_4_new_server.png`](store_assets/phone_screenshot_4_new_server.png) |
 
 ### Store Copy
 
@@ -102,7 +86,7 @@ ShellLite operates strictly on-device. SSH keys, passwords, and server connectio
 
 ---
 
-## 4. Policy & Content Declarations
+## 3. Policy & Content Declarations
 
 ### 1. Privacy Policy
 - **URL**: `https://strandberg.dev/privacy/shelllite/`
@@ -130,49 +114,27 @@ ShellLite operates strictly on-device. SSH keys, passwords, and server connectio
 
 ---
 
-## 5. Google Play Testing Tracks
+## 4. Google Play Testing Tracks
 
-1. **Internal Testing (`internal`)**:
-   - Skips Google review (updates available within minutes).
+1. **Internal Testing (`internal`)** — *Default Active Track*:
+   - Skips Google review (updates available to testers within minutes).
    - Up to 100 testers per email list.
+   - Ideal for rapid dogfooding and immediate test verification.
 2. **Closed Testing (`alpha`)**:
-   - Current active track for ShellLite testing.
-   - Requires Google review.
+   - Requires Google review queue approval before distribution.
    - Generates automated Firebase Test Lab pre-launch reports.
 3. **Production (`production`)**:
-   - Public store release after verification on closed testing.
+   - Public store release after verification on internal / closed testing.
 
 ---
 
-## 6. GitHub Actions Automated Publishing
+## 5. Automated CI/CD Publishing
 
-Automated deployment is configured using the Google Play Developer API and a Google Cloud Service Account.
+Google Play deployment is fully automated via GitHub Actions using the Google Play Developer API and a Google Cloud Service Account (`PLAY_STORE_JSON_KEY`).
 
-### Secrets Configuration
-- `PLAY_STORE_JSON_KEY`: Full JSON key file of the Google Cloud Service Account invited as Admin/Release Manager to `com.bugmana.shell_lite` in Google Play Console.
-- `ANDROID_KEYSTORE_*`: Android release keystore secrets for code signing.
-
-### Workflows
-
-#### 1. Multi-Platform Release (`release.yml`)
-Triggers an automated semantic release: calculates next semver tag, builds iOS IPA and Android APK/AAB, publishes GitHub Release, and uploads the `.aab` to Google Play Console:
-```bash
-gh workflow run release.yml -f bump_type=auto
-```
-*Defaults to `tracks: internal` (Internal testing for immediate tester availability).*
-
-#### 2. On-Demand Play Store Deployment (`deploy-play-store.yml`)
-Publishes an existing release artifact directly to Google Play without rebuilding or retagging:
-```bash
-# Deploy latest release to Internal testing (default)
-gh workflow run deploy-play-store.yml -f track=internal
-
-# Deploy to Closed testing (alpha)
-gh workflow run deploy-play-store.yml -f track=alpha
-
-# Deploy to Production
-gh workflow run deploy-play-store.yml -f track=production -f status=completed
-```
+- **Multi-Platform Release (`release.yml`)**: Builds iOS IPA, Android APK, and Android AAB, and automatically uploads the `.aab` to Google Play's `internal` track.
+- **On-Demand Deployment (`deploy-play-store.yml`)**: Publishes any existing release tag to a chosen track (`internal`, `alpha`, `production`).
+- **Release notes formatting and CLI trigger examples**: See the unified DevOps and release reference in [`.agents/skills/build-shelllite/SKILL.md`](../.agents/skills/build-shelllite/SKILL.md).
 
 ---
 
@@ -187,6 +149,5 @@ gh workflow run deploy-play-store.yml -f track=production -f status=completed
 - [x] Initial `.aab` uploaded to Google Play Console to enable API deployment.
 - [x] Google Cloud Service Account linked and added to GitHub Secrets (`PLAY_STORE_JSON_KEY`).
 - [x] Automated CI/CD deployment verified end-to-end.
-- [x] Closed testing (`alpha`) track active.
-- [ ] Complete closed testing period with testers.
-- [ ] Promote build to Production track.
+- [x] Internal testing (`internal`) track active for rapid feedback.
+- [ ] Promote tested build to Closed Testing (`alpha`) / Production track.
