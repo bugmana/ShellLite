@@ -165,5 +165,38 @@ void main() {
       // 32 + 64 = 96; col 1 -> 2; row 2 -> 3
       expect(handler(wheelUpEvent), '\x1b[96;2;3M');
     });
+
+    test('tmux compatibility: wheel events never set shift modifier mask (+4)', () {
+      // In xterm-4.0.0, the default handler assigned wheelUp = 68 (64+4) and wheelDown = 69 (65+4).
+      // Under SGR DECSET 1006 protocol, +4 is the SHIFT modifier flag, which makes tmux decode
+      // wheel events as S-WheelUpPane / S-WheelDownPane and silently discard them.
+      // ShellLiteMouseHandler must always emit unshifted 64 and 65.
+      final state = _FakeTerminalState(
+        mouseMode: MouseMode.upDownScroll,
+        mouseReportMode: MouseReportMode.sgr,
+      );
+
+      final wheelUp = TerminalMouseEvent(
+        button: TerminalMouseButton.wheelUp,
+        buttonState: TerminalMouseButtonState.down,
+        position: const CellOffset(0, 0),
+        state: state,
+        platform: TerminalTargetPlatform.unknown,
+      );
+      final wheelDown = TerminalMouseEvent(
+        button: TerminalMouseButton.wheelDown,
+        buttonState: TerminalMouseButtonState.down,
+        position: const CellOffset(0, 0),
+        state: state,
+        platform: TerminalTargetPlatform.unknown,
+      );
+
+      expect(handler(wheelUp), '\x1b[<64;1;1M');
+      expect(handler(wheelDown), '\x1b[<65;1;1M');
+      expect(ShellLiteMouseHandler.resolveButtonId(TerminalMouseButton.wheelUp) & 4, 0,
+          reason: 'Shift modifier bit (+4) must be 0 for standard wheelUp');
+      expect(ShellLiteMouseHandler.resolveButtonId(TerminalMouseButton.wheelDown) & 4, 0,
+          reason: 'Shift modifier bit (+4) must be 0 for standard wheelDown');
+    });
   });
 }

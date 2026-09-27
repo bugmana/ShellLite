@@ -97,4 +97,31 @@ void main() {
       expect(fullDecoded.contains('\uFFFD'), isFalse);
     });
   });
+
+  group('SSHService Persistent Tmux Command Construction', () {
+    test('buildTmuxCommand enables mouse mode both globally and upon session creation', () {
+      final cmd = SSHService.buildTmuxCommand('work-session');
+      // Verifies mouse mode is set before new-session to configure tmux server
+      expect(cmd, contains('tmux set -g mouse on 2>/dev/null;'));
+      // Verifies mouse mode is attached to the new-session execution
+      expect(cmd, contains('exec tmux new-session -A -s "work-session" \\; set -g mouse on;'));
+      // Verifies graceful notice if tmux binary is missing
+      expect(cmd, contains('Notice: tmux is not installed on this host'));
+    });
+
+    test('buildTmuxCommand sanitizes unsafe characters and defaults empty session names', () {
+      // Spaces, shell metacharacters, semicolons should be sanitized to '_'
+      final sanitizedCmd = SSHService.buildTmuxCommand('my session; rm -rf / && hack!');
+      expect(sanitizedCmd, contains('-s "my_session__rm_-rf______hack_"'));
+      expect(sanitizedCmd, contains('\\; set -g mouse on;'));
+
+      // Empty or null session name defaults to 'shelllite'
+      final nullCmd = SSHService.buildTmuxCommand(null);
+      expect(nullCmd, contains('-s "shelllite" \\; set -g mouse on;'));
+
+      final emptyCmd = SSHService.buildTmuxCommand('   ');
+      expect(emptyCmd, contains('-s "shelllite" \\; set -g mouse on;'));
+    });
+  });
 }
+

@@ -20,7 +20,29 @@ enum SSHConnectionState {
 class SSHService {
   static final _tmuxSanitizeRegex = RegExp(r'[^a-zA-Z0-9_\-]');
 
+  /// Builds the persistent tmux startup command with mouse scrolling support enabled.
+  static String buildTmuxCommand(String? rawSessionName) {
+    final rawName = rawSessionName?.trim();
+    final sessionName = (rawName != null && rawName.isNotEmpty)
+        ? rawName.replaceAll(_tmuxSanitizeRegex, '_')
+        : 'shelllite';
+
+    // tmux new-session -A -s <name>:
+    // -A: attaches to existing session if it exists, or creates a new session named <name> if stopped/killed outside
+    // Checks if tmux binary exists to prevent terminating parent shell on servers without tmux.
+    // Explicitly forces `mouse on` both globally and on session creation so mouse scrolling works reliably.
+    return 'if command -v tmux >/dev/null 2>&1; then '
+        'tmux set -g mouse on 2>/dev/null; '
+        'exec tmux new-session -A -s "$sessionName" \\; set -g mouse on; '
+        'else '
+        'printf "\\r\\n\\033[33m[ShellLite] Notice: tmux is not installed on this host. Falling back to default shell.\\033[0m\\r\\n"; '
+        'fi';
+  }
+
   final StorageService _storageService;
+
+  SSHService({StorageService? storageService})
+      : _storageService = storageService ?? StorageService();
   SSHClient? _client;
   SSHSession? _shellSession;
   SSHConnectionState _state = SSHConnectionState.disconnected;
@@ -35,9 +57,6 @@ class SSHService {
   int _pixelHeight = 0;
 
   int _connectionEpoch = 0;
-
-  SSHService({StorageService? storageService})
-      : _storageService = storageService ?? StorageService();
 
   SSHConnectionState get state => _state;
   String? get lastError => _lastError;
@@ -194,21 +213,7 @@ class SSHService {
       });
 
       if (profile.persistSession) {
-        final rawName = profile.tmuxSessionName?.trim();
-        final sessionName = (rawName != null && rawName.isNotEmpty)
-            ? rawName.replaceAll(_tmuxSanitizeRegex, '_')
-            : 'shelllite';
-
-        // tmux new-session -A -s <name>:
-        // -A: attaches to existing session if it exists, or creates a new session named <name> if stopped/killed outside
-        // Checks if tmux binary exists to prevent terminating parent shell on servers without tmux
-        final tmuxCmd =
-            'if command -v tmux >/dev/null 2>&1; then '
-            'tmux set -g mouse on 2>/dev/null; '
-            'exec tmux new-session -A -s "$sessionName" \\; set -g mouse on; '
-            'else '
-            'printf "\\r\\n\\033[33m[ShellLite] Notice: tmux is not installed on this host. Falling back to default shell.\\033[0m\\r\\n"; '
-            'fi';
+        final tmuxCmd = buildTmuxCommand(profile.tmuxSessionName);
         sendInput('$tmuxCmd\n');
       } else if (profile.initialCommand != null && profile.initialCommand!.trim().isNotEmpty) {
         final cmd = profile.initialCommand!.trim();
