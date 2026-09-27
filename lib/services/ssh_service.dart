@@ -188,6 +188,7 @@ class SSHService {
         // Checks if tmux binary exists to prevent terminating parent shell on servers without tmux
         final tmuxCmd =
             'if command -v tmux >/dev/null 2>&1; then '
+            'tmux set -g mouse on 2>/dev/null; '
             'exec tmux new-session -A -s "$sessionName"; '
             'else '
             'printf "\\r\\n\\033[33m[ShellLite] Notice: tmux is not installed on this host. Falling back to default shell.\\033[0m\\r\\n"; '
