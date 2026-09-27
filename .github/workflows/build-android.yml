@@ -13,6 +13,11 @@ on:
         required: false
         default: '1.0.1'
         type: string
+      build_number:
+        description: 'Build number / versionCode for the Android build'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -66,14 +71,24 @@ jobs:
         if: inputs.upload_artifact
         run: |
           set -e
-          echo "==> Building Flutter Android Release APK..."
-          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+          BUILD_NUM="${{ inputs.build_number }}"
+          if [ -z "$BUILD_NUM" ]; then
+            OFFSET="${{ vars.BUILD_NUMBER_OFFSET || '0' }}"
+            BUILD_NUM=$(( ${{ github.run_number }} + OFFSET ))
+          fi
+          echo "==> Building Flutter Android Release APK (version: ${{ inputs.version }}, build: $BUILD_NUM)..."
+          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="$BUILD_NUM"
 
       - name: Build Android App Bundle (AAB)
         run: |
           set -e
-          echo "==> Building Flutter Android Release AAB..."
-          flutter build appbundle --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+          BUILD_NUM="${{ inputs.build_number }}"
+          if [ -z "$BUILD_NUM" ]; then
+            OFFSET="${{ vars.BUILD_NUMBER_OFFSET || '0' }}"
+            BUILD_NUM=$(( ${{ github.run_number }} + OFFSET ))
+          fi
+          echo "==> Building Flutter Android Release AAB (version: ${{ inputs.version }}, build: $BUILD_NUM)..."
+          flutter build appbundle --release --build-name="${{ inputs.version }}" --build-number="$BUILD_NUM"
 
       - name: Prepare Artifacts
         if: inputs.upload_artifact

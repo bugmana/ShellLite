@@ -90,7 +90,8 @@ Workflows are in [`.github/workflows/`](file:///home/aron/projects/ShellLite/.gi
 - `ci.yml`: Runs on push and PR to `main` and `master`. Executes `flutter pub get`, `flutter analyze`, `flutter test`, and `flutter build web --release`.
 - `build-android.yml`: Builds release APK/AAB with keystore secrets.
 - `build-ios.yml`: Builds iOS IPA artifact.
-- `release.yml`: Automated multi-platform release workflow triggered via `workflow_dispatch`. Calculates version, tags git commit, triggers Android and iOS builds, and publishes GitHub Release.
+- `release.yml`: Automated multi-platform release workflow triggered via `workflow_dispatch`. Calculates version, tags git commit, triggers Android and iOS builds, publishes GitHub Release, and optionally deploys AAB to Google Play Console.
+- `deploy-play-store.yml`: On-demand deployment workflow to publish an existing or latest release AAB directly to Google Play Console tracks.
 - `dependabot-auto-merge.yml`: Automatically merges authorized Dependabot updates.
 
 ## Release Process & Publishing
@@ -144,7 +145,7 @@ ShellLite uses automated semantic versioning powered by Conventional Commits (`s
   ```
 
 ### Release Pipeline Stages
-The `release.yml` workflow orchestrates four main steps:
+The `release.yml` workflow orchestrates five main steps:
 1. **`resolve-version`**:
    - Queries the latest git tag (e.g. `v1.0.4`).
    - Computes the new semantic version according to `bump_type`.
@@ -154,10 +155,14 @@ The `release.yml` workflow orchestrates four main steps:
    - Generates sideloadable iOS IPA (`ShellLite.ipa`) compatible with SideStore, AltStore, and Sideloadly.
 3. **`build-android`**:
    - Reusable workflow [`.github/workflows/build-android.yml`](file:///home/aron/projects/ShellLite/.github/workflows/build-android.yml).
-   - Generates signed release APK (`ShellLite.apk`) and App Bundle (`ShellLite.aab`).
+   - Generates signed release APK (`ShellLite.apk`) and App Bundle (`ShellLite.aab`). Supports optional `build_number` and `BUILD_NUMBER_OFFSET`.
 4. **`publish-release`**:
    - Downloads IPA, APK, and AAB build artifacts.
    - Publishes the GitHub Release tagged with `vX.Y.Z` and attaches all installer assets.
+5. **`deploy-play-store`**:
+   - Downloads signed AAB artifact.
+   - Truncates release changelog into localized `whatsnew/whatsnew-en-US`.
+   - Uploads bundle to Google Play Console on the specified track (`internal`, `alpha`, `beta`, `production`).
 
 ### Monitoring & Verifying the Release
 Track the workflow progress:

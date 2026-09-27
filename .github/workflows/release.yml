@@ -19,6 +19,30 @@ on:
         required: false
         default: ''
         type: string
+      deploy_to_play_store:
+        description: 'Deploy Android App Bundle to Google Play Store'
+        required: false
+        default: true
+        type: boolean
+      play_store_track:
+        description: 'Google Play release track'
+        required: false
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      play_store_status:
+        description: 'Google Play release status'
+        required: false
+        default: 'completed'
+        type: choice
+        options:
+          - completed
+          - draft
+          - inProgress
 
 permissions:
   contents: write
@@ -128,3 +152,47 @@ jobs:
             - Access the live web version at [https://shell.strandberg.dev/](https://shell.strandberg.dev/).
           draft: false
           prerelease: false
+
+  deploy-play-store:
+    name: Deploy to Google Play
+    needs: [resolve-version, build-android]
+    if: needs.resolve-version.outputs.should_release == 'true' && inputs.deploy_to_play_store != false && inputs.deploy_to_play_store != 'false'
+    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || 'ubuntu-slim' }}
+    env:
+      PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
+    steps:
+      - name: Check Play Store Secret
+        if: env.PLAY_STORE_JSON_KEY == ''
+        run: |
+          echo "::warning::PLAY_STORE_JSON_KEY secret is not configured in repository secrets. Skipping Google Play deployment."
+          exit 0
+
+      - name: Download Android AAB Artifact
+        if: env.PLAY_STORE_JSON_KEY != ''
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          name: ${{ vars.APP_NAME || 'ShellLite' }}-Android-AAB
+
+      - name: Prepare Release Notes
+        if: env.PLAY_STORE_JSON_KEY != ''
+        env:
+          CHANGELOG: ${{ needs.resolve-version.outputs.changelog }}
+        run: |
+          set -e
+          mkdir -p whatsnew
+          # Google Play enforces a maximum limit of 500 characters for localized release notes
+          echo "$CHANGELOG" | head -c 500 > whatsnew/whatsnew-en-US
+          echo "==> Prepared whatsnew/whatsnew-en-US:"
+          cat whatsnew/whatsnew-en-US
+
+      - name: Upload AAB to Google Play
+        if: env.PLAY_STORE_JSON_KEY != ''
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName: com.bugmana.shell_lite
+          releaseFiles: ${{ vars.APP_NAME || 'ShellLite' }}.aab
+          track: ${{ inputs.play_store_track || 'internal' }}
+          status: ${{ inputs.play_store_status || 'completed' }}
+          whatsNewDirectory: whatsnew
+
