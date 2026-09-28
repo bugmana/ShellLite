@@ -4,6 +4,7 @@ import '../providers/terminal_settings_store.dart';
 import '../screens/privacy_policy_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/terminal_theme_presets.dart';
+import 'customize_accessory_keys_modal.dart';
 
 class TerminalAppearanceModal extends StatelessWidget {
   const TerminalAppearanceModal({super.key});
@@ -282,7 +283,60 @@ class TerminalAppearanceModal extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Keyboard & Haptic Preferences
+            // Keyboard & Accessory Keys
+            Text(
+              'KEYBOARD & ACCESSORY KEYS',
+              style: TextStyle(
+                color: theme.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                Navigator.of(context).pop();
+                CustomizeAccessoryKeysModal.show(context);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: theme.cardSurface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.keyboard_rounded, color: theme.primaryAccent, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Customize Accessory Keys',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: theme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Configure extended keys (F1–F12, navigation, macros)',
+                            style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: theme.textSecondary, size: 20),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(

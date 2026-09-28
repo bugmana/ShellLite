@@ -27,6 +27,7 @@ class KeyboardAccessoryBar extends StatefulWidget {
   final bool isKeyboardVisible;
   final bool isTmuxEnabled;
   final List<TerminalKeyShortcut>? keys;
+  final bool showExtendedKeys;
 
   static const List<TerminalKeyShortcut> defaultKeys = AccessoryBarConfig.defaultKeys;
 
@@ -41,6 +42,7 @@ class KeyboardAccessoryBar extends StatefulWidget {
     this.isKeyboardVisible = true,
     this.isTmuxEnabled = false,
     this.keys,
+    this.showExtendedKeys = false,
   });
 
   @override
@@ -151,8 +153,8 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Non-dismissing inline accordion keypad drawer
-          if (_isKeypadExpanded)
+          // Non-dismissing inline accordion keypad drawer (optional/legacy)
+          if (widget.showExtendedKeys && _isKeypadExpanded)
             KeypadDrawer(
               onKeyTap: _handleKey,
               isKeyboardVisible: widget.isKeyboardVisible,
@@ -220,27 +222,37 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
                     ],
                   ),
                 ),
-                // Pinned right action area (Extended Keys + Toggle Keyboard button)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(
-                    border: Border(left: BorderSide(color: theme.border, width: 1)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.onPaste != null) ...[
-                        _buildPasteButton(context, theme),
-                        const SizedBox(width: 6),
+                // Pinned right action area (Paste, Extended Keys, Toggle Keyboard)
+                if (widget.onPaste != null ||
+                    widget.showExtendedKeys ||
+                    widget.onToggleKeyboard != null ||
+                    widget.onCloseKeyboard != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border(left: BorderSide(color: theme.border, width: 1)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.onPaste != null) ...[
+                          _buildPasteButton(context, theme),
+                          if (widget.showExtendedKeys ||
+                              widget.onToggleKeyboard != null ||
+                              widget.onCloseKeyboard != null)
+                            const SizedBox(width: 6),
+                        ],
+                        if (widget.showExtendedKeys) ...[
+                          _buildExtendedKeysButton(context, theme),
+                          if (widget.onToggleKeyboard != null || widget.onCloseKeyboard != null)
+                            const SizedBox(width: 6),
+                        ],
+                        if (widget.onToggleKeyboard != null || widget.onCloseKeyboard != null) ...[
+                          _buildToggleKeyboardButton(context, theme),
+                        ],
                       ],
-                      _buildExtendedKeysButton(context, theme),
-                      if (widget.onToggleKeyboard != null || widget.onCloseKeyboard != null) ...[
-                        const SizedBox(width: 6),
-                        _buildToggleKeyboardButton(context, theme),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),

@@ -46,7 +46,7 @@ void main() {
     expect(tappedSequence, '\x1B');
   });
 
-  testWidgets('KeyboardAccessoryBar opens non-dismissing inline accordion keypad drawer and triggers keys', (tester) async {
+  testWidgets('KeyboardAccessoryBar opens non-dismissing inline accordion keypad drawer and triggers keys when showExtendedKeys is true', (tester) async {
     String? tappedSequence;
 
     await tester.pumpWidget(
@@ -54,6 +54,7 @@ void main() {
         home: Scaffold(
           body: KeyboardAccessoryBar(
             onKeyTap: (seq) => tappedSequence = seq,
+            showExtendedKeys: true,
           ),
         ),
       ),
@@ -145,7 +146,7 @@ void main() {
     expect(tapped, isTrue);
   });
 
-  testWidgets('KeyboardAccessoryBar renders pinned extended keys button and no snippet button', (tester) async {
+  testWidgets('KeyboardAccessoryBar renders streamlined pinned action area without extended keys button by default', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -156,8 +157,23 @@ void main() {
       ),
     );
 
-    expect(find.byIcon(Icons.keyboard_double_arrow_up_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.keyboard_double_arrow_up_rounded), findsNothing);
     expect(find.byIcon(Icons.bolt_rounded), findsNothing);
+  });
+
+  testWidgets('KeyboardAccessoryBar renders pinned extended keys button when showExtendedKeys is true', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyboardAccessoryBar(
+            onKeyTap: (_) {},
+            showExtendedKeys: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.keyboard_double_arrow_up_rounded), findsOneWidget);
   });
 
   testWidgets('KeyboardAccessoryBar and buttons have canRequestFocus disabled to prevent dropping virtual keyboard', (tester) async {
@@ -254,6 +270,7 @@ void main() {
           body: KeyboardAccessoryBar(
             onKeyTap: (_) {},
             isKeyboardVisible: true,
+            showExtendedKeys: true,
           ),
         ),
       ),
@@ -293,6 +310,7 @@ void main() {
           body: KeyboardAccessoryBar(
             onKeyTap: (_) {},
             isKeyboardVisible: false,
+            showExtendedKeys: true,
           ),
         ),
       ),

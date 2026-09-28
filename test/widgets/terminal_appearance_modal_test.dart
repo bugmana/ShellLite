@@ -42,7 +42,9 @@ void main() {
     expect(find.text('Haptic Feedback'), findsOneWidget);
     expect(find.text('ABOUT & PRIVACY'), findsOneWidget);
     expect(find.text('Privacy Policy'), findsOneWidget);
-    expect(find.text('Customize Accessory Keys'), findsNothing);
+    expect(find.text('KEYBOARD & ACCESSORY KEYS'), findsOneWidget);
+    expect(find.text('Customize Accessory Keys'), findsOneWidget);
+    expect(find.text('Configure extended keys (F1–F12, navigation, macros)'), findsOneWidget);
 
     // Tap on Dracula theme preset
     await tester.tap(find.text('Dracula'));
@@ -63,5 +65,34 @@ void main() {
 
     expect(store.themeId, 'obsidian');
     expect(store.hapticFeedbackEnabled, isTrue);
+  });
+
+  testWidgets('TerminalAppearanceModal opens CustomizeAccessoryKeysModal when tapped', (tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({});
+    final storage = StorageService();
+    final store = TerminalSettingsStore(storageService: storage);
+    await store.load();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: store,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: TerminalAppearanceModal(),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Customize Accessory Keys'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('STICKY MODIFIERS'), findsOneWidget);
+    expect(find.text('SHORTCUT KEYS & MACROS'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_config.dart';
 import '../../providers/terminal_settings_store.dart';
 import '../../theme/app_theme.dart';
 
@@ -53,6 +54,12 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
     } else {
       _sequenceController.text = text + code;
     }
+  }
+
+  void _applyPreset(TerminalKeyShortcut preset) {
+    _labelController.text = preset.label;
+    _sequenceController.text = preset.sequence;
+    _descriptionController.text = preset.description ?? '';
   }
 
   @override
@@ -174,6 +181,31 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
               ),
               const SizedBox(height: 10),
               Text(
+                'Quick Presets (Extended Keys):',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F1', sequence: '\x1BOP', description: 'Help / Menu')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F2', sequence: '\x1BOQ', description: 'User menu')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F5', sequence: '\x1B[15~', description: 'Copy / Refresh')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F10', sequence: '\x1B[21~', description: 'Quit / Exit')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F12', sequence: '\x1B[24~', description: 'Function 12')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'Home', sequence: '\x1B[H', description: 'Cursor to start')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'End', sequence: '\x1B[F', description: 'Cursor to end')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'PgUp', sequence: '\x1B[5~', description: 'Page Up')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'PgDn', sequence: '\x1B[6~', description: 'Page Down')),
+                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'Del', sequence: '\x1B[3~', description: 'Forward delete')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
                 'Quick Insert Escape Codes:',
                 style: TextStyle(
                   fontSize: 11,
@@ -284,6 +316,36 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
             fontFamily: 'monospace',
             fontWeight: FontWeight.w600,
             color: theme.primaryAccent,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetChip(
+    AppThemeExtension theme,
+    TerminalKeyShortcut preset,
+  ) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        _applyPreset(preset);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: theme.cardSurface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: theme.border),
+        ),
+        child: Text(
+          preset.label,
+          style: TextStyle(
+            fontSize: 11,
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.w600,
+            color: theme.secondaryAccent,
           ),
         ),
       ),

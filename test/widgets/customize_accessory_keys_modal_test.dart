@@ -189,4 +189,32 @@ void main() {
     expect(settingsStore.configuredAccessoryKeys[0].label, initialSecondKey);
     expect(settingsStore.configuredAccessoryKeys[1].label, initialFirstKey);
   });
+
+  testWidgets('AddCustomKeyDialog fills form from Quick Presets (Extended Keys) and adds key', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Tap Add Key button in header
+    final addButton = find.byIcon(Icons.add_rounded);
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    // Verify quick preset chips exist
+    expect(find.text('Quick Presets (Extended Keys):'), findsOneWidget);
+    expect(find.text('F5'), findsOneWidget);
+
+    // Tap F5 preset
+    await tester.tap(find.text('F5'));
+    await tester.pump();
+
+    // Tap Add Key submit button
+    final submitButton = find.widgetWithText(ElevatedButton, 'Add Key');
+    await tester.tap(submitButton);
+    await tester.pumpAndSettle();
+
+    // Verify modal and store have F5 key with sequence '\x1B[15~'
+    final f5Key = settingsStore.configuredAccessoryKeys.firstWhere((k) => k.label == 'F5');
+    expect(f5Key.sequence, '\x1B[15~');
+    expect(f5Key.description, 'Copy / Refresh');
+  });
 }
