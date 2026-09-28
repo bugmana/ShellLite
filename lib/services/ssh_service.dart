@@ -205,10 +205,25 @@ class SSHService {
       });
 
       final currentSession = _shellSession;
+      final currentClient = _client;
+
       currentSession!.done.then((_) {
         if (_shellSession == currentSession) {
           disconnect();
           onStateChange(SSHConnectionState.disconnected, null);
+        }
+      });
+
+      currentClient?.done.then((_) {
+        if (_client == currentClient) {
+          disconnect();
+          onStateChange(SSHConnectionState.disconnected, null);
+        }
+      }).catchError((e) {
+        if (_client == currentClient) {
+          _lastError = e.toString();
+          disconnect();
+          onStateChange(SSHConnectionState.error, _lastError);
         }
       });
 

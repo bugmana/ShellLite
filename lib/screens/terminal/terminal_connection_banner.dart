@@ -5,14 +5,20 @@ import '../../theme/app_theme.dart';
 class TerminalConnectionBanner extends StatelessWidget {
   final bool wasConnected;
   final bool isConnecting;
+  final int? retryCountdown;
+  final int? retryAttempt;
   final VoidCallback onReconnect;
+  final VoidCallback? onCancel;
   final AppThemeExtension theme;
 
   const TerminalConnectionBanner({
     super.key,
     required this.wasConnected,
     required this.isConnecting,
+    this.retryCountdown,
+    this.retryAttempt,
     required this.onReconnect,
+    this.onCancel,
     required this.theme,
   });
 
@@ -24,7 +30,11 @@ class TerminalConnectionBanner extends StatelessWidget {
       right: 0,
       child: Semantics(
         liveRegion: true,
-        label: wasConnected ? 'Connection lost.' : 'Connection failed.',
+        label: retryCountdown != null
+            ? (wasConnected
+                ? 'Connection lost. Reconnecting in ${retryCountdown}s.'
+                : 'Connection failed. Reconnecting in ${retryCountdown}s.')
+            : (wasConnected ? 'Connection lost.' : 'Connection failed.'),
         child: Container(
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -49,18 +59,47 @@ class TerminalConnectionBanner extends StatelessWidget {
               Icon(Icons.warning_amber_rounded, color: theme.warning, size: 20),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Text(
-                  wasConnected ? 'Connection lost.' : 'Connection failed.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      wasConnected ? 'Connection lost.' : 'Connection failed.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (retryCountdown != null)
+                      Text(
+                        'Reconnecting in ${retryCountdown}s...',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: theme.textSecondary,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
+              if (onCancel != null && (retryCountdown != null || isConnecting)) ...[
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.textSecondary,
+                    minimumSize: const Size(0, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onPressed: onCancel,
+                  child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+                ),
+                const SizedBox(width: 4),
+              ],
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.primaryAccent,

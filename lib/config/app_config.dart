@@ -40,6 +40,8 @@ class SSHConfig {
   static const int defaultPort = 22;
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration keepAliveInterval = Duration(seconds: 30);
+  static const Duration autoReconnectDelay = Duration(seconds: 3);
+  static const int maxAutoReconnectAttempts = 3;
 }
 
 /// Storage keys and persistence constants.

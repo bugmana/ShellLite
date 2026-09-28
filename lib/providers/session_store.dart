@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:xterm/xterm.dart';
 import '../config/app_config.dart';
@@ -14,6 +15,10 @@ class OpenSession {
   final SSHService sshService;
   SSHConnectionState connectionState;
   bool wasConnected;
+  int? autoReconnectCountdown;
+  int autoReconnectAttempts;
+  bool autoReconnectCancelled;
+  Timer? autoReconnectTimer;
 
   OpenSession({
     required this.id,
@@ -23,6 +28,10 @@ class OpenSession {
     required this.sshService,
     this.connectionState = SSHConnectionState.disconnected,
     this.wasConnected = false,
+    this.autoReconnectCountdown,
+    this.autoReconnectAttempts = 0,
+    this.autoReconnectCancelled = false,
+    this.autoReconnectTimer,
   });
 }
 
@@ -103,6 +112,9 @@ class SessionStore extends ChangeNotifier {
         session.connectionState = state;
         if (state == SSHConnectionState.connected) {
           session.wasConnected = true;
+          session.autoReconnectAttempts = 0;
+          session.autoReconnectCancelled = false;
+          _cancelAutoReconnectTimer(session);
           session.terminal.write(
             '\x1b[38;2;63;185;80m✔ Connected to ${session.profile.displayName}\x1b[0m\r\n\r\n',
           );
@@ -110,20 +122,77 @@ class SessionStore extends ChangeNotifier {
           session.terminal.write(
             '\r\n\x1b[38;2;248;81;73m✖ Connection failed: $error\x1b[0m\r\n',
           );
+          _scheduleAutoReconnect(session);
         } else if (state == SSHConnectionState.disconnected) {
           session.terminal.write(
             '\r\n\x1b[38;2;139;148;158mSession closed.\x1b[0m\r\n',
           );
+          _scheduleAutoReconnect(session);
         }
         notifyListeners();
       },
     );
   }
 
+  void _cancelAutoReconnectTimer(OpenSession session) {
+    session.autoReconnectTimer?.cancel();
+    session.autoReconnectTimer = null;
+    session.autoReconnectCountdown = null;
+  }
+
+  void cancelAutoReconnect(String sessionId) {
+    final session = _sessions[sessionId];
+    if (session == null) return;
+    _cancelAutoReconnectTimer(session);
+    session.autoReconnectCancelled = true;
+    if (session.connectionState == SSHConnectionState.connecting) {
+      session.sshService.disconnect();
+      session.connectionState = SSHConnectionState.disconnected;
+    }
+    notifyListeners();
+  }
+
+  void triggerAutoReconnect(String sessionId) {
+    final session = _sessions[sessionId];
+    if (session == null) return;
+    session.autoReconnectCancelled = false;
+    _scheduleAutoReconnect(session);
+  }
+
+  void _scheduleAutoReconnect(OpenSession session) {
+    if (!session.wasConnected) return;
+    if (session.autoReconnectCancelled) return;
+    if (session.autoReconnectAttempts >= SSHConfig.maxAutoReconnectAttempts) {
+      _cancelAutoReconnectTimer(session);
+      return;
+    }
+
+    _cancelAutoReconnectTimer(session);
+    session.autoReconnectAttempts++;
+    session.autoReconnectCountdown = SSHConfig.autoReconnectDelay.inSeconds;
+    notifyListeners();
+
+    session.autoReconnectTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (session.autoReconnectCountdown == null || session.autoReconnectCountdown! <= 1) {
+        _cancelAutoReconnectTimer(session);
+        if (!session.autoReconnectCancelled &&
+            (session.connectionState == SSHConnectionState.disconnected ||
+             session.connectionState == SSHConnectionState.error)) {
+          reconnectSession(session.id);
+        }
+      } else {
+        session.autoReconnectCountdown = session.autoReconnectCountdown! - 1;
+        notifyListeners();
+      }
+    });
+  }
+
   Future<void> reconnectSession(String sessionId) async {
     final session = _sessions[sessionId];
     if (session == null) return;
     if (session.connectionState == SSHConnectionState.connecting) return;
+    _cancelAutoReconnectTimer(session);
+    session.autoReconnectCancelled = false;
     session.connectionState = SSHConnectionState.connecting;
     notifyListeners();
     await _connectSession(session);
@@ -132,6 +201,7 @@ class SessionStore extends ChangeNotifier {
   void closeSession(String sessionId) {
     final session = _sessions.remove(sessionId);
     if (session != null) {
+      _cancelAutoReconnectTimer(session);
       session.sshService.disconnect();
       session.controller.dispose();
     }
@@ -146,6 +216,7 @@ class SessionStore extends ChangeNotifier {
     String sessionId,
     SSHConnectionState state, {
     bool? wasConnected,
+    bool triggerAutoReconnect = false,
   }) {
     final session = _sessions[sessionId];
     if (session != null) {
@@ -153,7 +224,23 @@ class SessionStore extends ChangeNotifier {
       if (wasConnected != null) {
         session.wasConnected = wasConnected;
       }
+      if (triggerAutoReconnect) {
+        _scheduleAutoReconnect(session);
+      } else {
+        _cancelAutoReconnectTimer(session);
+      }
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    for (final session in _sessions.values) {
+      _cancelAutoReconnectTimer(session);
+      session.sshService.disconnect();
+      session.controller.dispose();
+    }
+    _sessions.clear();
+    super.dispose();
   }
 }

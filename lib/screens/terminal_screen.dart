@@ -107,6 +107,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
             session.id,
             SSHConnectionState.disconnected,
             wasConnected: true,
+            triggerAutoReconnect: true,
           );
         }
       }
@@ -370,6 +371,13 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                         TerminalConnectionBanner(
                           wasConnected: session?.wasConnected ?? false,
                           isConnecting: connectionState == SSHConnectionState.connecting,
+                          retryCountdown: session?.autoReconnectCountdown,
+                          retryAttempt: session?.autoReconnectAttempts,
+                          onCancel: () {
+                            if (session != null) {
+                              sessionStore?.cancelAutoReconnect(session.id);
+                            }
+                          },
                           onReconnect: () {
                             if (session != null) {
                               sessionStore?.reconnectSession(session.id);
