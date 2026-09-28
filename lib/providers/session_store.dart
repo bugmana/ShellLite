@@ -9,7 +9,7 @@ import '../services/terminal_mouse_handler.dart';
 
 class OpenSession {
   final String id;
-  final ServerProfile profile;
+  ServerProfile profile;
   final Terminal terminal;
   final TerminalController controller;
   final SSHService sshService;
@@ -48,6 +48,14 @@ class SessionStore extends ChangeNotifier {
       _activeSessionId != null ? _sessions[_activeSessionId] : null;
 
   bool hasActiveSession(String profileId) => _sessions.containsKey(profileId);
+  bool hasOpenSession(String profileId) => _sessions.containsKey(profileId);
+
+  bool isSessionConnected(String profileId) {
+    final session = _sessions[profileId];
+    if (session == null) return false;
+    return session.connectionState == SSHConnectionState.connected ||
+        session.connectionState == SSHConnectionState.connecting;
+  }
   OpenSession? getSession(String profileId) => _sessions[profileId];
 
   OpenSession getOrCreateSession(ServerProfile profile) {
@@ -59,8 +67,14 @@ class SessionStore extends ChangeNotifier {
 
     if (_sessions.containsKey(profile.id)) {
       _activeSessionId = profile.id;
+      final existingSession = _sessions[profile.id]!;
+      existingSession.profile = profile;
+      if (existingSession.connectionState == SSHConnectionState.disconnected ||
+          existingSession.connectionState == SSHConnectionState.error) {
+        reconnectSession(existingSession.id, isManual: true);
+      }
       notifyListeners();
-      return _sessions[profile.id]!;
+      return existingSession;
     }
 
     final terminal = Terminal(

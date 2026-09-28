@@ -122,5 +122,43 @@ void main() {
 
       store.cancelAutoReconnect(session.id);
     });
+
+    testWidgets('getOrCreateSession automatically reconnects and updates profile when opening a disconnected session', (tester) async {
+      final session = store.getOrCreateSession(profile);
+      await tester.pumpAndSettle();
+
+      session.wasConnected = true;
+      session.connectionState = SSHConnectionState.disconnected;
+
+      // User edited profile (e.g. changed port and display name) and reopened from server list
+      final updatedProfile = profile.copyWith(displayName: 'Updated Server Name', port: 2222);
+      final reloadedSession = store.getOrCreateSession(updatedProfile);
+
+      expect(reloadedSession.profile.displayName, equals('Updated Server Name'));
+      expect(reloadedSession.profile.port, equals(2222));
+      expect(reloadedSession.connectionState, equals(SSHConnectionState.connecting));
+
+      store.cancelAutoReconnect(reloadedSession.id);
+    });
+
+    testWidgets('isSessionConnected accurately reflects live connection status', (tester) async {
+      final session = store.getOrCreateSession(profile);
+      await tester.pumpAndSettle();
+
+      session.connectionState = SSHConnectionState.disconnected;
+      expect(store.isSessionConnected(profile.id), isFalse);
+
+      session.connectionState = SSHConnectionState.error;
+      expect(store.isSessionConnected(profile.id), isFalse);
+
+      session.connectionState = SSHConnectionState.connecting;
+      expect(store.isSessionConnected(profile.id), isTrue);
+
+      session.connectionState = SSHConnectionState.connected;
+      expect(store.isSessionConnected(profile.id), isTrue);
+
+      store.closeSession(profile.id);
+      expect(store.isSessionConnected(profile.id), isFalse);
+    });
   });
 }

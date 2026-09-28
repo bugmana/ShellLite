@@ -26,7 +26,7 @@ class ServerCard extends StatelessWidget {
     final isKeyAuth = profile.authMethod is SSHKeyAuth;
     final telemetryStore = context.maybeWatch<TelemetryStore>();
     final sessionStore = context.maybeWatch<SessionStore>();
-    final hasActiveSession = sessionStore?.hasActiveSession(profile.id) ?? false;
+    final hasActiveSession = sessionStore?.isSessionConnected(profile.id) ?? false;
     final telemetry = telemetryStore?.getTelemetry(profile.id);
     final isLoadingTelemetry = telemetryStore?.isLoading(profile.id) ?? false;
 

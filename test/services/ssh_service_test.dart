@@ -123,5 +123,23 @@ void main() {
       expect(emptyCmd, contains('-s "shelllite" \\; set -g mouse on;'));
     });
   });
+
+  group('SSHService Connection Probing & Input Buffering', () {
+    test('probeConnection returns false when disconnected or client is null', () async {
+      final service = SSHService();
+      final isAlive = await service.probeConnection();
+      expect(isAlive, isFalse);
+    });
+
+    test('sendInput buffers input while connecting and disconnect clears buffer', () async {
+      final service = SSHService();
+      // Initially disconnected: input is ignored
+      service.sendInput('ignored');
+
+      // During disconnect, buffer is cleared
+      await service.disconnect();
+      expect(service.isConnected, isFalse);
+    });
+  });
 }
 

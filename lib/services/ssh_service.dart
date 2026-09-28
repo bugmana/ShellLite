@@ -67,9 +67,26 @@ class SSHService {
   int get terminalWidth => _terminalWidth;
   int get terminalHeight => _terminalHeight;
 
+  final List<int> _inputBuffer = [];
+  static const int _maxInputBufferSize = 256;
+
   Future<String> resolveRemoteCurrentDirectory() async {
     if (_client == null || !isConnected) return '~';
     return FileTransferService.resolveRemoteCurrentDirectory(_client!);
+  }
+
+  /// Proactively probes the SSH connection with a keep-alive message to detect
+  /// half-open / zombie sockets after waking from sleep.
+  Future<bool> probeConnection({Duration timeout = const Duration(seconds: 2)}) async {
+    if (_client == null || _client!.isClosed || _shellSession == null) {
+      return false;
+    }
+    try {
+      await _client!.ping().timeout(timeout);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> connect({
@@ -234,6 +251,14 @@ class SSHService {
         final cmd = profile.initialCommand!.trim();
         sendInput('$cmd\n');
       }
+
+      if (_inputBuffer.isNotEmpty) {
+        final buffered = List<int>.from(_inputBuffer);
+        _inputBuffer.clear();
+        try {
+          _shellSession!.write(Uint8List.fromList(buffered));
+        } catch (_) {}
+      }
     } catch (e) {
       if (currentEpoch != _connectionEpoch) return;
       _state = SSHConnectionState.error;
@@ -244,8 +269,13 @@ class SSHService {
   }
 
   void sendInput(String text) {
+    final bytes = utf8.encode(text);
     if (_shellSession != null && isConnected) {
-      _shellSession!.write(Uint8List.fromList(utf8.encode(text)));
+      _shellSession!.write(Uint8List.fromList(bytes));
+    } else if (_state == SSHConnectionState.connecting) {
+      if (_inputBuffer.length + bytes.length <= _maxInputBufferSize) {
+        _inputBuffer.addAll(bytes);
+      }
     }
   }
 
@@ -269,6 +299,7 @@ class SSHService {
 
   Future<void> disconnect() async {
     _connectionEpoch++;
+    _inputBuffer.clear();
     await _stdoutSub?.cancel();
     await _stderrSub?.cancel();
     _stdoutSub = null;

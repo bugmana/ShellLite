@@ -101,16 +101,29 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
       final session = _readSession(context);
       if (session != null && session.connectionState == SSHConnectionState.connected) {
         if (!session.sshService.isSocketAlive) {
-          session.sshService.disconnect();
-          context.maybeRead<SessionStore>()?.updateSessionConnectionState(
-            session.id,
-            SSHConnectionState.disconnected,
-            wasConnected: true,
-            triggerAutoReconnect: true,
-          );
+          _handleDeadSocketOnResume(session);
+          return;
         }
+
+        // Active ping probe to detect zombie / half-open TCP sockets killed by OS while asleep
+        session.sshService.probeConnection().then((isAlive) {
+          if (!mounted) return;
+          if (!isAlive && session.connectionState == SSHConnectionState.connected) {
+            _handleDeadSocketOnResume(session);
+          }
+        });
       }
     }
+  }
+
+  void _handleDeadSocketOnResume(OpenSession session) {
+    session.sshService.disconnect();
+    context.maybeRead<SessionStore>()?.updateSessionConnectionState(
+      session.id,
+      SSHConnectionState.disconnected,
+      wasConnected: true,
+      triggerAutoReconnect: true,
+    );
   }
 
   @override
