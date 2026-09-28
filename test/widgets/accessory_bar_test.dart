@@ -91,28 +91,6 @@ void main() {
     expect(find.text('Extended Keys'), findsNothing);
   });
 
-  testWidgets('ExtendedKeysSheet renders and sends keys', (tester) async {
-    String? tappedSequence;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ExtendedKeysSheet(
-            onKeyTap: (seq) => tappedSequence = seq,
-            autoDismiss: true,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
-    expect(find.text('Control Keys'), findsOneWidget);
-
-    await tester.tap(find.text('^A'));
-    await tester.pump();
-    expect(tappedSequence, '\x01');
-  });
-
   testWidgets('TactileKeyButton applies 0.94 micro-depression scale on press', (tester) async {
     bool tapped = false;
 

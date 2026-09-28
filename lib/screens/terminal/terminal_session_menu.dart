@@ -6,8 +6,6 @@ class TerminalSessionMenu extends StatelessWidget {
   final VoidCallback onUpload;
   final VoidCallback onSettings;
   final VoidCallback onDisconnect;
-  final VoidCallback? onPaste;
-  final VoidCallback? onKeys;
   final AppThemeExtension theme;
 
   const TerminalSessionMenu({
@@ -15,8 +13,6 @@ class TerminalSessionMenu extends StatelessWidget {
     required this.onUpload,
     required this.onSettings,
     required this.onDisconnect,
-    this.onPaste,
-    this.onKeys,
     required this.theme,
   });
 
@@ -34,12 +30,6 @@ class TerminalSessionMenu extends StatelessWidget {
       ),
       onSelected: (value) {
         switch (value) {
-          case 'paste':
-            onPaste?.call();
-            break;
-          case 'keys':
-            onKeys?.call();
-            break;
           case 'upload':
             onUpload();
             break;
@@ -52,30 +42,6 @@ class TerminalSessionMenu extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        if (onPaste != null)
-          PopupMenuItem<String>(
-            value: 'paste',
-            child: Row(
-              children: [
-                Icon(Icons.paste_rounded, size: 18, color: theme.textSecondary),
-                const SizedBox(width: AppSpacing.sm),
-                Text('Paste Clipboard', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
-              ],
-            ),
-          ),
-        if (onKeys != null)
-          PopupMenuItem<String>(
-            value: 'keys',
-            child: Row(
-              children: [
-                Icon(Icons.keyboard_rounded, size: 18, color: theme.textSecondary),
-                const SizedBox(width: AppSpacing.sm),
-                Text('Keys & Shortcuts', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
-              ],
-            ),
-          ),
-        if (onPaste != null || onKeys != null)
-          const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'upload',
           child: Row(

@@ -112,7 +112,11 @@ void main() {
 
     // Verify modal now contains the new key in store and in list
     expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'git'), isTrue);
-    await tester.scrollUntilVisible(find.text('git'), 200, scrollable: find.byType(Scrollable));
+    final listScrollable = find.descendant(
+      of: find.byType(ReorderableListView),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(find.text('git'), 200, scrollable: listScrollable);
     expect(find.text('git'), findsOneWidget);
   });
 
@@ -125,9 +129,13 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
+    final listScrollable = find.descendant(
+      of: find.byType(ReorderableListView),
+      matching: find.byType(Scrollable),
+    );
     final delText = find.text('test_del');
-    await tester.scrollUntilVisible(delText, 100, scrollable: find.byType(Scrollable));
-    await tester.drag(find.byType(Scrollable), const Offset(0, -80));
+    await tester.scrollUntilVisible(delText, 100, scrollable: listScrollable);
+    await tester.drag(listScrollable, const Offset(0, -80));
     await tester.pumpAndSettle();
     expect(delText, findsOneWidget);
 
@@ -216,5 +224,42 @@ void main() {
     final f5Key = settingsStore.configuredAccessoryKeys.firstWhere((k) => k.label == 'F5');
     expect(f5Key.sequence, '\x1B[15~');
     expect(f5Key.description, 'Copy / Refresh');
+  });
+
+  testWidgets('CustomizeAccessoryKeysModal renders unified tabs and adds extended keys on tap', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Verify all 4 unified tabs exist
+    expect(find.text('Key Bar Layout'), findsOneWidget);
+    expect(find.text('Function (F1–F12)'), findsOneWidget);
+    expect(find.text('Navigation'), findsOneWidget);
+    expect(find.text('Control Keys'), findsOneWidget);
+
+    // Switch to Function (F1-F12) tab
+    await tester.tap(find.text('Function (F1–F12)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('F1'), findsOneWidget);
+    expect(find.text('F5'), findsOneWidget);
+
+    // Tap F5 key to add it to Key Bar
+    await tester.tap(find.text('F5'));
+    await tester.pumpAndSettle();
+
+    expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'F5'), isTrue);
+
+    // Switch to Navigation tab
+    await tester.tap(find.text('Navigation'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+
+    // Switch to Control Keys tab
+    await tester.tap(find.text('Control Keys'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('^A'), findsOneWidget);
   });
 }

@@ -528,11 +528,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(KeyboardAccessoryBar), findsNothing);
 
-    // Tap Session Menu -> verify Paste Clipboard and Keys & Shortcuts are still accessible
+    // Tap Session Menu -> verify clean menu with Upload File, Settings, Disconnect
     await tester.tap(find.byTooltip('Session Menu'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Paste Clipboard'), findsOneWidget);
-    expect(find.text('Keys & Shortcuts'), findsOneWidget);
+    expect(find.text('Upload File'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Disconnect'), findsOneWidget);
+    expect(find.text('Paste Clipboard'), findsNothing);
+    expect(find.text('Keys & Shortcuts'), findsNothing);
   });
 }
