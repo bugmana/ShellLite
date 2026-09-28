@@ -20,7 +20,7 @@ permissions:
 jobs:
   build-ios:
     name: Flutter iOS Build
-    runs-on: ${{ vars.MACOS_RUNNER || 'macos-latest' }}
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-14' }}
 
     steps:
       - name: Checkout
@@ -34,6 +34,14 @@ jobs:
 
       - name: Install Dependencies
         run: flutter pub get
+
+      - name: Cache CocoaPods
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
 
       - name: Build iOS App
         run: |

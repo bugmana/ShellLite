@@ -5,6 +5,10 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
+concurrency:
+  group: dependabot-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -12,7 +16,7 @@ permissions:
 jobs:
   dependabot-auto-merge:
     name: Enable Dependabot Auto-Merge
-    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || 'ubuntu-slim' }}
+    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || vars.UBUNTU_RUNNER || 'ubuntu-24.04' }}
     if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Fetch Dependabot Metadata

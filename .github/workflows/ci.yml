@@ -50,6 +50,7 @@ jobs:
 
   build-web:
     name: Build Web
+    needs: test-and-lint
     runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-24.04' }}
     steps:
       - name: Checkout
@@ -69,6 +70,7 @@ jobs:
 
   build-android:
     name: Build Android
+    needs: test-and-lint
     uses: ./.github/workflows/build-android.yml
     secrets: inherit
     with:
@@ -77,6 +79,7 @@ jobs:
 
   build-ios:
     name: Build iOS
+    needs: test-and-lint
     uses: ./.github/workflows/build-ios.yml
     with:
       upload_artifact: false

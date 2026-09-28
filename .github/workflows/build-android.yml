@@ -68,7 +68,6 @@ jobs:
           echo "Release keystore configured successfully."
 
       - name: Build Android Release APK
-        if: inputs.upload_artifact
         run: |
           set -e
           BUILD_NUM="${{ inputs.build_number }}"
@@ -80,6 +79,7 @@ jobs:
           flutter build apk --release --build-name="${{ inputs.version }}" --build-number="$BUILD_NUM"
 
       - name: Build Android App Bundle (AAB)
+        if: inputs.upload_artifact
         run: |
           set -e
           BUILD_NUM="${{ inputs.build_number }}"

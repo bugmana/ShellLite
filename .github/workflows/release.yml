@@ -54,13 +54,17 @@ on:
         default: ''
         type: string
 
+concurrency:
+  group: release-pipeline
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
 jobs:
   resolve-version:
     name: Resolve Version
-    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || 'ubuntu-slim' }}
+    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || vars.UBUNTU_RUNNER || 'ubuntu-24.04' }}
     outputs:
       version: ${{ steps.versioning.outputs.version }}
       tag: ${{ steps.versioning.outputs.tag }}
@@ -117,7 +121,7 @@ jobs:
     name: Publish GitHub Release
     needs: [resolve-version, build-ios, build-android]
     if: needs.resolve-version.outputs.should_release == 'true'
-    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || 'ubuntu-slim' }}
+    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || vars.UBUNTU_RUNNER || 'ubuntu-24.04' }}
     steps:
       - name: Download iOS IPA Artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -168,7 +172,7 @@ jobs:
     name: Deploy to Google Play
     needs: [resolve-version, build-android]
     if: needs.resolve-version.outputs.should_release == 'true' && inputs.deploy_to_play_store != false && inputs.deploy_to_play_store != 'false'
-    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || 'ubuntu-slim' }}
+    runs-on: ${{ vars.UBUNTU_SLIM_RUNNER || vars.UBUNTU_RUNNER || 'ubuntu-24.04' }}
     env:
       PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
     steps:

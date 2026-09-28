@@ -91,7 +91,6 @@ Workflows are in [`.github/workflows/`](file:///home/aron/projects/ShellLite/.gi
 - `build-android.yml`: Builds release APK/AAB with keystore secrets.
 - `build-ios.yml`: Builds iOS IPA artifact.
 - `release.yml`: Automated multi-platform release workflow triggered via `workflow_dispatch`. Calculates version, tags git commit, triggers Android and iOS builds, publishes GitHub Release, and optionally deploys AAB to Google Play Console.
-- `deploy-play-store.yml`: On-demand deployment workflow to publish an existing or latest release AAB directly to Google Play Console tracks.
 - `dependabot-auto-merge.yml`: Automatically merges authorized Dependabot updates.
 
 ## Release Process & Publishing
