@@ -160,5 +160,59 @@ void main() {
       store.closeSession(profile.id);
       expect(store.isSessionConnected(profile.id), isFalse);
     });
+
+    testWidgets('App backgrounding pauses countdown and suppresses auto-reconnect', (tester) async {
+      final session = store.getOrCreateSession(profile);
+      await tester.pumpAndSettle();
+
+      session.wasConnected = true;
+      session.connectionState = SSHConnectionState.error;
+      session.autoReconnectAttempts = 1;
+
+      // Trigger auto-reconnect backoff (countdown = 3s)
+      store.triggerAutoReconnect(session.id);
+      expect(session.autoReconnectCountdown, equals(3));
+
+      // App is paused / backgrounded
+      store.setAppBackgrounded(true);
+      expect(store.isAppBackgrounded, isTrue);
+      // Active timer should be cancelled/paused
+      expect(session.autoReconnectCountdown, isNull);
+
+      // Attempting to trigger auto-reconnect while in background does nothing
+      store.triggerAutoReconnect(session.id);
+      expect(session.autoReconnectCountdown, isNull);
+
+      // App resumes
+      store.setAppBackgrounded(false);
+      expect(store.isAppBackgrounded, isFalse);
+
+      // Reconnect cleanly on resume
+      unawaited(store.reconnectSession(session.id, isManual: true));
+      expect(session.autoReconnectAttempts, equals(0));
+      expect(session.connectionState, equals(SSHConnectionState.connecting));
+
+      store.cancelAutoReconnect(session.id);
+    });
+
+    testWidgets('Does not pollute terminal buffer with error or connecting messages during auto-reconnect', (tester) async {
+      final session = store.getOrCreateSession(profile);
+      await tester.pumpAndSettle();
+
+      final textBefore = session.terminal.buffer.getText();
+
+      session.wasConnected = true;
+      session.connectionState = SSHConnectionState.disconnected;
+
+      // Simulate reconnect attempt
+      unawaited(store.reconnectSession(session.id));
+      await tester.pump();
+
+      // Buffer should remain unchanged (no duplicate "Connecting to...", no additional failure text)
+      final textAfter = session.terminal.buffer.getText();
+      expect(textAfter, equals(textBefore));
+
+      store.cancelAutoReconnect(session.id);
+    });
   });
 }

@@ -97,21 +97,32 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && mounted) {
-      final session = _readSession(context);
-      if (session != null && session.connectionState == SSHConnectionState.connected) {
-        if (!session.sshService.isSocketAlive) {
-          _handleDeadSocketOnResume(session);
-          return;
-        }
+    final sessionStore = context.maybeRead<SessionStore>();
+    final session = _readSession(context);
 
-        // Active ping probe to detect zombie / half-open TCP sockets killed by OS while asleep
-        session.sshService.probeConnection().then((isAlive) {
-          if (!mounted) return;
-          if (!isAlive && session.connectionState == SSHConnectionState.connected) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      sessionStore?.setAppBackgrounded(true);
+    } else if (state == AppLifecycleState.resumed && mounted) {
+      sessionStore?.setAppBackgrounded(false);
+      if (session != null) {
+        if (session.connectionState == SSHConnectionState.connected) {
+          if (!session.sshService.isSocketAlive) {
             _handleDeadSocketOnResume(session);
+            return;
           }
-        });
+
+          // Active ping probe to detect zombie / half-open TCP sockets killed by OS while asleep
+          session.sshService.probeConnection().then((isAlive) {
+            if (!mounted) return;
+            if (!isAlive && session.connectionState == SSHConnectionState.connected) {
+              _handleDeadSocketOnResume(session);
+            }
+          });
+        } else if (session.connectionState == SSHConnectionState.disconnected ||
+                   session.connectionState == SSHConnectionState.error) {
+          // Socket was disconnected while user was away: auto-reconnect cleanly on resume
+          sessionStore?.reconnectSession(session.id, isManual: true);
+        }
       }
     }
   }
@@ -278,11 +289,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
       case SSHConnectionState.connected:
         return 'Connected';
       case SSHConnectionState.connecting:
-        return 'Connecting...';
+        return session?.wasConnected == true ? 'Reconnecting...' : 'Connecting...';
       case SSHConnectionState.error:
-        return 'Connection Error';
+        return 'Connection Error (tap to retry)';
       case SSHConnectionState.disconnected:
-        return 'Disconnected';
+        return session?.wasConnected == true ? 'Disconnected (tap to retry)' : 'Disconnected';
     }
   }
 
@@ -304,40 +315,50 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
       appBar: AppBar(
         centerTitle: MediaQuery.sizeOf(context).width >= 380,
         titleSpacing: 0,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              session?.profile.displayName ?? widget.profile.displayName,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _getStatusColor(session, connectionState, theme),
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            if (session != null &&
+                (connectionState == SSHConnectionState.disconnected ||
+                 connectionState == SSHConnectionState.error)) {
+              sessionStore?.reconnectSession(session.id, isManual: true);
+            }
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                session?.profile.displayName ?? widget.profile.displayName,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _getStatusColor(session, connectionState, theme),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _getStatusText(session, connectionState),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _getStatusColor(session, connectionState, theme),
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(width: 6),
+                  Text(
+                    _getStatusText(session, connectionState),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _getStatusColor(session, connectionState, theme),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
           TerminalSessionMenu(

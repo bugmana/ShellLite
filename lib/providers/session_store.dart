@@ -58,6 +58,20 @@ class SessionStore extends ChangeNotifier {
   }
   OpenSession? getSession(String profileId) => _sessions[profileId];
 
+  bool _isAppBackgrounded = false;
+  bool get isAppBackgrounded => _isAppBackgrounded;
+
+  void setAppBackgrounded(bool backgrounded) {
+    if (_isAppBackgrounded == backgrounded) return;
+    _isAppBackgrounded = backgrounded;
+    if (backgrounded) {
+      // Pause any active auto-reconnect countdown timers while app is asleep
+      for (final session in _sessions.values) {
+        _cancelAutoReconnectTimer(session);
+      }
+    }
+  }
+
   OpenSession getOrCreateSession(ServerProfile profile) {
     // Enforce single server session: close other running sessions
     final otherIds = _sessions.keys.where((k) => k != profile.id).toList();
@@ -110,9 +124,13 @@ class SessionStore extends ChangeNotifier {
   }
 
   Future<void> _connectSession(OpenSession session) async {
-    session.terminal.write(
-      '\r\n\x1b[38;2;139;148;158mConnecting to \x1b[38;2;88;166;255m${session.profile.username}@${session.profile.host}\x1b[38;2;110;118;129m:\x1b[38;2;88;166;255m${session.profile.port}\x1b[38;2;139;148;158m...\x1b[0m\r\n',
-    );
+    // Only write "Connecting..." to terminal on the initial connection attempt.
+    // For auto-reconnects, connection state is shown cleanly in the AppBar.
+    if (!session.wasConnected) {
+      session.terminal.write(
+        '\r\n\x1b[38;2;139;148;158mConnecting to \x1b[38;2;88;166;255m${session.profile.username}@${session.profile.host}\x1b[38;2;110;118;129m:\x1b[38;2;88;166;255m${session.profile.port}\x1b[38;2;139;148;158m...\x1b[0m\r\n',
+      );
+    }
 
     await session.sshService.connect(
       profile: session.profile,
@@ -125,22 +143,32 @@ class SessionStore extends ChangeNotifier {
       onStateChange: (state, error) {
         session.connectionState = state;
         if (state == SSHConnectionState.connected) {
+          final wasReconnecting = session.wasConnected;
           session.wasConnected = true;
           session.autoReconnectAttempts = 0;
           session.autoReconnectCancelled = false;
           _cancelAutoReconnectTimer(session);
-          session.terminal.write(
-            '\x1b[38;2;63;185;80m✔ Connected to ${session.profile.displayName}\x1b[0m\r\n\r\n',
-          );
+          if (!wasReconnecting) {
+            session.terminal.write(
+              '\x1b[38;2;63;185;80m✔ Connected to ${session.profile.displayName}\x1b[0m\r\n\r\n',
+            );
+          }
         } else if (state == SSHConnectionState.error && error != null) {
-          session.terminal.write(
-            '\r\n\x1b[38;2;248;81;73m✖ Connection failed: $error\x1b[0m\r\n',
-          );
+          // If this is the initial connection attempt, write the error to the terminal.
+          // For active sessions auto-reconnecting, don't pollute the terminal buffer with red text;
+          // error and reconnecting states are shown cleanly in the AppBar.
+          if (!session.wasConnected) {
+            session.terminal.write(
+              '\r\n\x1b[38;2;248;81;73m✖ Connection failed: $error\x1b[0m\r\n',
+            );
+          }
           _scheduleAutoReconnect(session);
         } else if (state == SSHConnectionState.disconnected) {
-          session.terminal.write(
-            '\r\n\x1b[38;2;139;148;158mSession closed.\x1b[0m\r\n',
-          );
+          if (!session.wasConnected) {
+            session.terminal.write(
+              '\r\n\x1b[38;2;139;148;158mSession closed.\x1b[0m\r\n',
+            );
+          }
           _scheduleAutoReconnect(session);
         }
         notifyListeners();
@@ -176,11 +204,13 @@ class SessionStore extends ChangeNotifier {
   void _scheduleAutoReconnect(OpenSession session) {
     if (!session.wasConnected) return;
     if (session.autoReconnectCancelled) return;
+    if (_isAppBackgrounded) {
+      // Don't burn through retries while the app is in background.
+      // Reconnect cleanly when the app resumes.
+      return;
+    }
     if (session.autoReconnectAttempts >= SSHConfig.maxAutoReconnectAttempts) {
       _cancelAutoReconnectTimer(session);
-      session.terminal.write(
-        '\r\n\x1b[38;2;139;148;158mConnection terminated. Return to server list to reconfigure or reconnect.\x1b[0m\r\n',
-      );
       return;
     }
 
@@ -255,6 +285,8 @@ class SessionStore extends ChangeNotifier {
         session.wasConnected = wasConnected;
       }
       if (triggerAutoReconnect) {
+        session.autoReconnectAttempts = 0;
+        session.autoReconnectCancelled = false;
         _scheduleAutoReconnect(session);
       } else {
         _cancelAutoReconnectTimer(session);

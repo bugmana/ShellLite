@@ -460,8 +460,8 @@ void main() {
     expect(find.widgetWithText(ElevatedButton, 'Reconnect'), findsNothing);
     expect(find.text('Connection lost.'), findsNothing);
 
-    // Verify AppBar displays Disconnected status cleanly
-    expect(find.text('Disconnected'), findsOneWidget);
+    // Verify AppBar displays Disconnected (tap to retry) status cleanly
+    expect(find.text('Disconnected (tap to retry)'), findsOneWidget);
 
     final session = sessionStore.getSession(testProfile.id)!;
     final textBefore = session.terminal.buffer.getText();
@@ -470,9 +470,9 @@ void main() {
     await sessionStore.reconnectSession(testProfile.id);
     await tester.pumpAndSettle();
 
-    // Verify reconnect attempt logged to terminal buffer
+    // Verify buffer is preserved without pollution
     final textAfter = session.terminal.buffer.getText();
-    expect(textAfter.length >= textBefore.length, isTrue);
+    expect(textAfter, equals(textBefore));
 
     // Concurrently calling reconnectSession while connecting is safely guarded
     sessionStore.updateSessionConnectionState(
@@ -480,10 +480,48 @@ void main() {
       SSHConnectionState.connecting,
     );
     await tester.pump();
-    expect(find.text('Connecting...'), findsOneWidget);
+    expect(find.text('Reconnecting...'), findsOneWidget);
 
     await sessionStore.reconnectSession(testProfile.id);
     expect(session.connectionState, SSHConnectionState.connecting);
+
+    // Tapping the AppBar title triggers manual reconnect when disconnected
+    sessionStore.updateSessionConnectionState(
+      testProfile.id,
+      SSHConnectionState.disconnected,
+      wasConnected: true,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Disconnected (tap to retry)'), findsOneWidget);
+
+    await tester.tap(find.text('Disconnected (tap to retry)'));
+    await tester.pumpAndSettle();
+    // Reconnection was initiated; in test environment dummy connection fails to error and schedules retry countdown
+    expect(session.connectionState, equals(SSHConnectionState.error));
+    expect(find.textContaining('Retrying in'), findsOneWidget);
+
+    // When auto-reconnect countdown is cancelled/exhausted, status displays Connection Error (tap to retry)
+    sessionStore.cancelAutoReconnect(testProfile.id);
+    await tester.pumpAndSettle();
+    expect(find.text('Connection Error (tap to retry)'), findsOneWidget);
+
+    // App resume automatically reconnects dropped session
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    expect(sessionStore.isAppBackgrounded, isTrue);
+
+    sessionStore.updateSessionConnectionState(
+      testProfile.id,
+      SSHConnectionState.disconnected,
+      wasConnected: true,
+    );
+    await tester.pumpAndSettle();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    expect(sessionStore.isAppBackgrounded, isFalse);
+    await tester.pumpAndSettle();
+    expect(session.connectionState, equals(SSHConnectionState.error));
+
+    sessionStore.cancelAutoReconnect(testProfile.id);
   });
 
   testWidgets('TerminalScreen updates keyboard visibility when external insets change', (tester) async {
