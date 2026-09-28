@@ -12,7 +12,6 @@ import '../theme/app_theme.dart';
 import '../widgets/file_upload_modal.dart';
 import '../widgets/keyboard_accessory_bar.dart';
 import '../widgets/terminal_appearance_modal.dart';
-import 'terminal/terminal_connection_banner.dart';
 import 'terminal/terminal_selection_overlay.dart';
 import 'terminal/terminal_session_menu.dart';
 
@@ -242,7 +241,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     });
   }
 
-  Color _getStatusColor(SSHConnectionState state, AppThemeExtension theme) {
+  Color _getStatusColor(OpenSession? session, SSHConnectionState state, AppThemeExtension theme) {
+    if (session?.autoReconnectCountdown != null) {
+      return theme.warning;
+    }
     switch (state) {
       case SSHConnectionState.connected:
         return theme.success;
@@ -255,7 +257,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     }
   }
 
-  String _getStatusText(SSHConnectionState state) {
+  String _getStatusText(OpenSession? session, SSHConnectionState state) {
+    if (session?.autoReconnectCountdown != null) {
+      return 'Retrying in ${session!.autoReconnectCountdown}s...';
+    }
     switch (state) {
       case SSHConnectionState.connected:
         return 'Connected';
@@ -305,15 +310,15 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                   height: 7,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _getStatusColor(connectionState, theme),
+                    color: _getStatusColor(session, connectionState, theme),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  _getStatusText(connectionState),
+                  _getStatusText(session, connectionState),
                   style: TextStyle(
                     fontSize: 11,
-                    color: _getStatusColor(connectionState, theme),
+                    color: _getStatusColor(session, connectionState, theme),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -367,20 +372,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           onTapUp: (details, offset) => _focusTerminal(),
                         ),
                       ),
-                      if (isDisconnected)
-                        TerminalConnectionBanner(
-                          wasConnected: session?.wasConnected ?? false,
-                          isConnecting: connectionState == SSHConnectionState.connecting,
-                          retryCountdown: session?.autoReconnectCountdown,
-                          retryAttempt: session?.autoReconnectAttempts,
-                          onReconnect: () {
-                            if (session != null) {
-                              sessionStore?.reconnectSession(session.id, isManual: true);
-                              _focusTerminal();
-                            }
-                          },
-                          theme: theme,
-                        ),
                       TerminalSelectionOverlay(
                         terminal: terminal,
                         controller: controller,

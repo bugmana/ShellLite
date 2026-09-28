@@ -164,6 +164,9 @@ class SessionStore extends ChangeNotifier {
     if (session.autoReconnectCancelled) return;
     if (session.autoReconnectAttempts >= SSHConfig.maxAutoReconnectAttempts) {
       _cancelAutoReconnectTimer(session);
+      session.terminal.write(
+        '\r\n\x1b[38;2;139;148;158mConnection terminated. Return to server list to reconfigure or reconnect.\x1b[0m\r\n',
+      );
       return;
     }
 
