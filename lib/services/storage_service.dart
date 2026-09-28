@@ -325,9 +325,9 @@ class StorageService {
   Future<bool> getShowKeyboardBar() async {
     try {
       final prefs = await _sharedPrefs;
-      return prefs.getBool(StorageConfig.showKeyboardBarKey) ?? false;
+      return prefs.getBool(StorageConfig.showKeyboardBarKey) ?? true;
     } catch (_) {
-      return false;
+      return true;
     }
   }
 

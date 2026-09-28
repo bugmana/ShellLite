@@ -418,7 +418,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                 },
               ),
             ),
-            if (terminalSettings?.showKeyboardBar ?? false)
+            if (terminalSettings?.showKeyboardBar ?? true)
               _buildBottomBar(context, theme),
           ],
         ),

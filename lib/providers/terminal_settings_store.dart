@@ -15,7 +15,7 @@ class TerminalSettingsStore extends ChangeNotifier {
   bool _hapticFeedbackEnabled = true;
   bool _ctrlModifierEnabled = true;
   bool _altModifierEnabled = true;
-  bool _showKeyboardBar = false;
+  bool _showKeyboardBar = true;
   bool _isLoaded = false;
 
   TerminalSettingsStore({StorageService? storageService})
@@ -187,7 +187,7 @@ class TerminalSettingsStore extends ChangeNotifier {
     _hapticFeedbackEnabled = true;
     _ctrlModifierEnabled = true;
     _altModifierEnabled = true;
-    _showKeyboardBar = false;
+    _showKeyboardBar = true;
     _updateConfiguredKeys(List.from(AccessoryBarConfig.initialConfiguredKeys));
     await Future.wait([
       _storageService.setTerminalThemeId(_themeId),
@@ -196,7 +196,7 @@ class TerminalSettingsStore extends ChangeNotifier {
       _storageService.setHapticFeedbackEnabled(_hapticFeedbackEnabled),
       _storageService.setCtrlModifierEnabled(true),
       _storageService.setAltModifierEnabled(true),
-      _storageService.setShowKeyboardBar(false),
+      _storageService.setShowKeyboardBar(true),
       _storageService.saveAccessoryKeys(_configuredAccessoryKeys),
     ]);
     notifyListeners();

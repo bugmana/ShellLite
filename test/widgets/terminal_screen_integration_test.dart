@@ -79,7 +79,6 @@ void main() {
   });
 
   testWidgets('TerminalScreen renders KeyboardAccessoryBar and handles key shortcuts', (tester) async {
-    await terminalSettingsStore.setShowKeyboardBar(true);
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -140,7 +139,6 @@ void main() {
   });
 
   testWidgets('TerminalScreen shows Paste action button in KeyboardAccessoryBar and handles paste', (tester) async {
-    await terminalSettingsStore.setShowKeyboardBar(true);
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -228,7 +226,6 @@ void main() {
   });
 
   testWidgets('TerminalScreen keyboard toggle button toggles between down arrow and up arrow', (tester) async {
-    await terminalSettingsStore.setShowKeyboardBar(true);
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -259,7 +256,6 @@ void main() {
   });
 
   testWidgets('TerminalScreen shows floating callout toolbar [Copy | Select All] when text is selected', (tester) async {
-    await terminalSettingsStore.setShowKeyboardBar(true);
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -362,7 +358,6 @@ void main() {
   });
 
   testWidgets('TerminalScreen AppBar centers title and uses clean 2-item header with overflow Session Menu', (tester) async {
-    await terminalSettingsStore.setShowKeyboardBar(true);
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -390,7 +385,6 @@ void main() {
   });
 
   testWidgets('TerminalScreen sets hardwareKeyboardOnly when virtual keyboard is toggled to prevent scroll interruption', (tester) async {
-    await terminalSettingsStore.setShowKeyboardBar(true);
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -493,7 +487,6 @@ void main() {
   });
 
   testWidgets('TerminalScreen updates keyboard visibility when external insets change', (tester) async {
-    await terminalSettingsStore.setShowKeyboardBar(true);
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -521,14 +514,21 @@ void main() {
     expect(find.byTooltip('Hide keyboard'), findsOneWidget);
   });
 
-  testWidgets('TerminalScreen defaults to clean full-screen terminal without keyboard bar and exposes keys in Session Menu', (tester) async {
+  testWidgets('TerminalScreen renders keyboard bar with keybinds, paste, and hide keyboard by default, and can be disabled in settings', (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    // Verify KeyboardAccessoryBar is NOT present by default (pure Lite concept)
+    // Verify KeyboardAccessoryBar is present by default with keybinds, paste, and hide keyboard
+    expect(find.byType(KeyboardAccessoryBar), findsOneWidget);
+    expect(find.byTooltip('Paste'), findsOneWidget);
+    expect(find.byTooltip('Hide keyboard'), findsOneWidget);
+
+    // When disabled in settings, bar is hidden for full-screen terminal
+    await terminalSettingsStore.setShowKeyboardBar(false);
+    await tester.pumpAndSettle();
     expect(find.byType(KeyboardAccessoryBar), findsNothing);
 
-    // Tap Session Menu -> verify Paste Clipboard and Keys & Shortcuts
+    // Tap Session Menu -> verify Paste Clipboard and Keys & Shortcuts are still accessible
     await tester.tap(find.byTooltip('Session Menu'));
     await tester.pumpAndSettle();
 
