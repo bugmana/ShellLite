@@ -168,6 +168,16 @@ class SessionStore extends ChangeNotifier {
     }
 
     _cancelAutoReconnectTimer(session);
+
+    // Initial drop: reconnect as soon as possible (immediately, 0s delay)
+    if (session.autoReconnectAttempts == 0) {
+      session.autoReconnectAttempts = 1;
+      notifyListeners();
+      reconnectSession(session.id);
+      return;
+    }
+
+    // Subsequent drops/failures: short backoff (3 seconds)
     session.autoReconnectAttempts++;
     session.autoReconnectCountdown = SSHConfig.autoReconnectDelay.inSeconds;
     notifyListeners();
@@ -187,11 +197,14 @@ class SessionStore extends ChangeNotifier {
     });
   }
 
-  Future<void> reconnectSession(String sessionId) async {
+  Future<void> reconnectSession(String sessionId, {bool isManual = false}) async {
     final session = _sessions[sessionId];
     if (session == null) return;
     if (session.connectionState == SSHConnectionState.connecting) return;
     _cancelAutoReconnectTimer(session);
+    if (isManual) {
+      session.autoReconnectAttempts = 0;
+    }
     session.autoReconnectCancelled = false;
     session.connectionState = SSHConnectionState.connecting;
     notifyListeners();

@@ -15,7 +15,6 @@ void main() {
     int? retryCountdown,
     int? retryAttempt,
     required VoidCallback onReconnect,
-    VoidCallback? onCancel,
   }) {
     return MaterialApp(
       theme: AppTheme.buildTheme(TerminalThemePresets.obsidian),
@@ -28,7 +27,6 @@ void main() {
               retryCountdown: retryCountdown,
               retryAttempt: retryAttempt,
               onReconnect: onReconnect,
-              onCancel: onCancel,
               theme: theme,
             ),
           ],
@@ -37,7 +35,7 @@ void main() {
     );
   }
 
-  testWidgets('TerminalConnectionBanner renders static message when not counting down', (tester) async {
+  testWidgets('TerminalConnectionBanner renders static message and single Reconnect button without Cancel', (tester) async {
     bool reconnected = false;
     await tester.pumpWidget(
       buildBanner(
@@ -48,7 +46,7 @@ void main() {
     );
 
     expect(find.text('Connection lost.'), findsOneWidget);
-    expect(find.textContaining('Reconnecting in'), findsNothing);
+    expect(find.textContaining('Retrying in'), findsNothing);
     expect(find.text('Cancel'), findsNothing);
     expect(find.widgetWithText(ElevatedButton, 'Reconnect'), findsOneWidget);
 
@@ -56,8 +54,7 @@ void main() {
     expect(reconnected, isTrue);
   });
 
-  testWidgets('TerminalConnectionBanner renders countdown and Cancel button during auto-reconnect', (tester) async {
-    bool cancelled = false;
+  testWidgets('TerminalConnectionBanner renders countdown and single Reconnect button during auto-reconnect', (tester) async {
     bool reconnected = false;
 
     await tester.pumpWidget(
@@ -65,42 +62,33 @@ void main() {
         wasConnected: true,
         isConnecting: false,
         retryCountdown: 3,
-        retryAttempt: 1,
+        retryAttempt: 2,
         onReconnect: () => reconnected = true,
-        onCancel: () => cancelled = true,
       ),
     );
 
     expect(find.text('Connection lost.'), findsOneWidget);
-    expect(find.text('Reconnecting in 3s...'), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Retrying in 3s...'), findsOneWidget);
+    expect(find.text('Cancel'), findsNothing);
     expect(find.widgetWithText(ElevatedButton, 'Reconnect'), findsOneWidget);
-
-    // Tap Cancel
-    await tester.tap(find.text('Cancel'));
-    expect(cancelled, isTrue);
 
     // Tap Reconnect directly
     await tester.tap(find.widgetWithText(ElevatedButton, 'Reconnect'));
     expect(reconnected, isTrue);
   });
 
-  testWidgets('TerminalConnectionBanner shows spinner and Cancel button when connecting', (tester) async {
-    bool cancelled = false;
-
+  testWidgets('TerminalConnectionBanner shows spinner on Reconnect button and no extra buttons when connecting', (tester) async {
     await tester.pumpWidget(
       buildBanner(
         wasConnected: true,
         isConnecting: true,
         onReconnect: () {},
-        onCancel: () => cancelled = true,
       ),
     );
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
-
-    await tester.tap(find.text('Cancel'));
-    expect(cancelled, isTrue);
+    expect(find.text('Cancel'), findsNothing);
+    final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+    expect(button.onPressed, isNull);
   });
 }

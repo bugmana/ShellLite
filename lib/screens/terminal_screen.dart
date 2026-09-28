@@ -373,14 +373,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           isConnecting: connectionState == SSHConnectionState.connecting,
                           retryCountdown: session?.autoReconnectCountdown,
                           retryAttempt: session?.autoReconnectAttempts,
-                          onCancel: () {
-                            if (session != null) {
-                              sessionStore?.cancelAutoReconnect(session.id);
-                            }
-                          },
                           onReconnect: () {
                             if (session != null) {
-                              sessionStore?.reconnectSession(session.id);
+                              sessionStore?.reconnectSession(session.id, isManual: true);
                               _focusTerminal();
                             }
                           },

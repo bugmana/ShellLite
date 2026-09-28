@@ -8,7 +8,6 @@ class TerminalConnectionBanner extends StatelessWidget {
   final int? retryCountdown;
   final int? retryAttempt;
   final VoidCallback onReconnect;
-  final VoidCallback? onCancel;
   final AppThemeExtension theme;
 
   const TerminalConnectionBanner({
@@ -18,7 +17,6 @@ class TerminalConnectionBanner extends StatelessWidget {
     this.retryCountdown,
     this.retryAttempt,
     required this.onReconnect,
-    this.onCancel,
     required this.theme,
   });
 
@@ -32,8 +30,8 @@ class TerminalConnectionBanner extends StatelessWidget {
         liveRegion: true,
         label: retryCountdown != null
             ? (wasConnected
-                ? 'Connection lost. Reconnecting in ${retryCountdown}s.'
-                : 'Connection failed. Reconnecting in ${retryCountdown}s.')
+                ? 'Connection lost. Retrying in ${retryCountdown}s.'
+                : 'Connection failed. Retrying in ${retryCountdown}s.')
             : (wasConnected ? 'Connection lost.' : 'Connection failed.'),
         child: Container(
           height: 48,
@@ -75,7 +73,7 @@ class TerminalConnectionBanner extends StatelessWidget {
                     ),
                     if (retryCountdown != null)
                       Text(
-                        'Reconnecting in ${retryCountdown}s...',
+                        'Retrying in ${retryCountdown}s...',
                         style: TextStyle(
                           fontSize: 10.5,
                           color: theme.textSecondary,
@@ -88,18 +86,6 @@ class TerminalConnectionBanner extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              if (onCancel != null && (retryCountdown != null || isConnecting)) ...[
-                TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.textSecondary,
-                    minimumSize: const Size(0, 36),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                  onPressed: onCancel,
-                  child: const Text('Cancel', style: TextStyle(fontSize: 12)),
-                ),
-                const SizedBox(width: 4),
-              ],
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.primaryAccent,
