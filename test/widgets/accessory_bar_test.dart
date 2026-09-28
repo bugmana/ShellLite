@@ -105,7 +105,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Extended Keys & Shortcuts'), findsOneWidget);
+    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
     expect(find.text('Control Keys'), findsOneWidget);
 
     await tester.tap(find.text('^A'));

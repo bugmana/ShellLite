@@ -319,4 +319,22 @@ class StorageService {
       await prefs.setBool(StorageConfig.altModifierEnabledKey, enabled);
     } catch (_) {}
   }
+
+  // ── Show Keyboard Bar Setting ─────────────────────────────────────────────
+
+  Future<bool> getShowKeyboardBar() async {
+    try {
+      final prefs = await _sharedPrefs;
+      return prefs.getBool(StorageConfig.showKeyboardBarKey) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> setShowKeyboardBar(bool enabled) async {
+    try {
+      final prefs = await _sharedPrefs;
+      await prefs.setBool(StorageConfig.showKeyboardBarKey, enabled);
+    } catch (_) {}
+  }
 }

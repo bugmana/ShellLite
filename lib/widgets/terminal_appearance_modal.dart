@@ -283,9 +283,9 @@ class TerminalAppearanceModal extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Keyboard & Accessory Keys
+            // Keyboard & Shortcut Keys
             Text(
-              'KEYBOARD & ACCESSORY KEYS',
+              'KEYBOARD & SHORTCUT KEYS',
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 11,
@@ -316,7 +316,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Customize Accessory Keys',
+                            'Terminal Keys & Shortcuts',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -325,7 +325,7 @@ class TerminalAppearanceModal extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Configure extended keys (F1–F12, navigation, macros)',
+                            'Configure keys (F1–F12, navigation, macros) and modifiers',
                             style: TextStyle(fontSize: 11, color: theme.textSecondary),
                           ),
                         ],
@@ -334,6 +334,45 @@ class TerminalAppearanceModal extends StatelessWidget {
                     Icon(Icons.chevron_right_rounded, color: theme.textSecondary, size: 20),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.cardSurface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: theme.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.space_bar_rounded, color: theme.secondaryAccent, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Show On-Screen Key Bar',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: theme.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Display shortcut key strip above virtual keyboard',
+                          style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: settings.showKeyboardBar,
+                    activeThumbColor: theme.primaryAccent,
+                    onChanged: (val) => settings.setShowKeyboardBar(val),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),

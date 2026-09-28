@@ -65,7 +65,7 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    expect(find.text('Customize Accessory Keys'), findsOneWidget);
+    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
     expect(find.text('Tab'), findsOneWidget);
     expect(find.text('⇧Tab'), findsOneWidget);
 
@@ -155,7 +155,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Confirmation dialog appears
-    expect(find.text('Reset Accessory Keys?'), findsOneWidget);
+    expect(find.text('Reset Terminal Keys?'), findsOneWidget);
 
     // Tap Reset Layout button
     final confirmResetButton = find.widgetWithText(ElevatedButton, 'Reset Layout');

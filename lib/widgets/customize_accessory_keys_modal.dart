@@ -39,7 +39,7 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
             Icon(Icons.restore_rounded, color: theme.warning, size: 22),
             const SizedBox(width: 8),
             Text(
-              'Reset Accessory Keys?',
+              'Reset Terminal Keys?',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -49,7 +49,7 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
           ],
         ),
         content: Text(
-          'This will reset your terminal keyboard accessory bar back to the default layout (Tab, Arrows, Esc, ^C, ^D, etc.).',
+          'This will reset your terminal keys and shortcuts back to the default layout (Tab, Arrows, Esc, ^C, ^D, etc.).',
           style: TextStyle(color: theme.textSecondary, fontSize: 13, height: 1.4),
         ),
         actions: [
@@ -107,7 +107,7 @@ class CustomizeAccessoryKeysModal extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Customize Accessory Keys',
+                                'Terminal Keys & Shortcuts',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

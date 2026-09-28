@@ -15,6 +15,7 @@ class TerminalSettingsStore extends ChangeNotifier {
   bool _hapticFeedbackEnabled = true;
   bool _ctrlModifierEnabled = true;
   bool _altModifierEnabled = true;
+  bool _showKeyboardBar = false;
   bool _isLoaded = false;
 
   TerminalSettingsStore({StorageService? storageService})
@@ -28,6 +29,7 @@ class TerminalSettingsStore extends ChangeNotifier {
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
   bool get ctrlModifierEnabled => _ctrlModifierEnabled;
   bool get altModifierEnabled => _altModifierEnabled;
+  bool get showKeyboardBar => _showKeyboardBar;
   bool get isLoaded => _isLoaded;
 
   TerminalThemePreset get activeThemePreset => TerminalThemePresets.getById(_themeId);
@@ -56,6 +58,7 @@ class TerminalSettingsStore extends ChangeNotifier {
     _hapticFeedbackEnabled = await _storageService.getHapticFeedbackEnabled();
     _ctrlModifierEnabled = await _storageService.getCtrlModifierEnabled();
     _altModifierEnabled = await _storageService.getAltModifierEnabled();
+    _showKeyboardBar = await _storageService.getShowKeyboardBar();
     _isLoaded = true;
     notifyListeners();
   }
@@ -102,6 +105,16 @@ class TerminalSettingsStore extends ChangeNotifier {
 
   Future<void> toggleAltModifier() async {
     await setAltModifierEnabled(!_altModifierEnabled);
+  }
+
+  Future<void> setShowKeyboardBar(bool enabled) async {
+    _showKeyboardBar = enabled;
+    await _storageService.setShowKeyboardBar(enabled);
+    notifyListeners();
+  }
+
+  Future<void> toggleShowKeyboardBar() async {
+    await setShowKeyboardBar(!_showKeyboardBar);
   }
 
   Future<void> reorderAccessoryKeys(int oldIndex, int newIndex) async {
@@ -174,6 +187,7 @@ class TerminalSettingsStore extends ChangeNotifier {
     _hapticFeedbackEnabled = true;
     _ctrlModifierEnabled = true;
     _altModifierEnabled = true;
+    _showKeyboardBar = false;
     _updateConfiguredKeys(List.from(AccessoryBarConfig.initialConfiguredKeys));
     await Future.wait([
       _storageService.setTerminalThemeId(_themeId),
@@ -182,6 +196,7 @@ class TerminalSettingsStore extends ChangeNotifier {
       _storageService.setHapticFeedbackEnabled(_hapticFeedbackEnabled),
       _storageService.setCtrlModifierEnabled(true),
       _storageService.setAltModifierEnabled(true),
+      _storageService.setShowKeyboardBar(false),
       _storageService.saveAccessoryKeys(_configuredAccessoryKeys),
     ]);
     notifyListeners();

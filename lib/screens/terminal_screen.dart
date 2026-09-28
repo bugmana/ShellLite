@@ -254,6 +254,21 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     });
   }
 
+  void _openKeysSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ExtendedKeysSheet(
+        onKeyTap: (seq) {
+          _focusTerminal();
+          _handleKeyTap(seq);
+        },
+        autoDismiss: false,
+      ),
+    );
+  }
+
   Color _getStatusColor(OpenSession? session, SSHConnectionState state, AppThemeExtension theme) {
     if (session?.autoReconnectCountdown != null) {
       return theme.warning;
@@ -349,6 +364,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               }
               Navigator.of(context).maybePop();
             },
+            onPaste: _pasteClipboard,
+            onKeys: () => _openKeysSheet(context),
             theme: theme,
           ),
           const SizedBox(width: 4),
@@ -401,7 +418,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                 },
               ),
             ),
-            _buildBottomBar(context, theme),
+            if (terminalSettings?.showKeyboardBar ?? false)
+              _buildBottomBar(context, theme),
           ],
         ),
       ),

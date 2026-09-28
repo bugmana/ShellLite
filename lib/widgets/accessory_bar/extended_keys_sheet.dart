@@ -54,10 +54,10 @@ class ExtendedKeysSheet extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.keyboard_double_arrow_up_rounded, color: theme.secondaryAccent, size: 20),
+                        Icon(Icons.keyboard_rounded, color: theme.secondaryAccent, size: 20),
                         const SizedBox(width: 8),
                         Text(
-                          'Extended Keys & Shortcuts',
+                          'Terminal Keys & Shortcuts',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

@@ -56,6 +56,7 @@ class StorageConfig {
   static const String hapticFeedbackKey = 'shell_lite_haptic_feedback_v1';
   static const String ctrlModifierEnabledKey = 'shell_lite_ctrl_modifier_enabled_v1';
   static const String altModifierEnabledKey = 'shell_lite_alt_modifier_enabled_v1';
+  static const String showKeyboardBarKey = 'shell_lite_show_keyboard_bar_v1';
 
   static String buildCredentialTag(String profileId) => '$credentialPrefix$profileId';
   static String buildKeyPassphraseTag(String profileId) => '$keyPassphrasePrefix$profileId';

@@ -42,9 +42,10 @@ void main() {
     expect(find.text('Haptic Feedback'), findsOneWidget);
     expect(find.text('ABOUT & PRIVACY'), findsOneWidget);
     expect(find.text('Privacy Policy'), findsOneWidget);
-    expect(find.text('KEYBOARD & ACCESSORY KEYS'), findsOneWidget);
-    expect(find.text('Customize Accessory Keys'), findsOneWidget);
-    expect(find.text('Configure extended keys (F1–F12, navigation, macros)'), findsOneWidget);
+    expect(find.text('KEYBOARD & SHORTCUT KEYS'), findsOneWidget);
+    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
+    expect(find.text('Configure keys (F1–F12, navigation, macros) and modifiers'), findsOneWidget);
+    expect(find.text('Show On-Screen Key Bar'), findsOneWidget);
 
     // Tap on Dracula theme preset
     await tester.tap(find.text('Dracula'));
@@ -53,7 +54,8 @@ void main() {
     expect(store.themeId, 'dracula');
 
     // Toggle Haptic Feedback switch
-    final hapticSwitch = find.byType(Switch).first;
+    final hapticFinder = find.ancestor(of: find.text('Haptic Feedback'), matching: find.byType(Container)).first;
+    final hapticSwitch = find.descendant(of: hapticFinder, matching: find.byType(Switch));
     expect(store.hapticFeedbackEnabled, isTrue);
     await tester.tap(hapticSwitch);
     await tester.pump();
@@ -89,7 +91,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Customize Accessory Keys'));
+    await tester.tap(find.text('Terminal Keys & Shortcuts'));
     await tester.pumpAndSettle();
 
     expect(find.text('STICKY MODIFIERS'), findsOneWidget);
