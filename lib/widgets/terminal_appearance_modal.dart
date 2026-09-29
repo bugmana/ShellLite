@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/terminal_settings_store.dart';
 import '../screens/privacy_policy_screen.dart';
+import '../screens/terminal_keys_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/terminal_theme_presets.dart';
-import 'customize_accessory_keys_modal.dart';
 
 class TerminalAppearanceModal extends StatelessWidget {
   const TerminalAppearanceModal({super.key});
@@ -298,7 +298,9 @@ class TerminalAppearanceModal extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               onTap: () {
                 Navigator.of(context).pop();
-                CustomizeAccessoryKeysModal.show(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TerminalKeysScreen()),
+                );
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

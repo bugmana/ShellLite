@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../customize_accessory_keys_modal.dart';
+import '../../screens/terminal_keys_screen.dart';
 
 /// Legacy compatibility wrapper for Terminal Keys & Shortcuts.
-/// All terminal and extended keys are unified under [CustomizeAccessoryKeysModal] in Settings.
+/// All terminal and extended keys are unified under [TerminalKeysScreen] in Settings.
 class ExtendedKeysSheet extends StatelessWidget {
   final ValueChanged<String>? onKeyTap;
   final bool autoDismiss;
@@ -15,6 +15,6 @@ class ExtendedKeysSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CustomizeAccessoryKeysModal();
+    return const TerminalKeysScreen();
   }
 }

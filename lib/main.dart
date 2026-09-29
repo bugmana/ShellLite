@@ -7,6 +7,7 @@ import 'providers/telemetry_store.dart';
 import 'providers/terminal_settings_store.dart';
 import 'screens/privacy_policy_screen.dart';
 import 'screens/server_list_screen.dart';
+import 'screens/terminal_keys_screen.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
 
@@ -73,6 +74,7 @@ class ShellLiteApp extends StatelessWidget {
       theme: themeData,
       routes: {
         '/privacy': (context) => const PrivacyPolicyScreen(),
+        '/keys': (context) => const TerminalKeysScreen(),
       },
       home: const ServerListScreen(),
     );

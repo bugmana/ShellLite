@@ -8,6 +8,7 @@ import 'package:shell_lite/providers/terminal_settings_store.dart';
 import 'package:shell_lite/services/storage_service.dart';
 import 'package:shell_lite/theme/app_theme.dart';
 import 'package:shell_lite/theme/terminal_theme_presets.dart';
+import 'package:shell_lite/screens/terminal_keys_screen.dart';
 import 'package:shell_lite/widgets/customize_accessory_keys_modal.dart';
 
 void main() {
@@ -30,9 +31,7 @@ void main() {
       value: settingsStore,
       child: MaterialApp(
         theme: AppTheme.buildTheme(TerminalThemePresets.obsidian),
-        home: const Scaffold(
-          body: CustomizeAccessoryKeysModal(),
-        ),
+        home: const TerminalKeysScreen(),
       ),
     );
   }
@@ -261,5 +260,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('^A'), findsOneWidget);
+  });
+
+  testWidgets('TerminalKeysScreen renders as an entire page similar to PrivacyPolicyScreen', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Verify page AppBar with title and actions
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
+    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.restore_rounded), findsOneWidget);
+
+    // Verify TabBar with all 4 tabs
+    expect(find.byType(TabBar), findsOneWidget);
+    expect(find.byType(TabBarView), findsOneWidget);
+    expect(find.text('Key Bar Layout'), findsOneWidget);
+    expect(find.text('Function (F1–F12)'), findsOneWidget);
+    expect(find.text('Navigation'), findsOneWidget);
+    expect(find.text('Control Keys'), findsOneWidget);
   });
 }

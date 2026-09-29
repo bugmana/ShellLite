@@ -7,7 +7,7 @@ import 'accessory_bar/keypad_drawer.dart';
 import 'accessory_bar/sticky_modifier_key.dart';
 import 'accessory_bar/tactile_key_button.dart';
 import 'accessory_bar/tmux_accessory_strip.dart';
-import 'customize_accessory_keys_modal.dart';
+import '../screens/terminal_keys_screen.dart';
 
 // Re-export extracted classes for backward compatibility
 export 'accessory_bar/add_custom_key_dialog.dart';
@@ -159,7 +159,7 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
               onKeyTap: _handleKey,
               isKeyboardVisible: widget.isKeyboardVisible,
               onClose: () => setState(() => _isKeypadExpanded = false),
-              onCustomize: () => CustomizeAccessoryKeysModal.show(context),
+              onCustomize: () => TerminalKeysScreen.open(context),
               onTriggerHaptic: _triggerHaptic,
               theme: theme,
             ),
