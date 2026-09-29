@@ -9,7 +9,6 @@ import 'package:shell_lite/services/storage_service.dart';
 import 'package:shell_lite/theme/app_theme.dart';
 import 'package:shell_lite/theme/terminal_theme_presets.dart';
 import 'package:shell_lite/screens/terminal_keys_screen.dart';
-import 'package:shell_lite/widgets/customize_accessory_keys_modal.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
