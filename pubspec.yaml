@@ -17,7 +17,7 @@ dependencies:
   provider: ^6.1.5
   uuid: ^4.6.0
   pinenacl: ^0.6.0
-  crypto: ^3.0.7
+  crypto: ^3.0.8
   web_socket_channel: ^3.0.3
   file_picker: ^12.2.0
   web: ^1.1.2
