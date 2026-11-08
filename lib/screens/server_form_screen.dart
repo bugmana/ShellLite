@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -249,7 +248,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
 
     final profile = ServerProfile(
       id: id,
-      displayName: _nameController.text.trim(),
+      displayName: _nameController.text.trim().isEmpty
+          ? _hostController.text.trim()
+          : _nameController.text.trim(),
       host: _hostController.text.trim(),
       port: port,
       username: _usernameController.text.trim(),
@@ -283,54 +284,6 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
     }
   }
 
-  Future<void> _parseClipboardSSHCommand() async {
-    final data = await Clipboard.getData('text/plain');
-    final raw = data?.text?.trim() ?? '';
-    if (raw.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Clipboard is empty')),
-        );
-      }
-      return;
-    }
-
-    final regex = RegExp(
-      r'(?:ssh\s+)?(?:-p\s*(?<port>\d+)\s+)?(?:-i\s*\S+\s+)?(?:(?<user>[a-zA-Z0-9._-]+)@)?(?<host>[a-zA-Z0-9.-]+)(?:\s+-p\s*(?<port2>\d+))?',
-    );
-    final match = regex.firstMatch(raw);
-    if (match != null && match.namedGroup('host') != null) {
-      HapticFeedback.mediumImpact();
-      final host = match.namedGroup('host')!;
-      final user = match.namedGroup('user') ?? 'root';
-      final port = match.namedGroup('port') ?? match.namedGroup('port2') ?? '22';
-
-      setState(() {
-        _hostController.text = host;
-        _usernameController.text = user;
-        _portController.text = port;
-        if (_nameController.text.isEmpty) {
-          _nameController.text = '$host ($user)';
-        }
-      });
-      if (mounted) {
-        SemanticsService.sendAnnouncement(View.of(context), 'Server details populated from clipboard', TextDirection.ltr);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Populated from clipboard: $user@$host:$port'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not parse SSH command from clipboard')),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existingProfile != null;
@@ -360,33 +313,16 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 children: [
-                  // ── 1-Tap SSH Command Auto-Parser ───────────────────
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, AppTouchTarget.min),
-                        side: BorderSide(color: theme.border),
-                        foregroundColor: theme.primaryAccent,
-                      ),
-                      onPressed: _parseClipboardSSHCommand,
-                      icon: const Icon(Icons.paste_rounded, size: 18),
-                      label: const Text('Paste & Parse SSH Command from Clipboard'),
-                    ),
-                  ),
-
                   // ── Server Details Section ─────────────────────────────
                   _buildSectionHeader('SERVER DETAILS', theme),
                   const SizedBox(height: AppSpacing.sm),
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
-                      labelText: 'Display Name',
+                      labelText: 'Name (optional)',
                       hintText: 'e.g. Production Web',
                       prefixIcon: Icon(Icons.label_outline_rounded, size: 20),
                     ),
-                    validator: (val) =>
-                        val == null || val.trim().isEmpty ? 'Display name is required' : null,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Row(
@@ -396,7 +332,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                         child: TextFormField(
                           controller: _hostController,
                           decoration: const InputDecoration(
-                            labelText: 'Host / IP Address',
+                            labelText: 'Host',
                             hintText: 'e.g. 192.168.1.10',
                             prefixIcon: Icon(Icons.dns_outlined, size: 20),
                           ),

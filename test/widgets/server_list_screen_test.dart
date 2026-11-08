@@ -33,8 +33,8 @@ void main() {
       ),
     );
 
-    expect(find.text('No Servers Configured'), findsOneWidget);
-    expect(find.text('Add First Server'), findsOneWidget);
+    expect(find.text('No servers yet'), findsOneWidget);
+    expect(find.text('Add server'), findsWidgets);
   });
 
   testWidgets('ServerCard renders displayName and connection details', (tester) async {
@@ -131,7 +131,7 @@ Filesystem      Size  Used Avail Use% Mounted on
       ),
     );
 
-    expect(find.text('Add Server'), findsOneWidget);
+    expect(find.text('Add server'), findsWidgets);
     expect(find.text('(1/10)'), findsOneWidget);
   });
 

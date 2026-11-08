@@ -44,8 +44,8 @@ void main() {
     expect(find.text('New Server'), findsOneWidget);
 
     // Enter details
-    await tester.enterText(find.widgetWithText(TextFormField, 'Display Name'), 'Ubuntu Test Server');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Host / IP Address'), '127.0.0.1');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Name (optional)'), 'Ubuntu Test Server');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
     await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'testuser');
     await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'TestUserPass123!');
 
@@ -57,6 +57,36 @@ void main() {
     expect(serverStore.profiles.length, 1);
     final profile = serverStore.profiles.first;
     expect(profile.displayName, 'Ubuntu Test Server');
+    expect(profile.host, '127.0.0.1');
+    expect(profile.username, 'testuser');
+    expect(profile.authMethod.type, AuthType.password);
+
+    // Verify password saved
+    final savedPassword = await serverStore.getCredential(profile);
+    expect(savedPassword, 'TestUserPass123!');
+  });
+
+  testWidgets('ServerFormScreen uses host as name when name is blank', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    // Verify Title
+    expect(find.text('New Server'), findsOneWidget);
+
+    // Enter details
+    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'testuser');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'TestUserPass123!');
+
+    // Tap Save
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    // Verify server profile is saved in ServerStore
+    expect(serverStore.profiles.length, 1);
+    final profile = serverStore.profiles.first;
+    expect(profile.displayName, '127.0.0.1');
+    expect(find.text('Paste & Parse SSH Command from Clipboard'), findsNothing);
     expect(profile.host, '127.0.0.1');
     expect(profile.username, 'testuser');
     expect(profile.authMethod.type, AuthType.password);
@@ -159,7 +189,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Validation errors should show
-    expect(find.text('Display name is required'), findsOneWidget);
+    expect(find.text('Display name is required'), findsNothing);
     expect(find.text('Host is required'), findsOneWidget);
     expect(find.text('Username is required'), findsOneWidget);
     expect(find.text('Password is required'), findsOneWidget);
@@ -176,8 +206,8 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Display Name'), 'Invalid Key Server');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Host / IP Address'), '127.0.0.1');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Name (optional)'), 'Invalid Key Server');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
     await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'testuser');
 
     // Switch to SSH Key mode
@@ -221,8 +251,8 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Display Name'), 'Encrypted Key Server');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Host / IP Address'), '10.0.0.99');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Name (optional)'), 'Encrypted Key Server');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '10.0.0.99');
     await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'arch');
 
     // Switch to SSH Key mode

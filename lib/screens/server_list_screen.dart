@@ -144,7 +144,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Add Server', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text('Add server', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(width: 4),
                   Text('(${profiles.length}/${store.maxServers})', style: const TextStyle(fontSize: 12)),
                 ],
@@ -200,7 +200,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'No Servers Configured',
+              'No servers yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -210,7 +210,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Add your first SSH server profile to start connecting.',
+              'Add a server to connect.',
               style: TextStyle(
                 fontSize: 14,
                 color: theme.textSecondary,
@@ -221,7 +221,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
             ElevatedButton.icon(
               onPressed: () => _openForm(),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Add First Server'),
+              label: const Text('Add server'),
             ),
           ],
         ),
