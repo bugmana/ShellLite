@@ -10,7 +10,7 @@ class TerminalSelectionToolbar extends StatelessWidget {
   final double canvasWidth;
   final double canvasHeight;
   final bool isDisconnected;
-  final VoidCallback? onOpenLink;
+  final bool isLink;
   final VoidCallback onCopy;
   final VoidCallback onSelectAll;
   final AppThemeExtension theme;
@@ -23,7 +23,7 @@ class TerminalSelectionToolbar extends StatelessWidget {
     required this.canvasWidth,
     required this.canvasHeight,
     required this.isDisconnected,
-    this.onOpenLink,
+    this.isLink = false,
     required this.onCopy,
     required this.onSelectAll,
     required this.theme,
@@ -32,8 +32,8 @@ class TerminalSelectionToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const toolbarHeight = 50.0;
-    final estimatedWidth = math.max(
-        0.0, math.min(canvasWidth - 16, onOpenLink == null ? 220.0 : 340.0));
+    final estimatedWidth =
+        math.max(0.0, math.min(canvasWidth - 16, isLink ? 240.0 : 220.0));
 
     final isSingleLine =
         (endOffset.dy - startOffset.dy).abs() < lineHeight * 1.5;
@@ -84,13 +84,6 @@ class TerminalSelectionToolbar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (onOpenLink != null)
-                    TextButton(
-                        style: TextButton.styleFrom(
-                            minimumSize: const Size(48, 48),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                        onPressed: onOpenLink,
-                        child: const Text('Open link')),
                   InkWell(
                     key: const Key('terminal_selection_copy_button'),
                     onTap: onCopy,
@@ -104,7 +97,7 @@ class TerminalSelectionToolbar extends StatelessWidget {
                               size: 15, color: theme.primaryAccent),
                           const SizedBox(width: 6),
                           Text(
-                            onOpenLink == null ? 'Copy' : 'Copy link',
+                            isLink ? 'Copy link' : 'Copy',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,

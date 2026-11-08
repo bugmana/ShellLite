@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xterm/xterm.dart';
 import 'package:shell_lite/screens/terminal/terminal_selection_overlay.dart';
-import 'package:shell_lite/services/terminal_link_service.dart';
+import 'package:shell_lite/services/terminal_selection_controller.dart';
 import 'package:shell_lite/theme/app_theme.dart';
 import 'package:shell_lite/theme/terminal_theme_presets.dart';
 import 'package:shell_lite/widgets/terminal_selection_handle.dart';
@@ -13,32 +13,32 @@ class _RenderTerminal {
   Offset getOffset(CellOffset cell) => Offset(cell.x * 8, 100);
 }
 
-class _FailedLauncher extends TerminalLinkService {
-  _FailedLauncher({this.throws = false});
-  final bool throws;
-  Uri? requested;
-  @override
-  Future<bool> open(Uri uri) async {
-    requested = uri;
-    if (throws) throw StateError('launch failed');
-    return false;
-  }
-}
-
 void main() {
-  for (final throws in [false, true]) {
-    testWidgets('link failure retains selection (throws=$throws)',
+  for (final columns in [80, 20]) {
+    testWidgets('copies whole URL without browser actions at width $columns',
         (tester) async {
-      final terminal = Terminal()..resize(80, 10);
-      const url = 'https://example.com/?code=abc!';
-      terminal.write(url);
+      String? copied;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      });
+      addTearDown(() => TestDefaultBinaryMessengerBinding
+          .instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null));
+      final terminal = Terminal()..resize(columns, 10);
+      const url = 'https://example.com/login?code=abc%2B!#done';
+      terminal.write('Go $url');
       final shellInput = <String>[];
       terminal.onOutput = shellInput.add;
-      final controller = TerminalController();
+      final controller = TerminalSelectionController(terminal);
       final scroll = ScrollController();
-      final launcher = _FailedLauncher(throws: throws);
-      controller.setSelection(terminal.buffer.createAnchor(0, 0),
-          terminal.buffer.createAnchor(url.length, 0));
+      final word = terminal.buffer.getWordBoundary(const CellOffset(5, 0))!;
+      controller.setSelection(
+          terminal.buffer.createAnchorFromOffset(word.begin),
+          terminal.buffer.createAnchorFromOffset(word.end));
       final theme = AppTheme.buildTheme(TerminalThemePresets.obsidian);
       await tester.pumpWidget(MaterialApp(
           theme: theme,
@@ -53,15 +53,20 @@ void main() {
                 canvasWidth: 800,
                 canvasHeight: 500,
                 isDisconnected: false,
-                theme: theme.extension<AppThemeExtension>()!,
-                linkService: launcher),
+                theme: theme.extension<AppThemeExtension>()!),
           ]))));
-      await tester.tap(find.text('Open link'));
+      expect(find.text('Open link'), findsNothing);
+      expect(
+          tester
+              .getSize(find.byKey(const Key('terminal_selection_copy_button')))
+              .height,
+          greaterThanOrEqualTo(48));
+      await tester.tap(find.text('Copy link'));
       await tester.pumpAndSettle();
-      expect(launcher.requested.toString(), url);
+      expect(copied, url);
       expect(shellInput, isEmpty);
-      expect(find.textContaining('Could not open link.'), findsOneWidget);
-      expect(controller.selection, isNotNull);
+      expect(controller.selection, isNull);
+      expect(find.text('Copied to clipboard'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       controller.dispose();
       scroll.dispose();

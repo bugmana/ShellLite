@@ -3,13 +3,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
 import '../../theme/app_theme.dart';
-import '../../services/terminal_link_service.dart';
+import '../../services/terminal_link.dart';
 import '../../widgets/terminal_selection_handle.dart';
 import 'terminal_selection_toolbar.dart';
 
 /// Overlay widget managing terminal selection handles and floating toolbar.
 class TerminalSelectionOverlay extends StatelessWidget {
-  final TerminalLinkService linkService;
   final Terminal terminal;
   final TerminalController controller;
   final ScrollController scrollController;
@@ -22,7 +21,6 @@ class TerminalSelectionOverlay extends StatelessWidget {
 
   const TerminalSelectionOverlay({
     super.key,
-    this.linkService = const TerminalLinkService(),
     required this.terminal,
     required this.controller,
     required this.scrollController,
@@ -225,27 +223,7 @@ class TerminalSelectionOverlay extends StatelessWidget {
               isDisconnected: isDisconnected,
               onCopy: () => _copySelection(context),
               onSelectAll: _selectAll,
-              onOpenLink: terminalLink(terminal.buffer.getText(selection)) ==
-                      null
-                  ? null
-                  : () async {
-                      final uri =
-                          terminalLink(terminal.buffer.getText(selection));
-                      if (uri == null) return;
-                      bool opened;
-                      try {
-                        opened = await linkService.open(uri);
-                      } catch (_) {
-                        opened = false;
-                      }
-                      if (!opened && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Could not open link. Copy it and open it in your browser.')),
-                        );
-                      }
-                    },
+              isLink: terminalLink(terminal.buffer.getText(selection)) != null,
               theme: theme,
             ),
           ],

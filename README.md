@@ -27,7 +27,7 @@ ShellLite targets three platforms:
 - Six color presets: ShellLite Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
 - Adjustable terminal font size (10 to 22 pt) using JetBrains Mono with system fallbacks.
 - Touch text selection with draggable handles, edge scrolling, and a floating action toolbar.
-- Printed HTTP(S) links can be selected and opened in the device browser or copied.
+- Long-press printed HTTP(S) links to select the full URL and copy it with **Copy link**.
 
 ### Keyboard Accessory Bar
 - Mobile-optimized key row: Tab, Shift+Tab, arrow keys, Escape, and quick interrupt (`^C`).
@@ -102,11 +102,11 @@ Native targets (iOS and Android) connect directly to SSH servers over TCP.
 
 ## Using terminal links and selection
 
-Long-press a printed `http://` or `https://` URL to select the link, then choose **Open link** or **Copy link**. On Android, a failed external-browser launch falls back to an in-app WebView. On Web, opening a link creates a new browser tab. Ordinary taps continue to focus the terminal.
+Long-press a printed `http://` or `https://` URL to select the whole link, including soft-wrapped lines, then tap **Copy link**. Paste it into your preferred browser. Ordinary taps continue to focus the terminal.
 
 For other output, long-press a word and drag the selection handles to adjust the range. Drag near the top or bottom of the terminal to scroll through output. Choose **Copy** to copy the selection or **Select All** to select the buffer.
 
-Links open on your device: `localhost` refers to that device, not the remote SSH server. ShellLite does not automatically create a tunnel. Bare domains and hidden OSC 8 hyperlink targets are not detected.
+When pasting a link into your device browser, `localhost` refers to that device, not the remote SSH server. ShellLite does not automatically create a tunnel. Bare domains and hidden OSC 8 hyperlink targets are not detected.
 
 ## Contributing
 
