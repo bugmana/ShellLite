@@ -7,7 +7,11 @@ class TerminalSelectionController extends TerminalController {
 
   @override
   void setSelection(CellAnchor base, CellAnchor extent, {SelectionMode? mode}) {
-    if (selection == null && base.y == extent.y) {
+    final word = terminal.buffer.getWordBoundary(base.offset);
+    final isWordSelection = word != null &&
+        word.begin.isEqual(base.offset) &&
+        word.end.isEqual(extent.offset);
+    if (selection == null && base.y == extent.y && isWordSelection) {
       final buffer = terminal.buffer;
       var first = base.y;
       var last = base.y;
@@ -38,7 +42,12 @@ class TerminalSelectionController extends TerminalController {
           in RegExp(r'''https?://[^\s<>"']+''').allMatches(text.toString())) {
         var end = match.end;
         final source = text.toString();
-        while (end > match.start && '.,;:!?'.contains(source[end - 1])) {
+        // Query/fragment punctuation may be part of an opaque auth token.
+        final hasPayload =
+            source.substring(match.start, end).contains(RegExp(r'[?#]'));
+        while (!hasPayload &&
+            end > match.start &&
+            '.,;:!?'.contains(source[end - 1])) {
           end--;
         }
         for (final pair in ['()', '[]', '{}']) {

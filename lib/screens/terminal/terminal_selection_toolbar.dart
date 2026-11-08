@@ -31,9 +31,9 @@ class TerminalSelectionToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const toolbarHeight = 48.0;
-    final estimatedWidth =
-        math.min(canvasWidth - 16, onOpenLink == null ? 220.0 : 340.0);
+    const toolbarHeight = 50.0;
+    final estimatedWidth = math.max(
+        0.0, math.min(canvasWidth - 16, onOpenLink == null ? 220.0 : 340.0));
 
     final isSingleLine =
         (endOffset.dy - startOffset.dy).abs() < lineHeight * 1.5;
@@ -81,11 +81,16 @@ class TerminalSelectionToolbar extends StatelessWidget {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (onOpenLink != null)
                     TextButton(
-                        onPressed: onOpenLink, child: const Text('Open link')),
+                        style: TextButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                        onPressed: onOpenLink,
+                        child: const Text('Open link')),
                   InkWell(
                     key: const Key('terminal_selection_copy_button'),
                     onTap: onCopy,

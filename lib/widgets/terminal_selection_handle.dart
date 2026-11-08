@@ -68,8 +68,8 @@ class _TerminalSelectionHandleState extends State<TerminalSelectionHandle> {
   Widget build(BuildContext context) {
     const lineWidth = 3.0;
     const knobDiameter = 14.0;
-    const touchWidth = 44.0;
-    final touchHeight = widget.lineHeight + knobDiameter + 16.0;
+    const touchWidth = 48.0;
+    final touchHeight = widget.lineHeight + knobDiameter + 20.0;
 
     // For the start (left) handle, the vertical line is anchored at x = 28 so
     // the touch target extends primarily to the left, preventing overlap when
