@@ -102,7 +102,7 @@ Native targets (iOS and Android) connect directly to SSH servers over TCP.
 
 ## Using terminal links and selection
 
-Long-press a printed `http://` or `https://` URL to select the link, then choose **Open link** or **Copy link**. On Web, opening a link creates a new browser tab. Ordinary taps continue to focus the terminal.
+Long-press a printed `http://` or `https://` URL to select the link, then choose **Open link** or **Copy link**. On Android, a failed external-browser launch falls back to an in-app WebView. On Web, opening a link creates a new browser tab. Ordinary taps continue to focus the terminal.
 
 For other output, long-press a word and drag the selection handles to adjust the range. Drag near the top or bottom of the terminal to scroll through output. Choose **Copy** to copy the selection or **Select All** to select the buffer.
 

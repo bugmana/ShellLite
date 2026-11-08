@@ -32,6 +32,8 @@ void main() {
       final terminal = Terminal()..resize(80, 10);
       const url = 'https://example.com/?code=abc!';
       terminal.write(url);
+      final shellInput = <String>[];
+      terminal.onOutput = shellInput.add;
       final controller = TerminalController();
       final scroll = ScrollController();
       final launcher = _FailedLauncher(throws: throws);
@@ -57,6 +59,7 @@ void main() {
       await tester.tap(find.text('Open link'));
       await tester.pumpAndSettle();
       expect(launcher.requested.toString(), url);
+      expect(shellInput, isEmpty);
       expect(find.textContaining('Could not open link.'), findsOneWidget);
       expect(controller.selection, isNotNull);
       await tester.pumpWidget(const SizedBox());
