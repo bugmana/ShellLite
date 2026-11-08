@@ -26,7 +26,8 @@ ShellLite targets three platforms:
 - Stateful UTF-8 stream decoding to prevent character truncation across network packet boundaries.
 - Six color presets: ShellLite Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
 - Adjustable terminal font size (10 to 22 pt) using JetBrains Mono with system fallbacks.
-- Touch text selection with draggable start/end handles and a floating copy/select-all toolbar.
+- Touch text selection with draggable handles, edge scrolling, and a floating action toolbar.
+- Printed HTTP(S) links can be selected and opened in the device browser or copied.
 
 ### Keyboard Accessory Bar
 - Mobile-optimized key row: Tab, Shift+Tab, arrow keys, Escape, and quick interrupt (`^C`).
@@ -99,70 +100,24 @@ Native targets (iOS and Android) connect directly to SSH servers over TCP.
 
 ---
 
-## Development and Build
+## Using terminal links and selection
 
-### Prerequisites
-- Flutter SDK (3.24+ stable channel)
-- Java 17 (for Android builds)
-- Xcode 15+ and macOS (for iOS builds)
+Long-press a printed `http://` or `https://` URL to select the link, then choose **Open link** or **Copy link**. On Web, opening a link creates a new browser tab. Ordinary taps continue to focus the terminal.
 
-### Setup
+For other output, long-press a word and drag the selection handles to adjust the range. Drag near the top or bottom of the terminal to scroll through output. Choose **Copy** to copy the selection or **Select All** to select the buffer.
+
+Links open on your device: `localhost` refers to that device, not the remote SSH server. ShellLite does not automatically create a tunnel. Bare domains and hidden OSC 8 hyperlink targets are not detected.
+
+## Contributing
+
+Use Flutter stable with the Dart SDK required by [`pubspec.yaml`](pubspec.yaml). Android builds require Java 17; iOS builds require macOS and Xcode.
+
 ```bash
-git clone https://github.com/bugmana/ShellLite.git
-cd ShellLite
 flutter pub get
+flutter run -d chrome
 ```
 
-### Build Commands
-
-#### Web
-```bash
-flutter build web --base-href /
-```
-
-#### Android
-```bash
-# APK
-flutter build apk --release
-
-# App Bundle (for Google Play Store)
-flutter build appbundle --release
-```
-
-#### iOS
-```bash
-flutter build ipa --release
-```
-
-### Verification
-```bash
-# Static analysis
-flutter analyze
-
-# Test suite
-flutter test
-```
-
----
-
-## Project Structure
-
-```text
-ShellLite/
-├── docs/                     Store graphical assets
-│   └── store_assets/
-├── lib/
-│   ├── config/               Application limits, terminal styles, key definitions
-│   ├── models/               ServerProfile, AuthMethod, ServerTelemetry
-│   ├── providers/            ServerStore, SessionStore, TelemetryStore, TerminalSettingsStore
-│   ├── screens/              Server list, server form, terminal, privacy policy
-│   ├── services/             SSH service, socket factory, file transfer, key generator, storage
-│   ├── theme/                Theme presets, application palettes, typography
-│   └── widgets/              Keyboard accessory bar, file upload, selection handles, modals
-├── test/                     Unit, widget, and integration test suites
-├── scripts/                  Version resolution and release automation
-└── .github/workflows/        CI/CD workflows for Android, iOS, and Web releases
-```
+See [Repository Guidelines](AGENTS.md) for project structure, build and test commands, code style, and pull request conventions. CI definitions in [`.github/workflows/`](.github/workflows/) describe the checks and platform builds used for code changes.
 
 ---
 
