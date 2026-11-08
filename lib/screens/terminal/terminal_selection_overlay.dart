@@ -3,11 +3,13 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
 import '../../theme/app_theme.dart';
+import '../../services/terminal_link_service.dart';
 import '../../widgets/terminal_selection_handle.dart';
 import 'terminal_selection_toolbar.dart';
 
 /// Overlay widget managing terminal selection handles and floating toolbar.
 class TerminalSelectionOverlay extends StatelessWidget {
+  final TerminalLinkService linkService;
   final Terminal terminal;
   final TerminalController controller;
   final ScrollController scrollController;
@@ -20,6 +22,7 @@ class TerminalSelectionOverlay extends StatelessWidget {
 
   const TerminalSelectionOverlay({
     super.key,
+    this.linkService = const TerminalLinkService(),
     required this.terminal,
     required this.controller,
     required this.scrollController,
@@ -31,12 +34,21 @@ class TerminalSelectionOverlay extends StatelessWidget {
     required this.theme,
   });
 
-  void _copySelection(BuildContext context) {
+  Future<void> _copySelection(BuildContext context) async {
     HapticFeedback.lightImpact();
     final selection = controller.selection;
     if (selection != null) {
       final text = terminal.buffer.getText(selection);
-      Clipboard.setData(ClipboardData(text: text));
+      try {
+        await Clipboard.setData(ClipboardData(text: text));
+      } catch (_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not copy. Please try again.')),
+        );
+        return;
+      }
+      if (!context.mounted) return;
       controller.clearSelection();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -47,6 +59,7 @@ class TerminalSelectionOverlay extends StatelessWidget {
         ),
       );
     }
+    if (!context.mounted) return;
     SemanticsService.sendAnnouncement(
       View.of(context),
       'Selection copied to clipboard',
@@ -69,7 +82,8 @@ class TerminalSelectionOverlay extends StatelessWidget {
     DragUpdateDetails details,
     BufferRange normalized,
   ) {
-    final renderBox = terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox =
+        terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null || renderTerminal == null) return;
 
     final localPos = renderBox.globalToLocal(details.globalPosition);
@@ -88,7 +102,8 @@ class TerminalSelectionOverlay extends StatelessWidget {
       lastValidStart = const CellOffset(0, 0);
     }
 
-    final newStart = cellOffset.isAfter(lastValidStart) ? lastValidStart : cellOffset;
+    final newStart =
+        cellOffset.isAfter(lastValidStart) ? lastValidStart : cellOffset;
 
     if (!newStart.isEqual(normalized.begin)) {
       controller.setSelection(
@@ -104,7 +119,8 @@ class TerminalSelectionOverlay extends StatelessWidget {
     DragUpdateDetails details,
     BufferRange normalized,
   ) {
-    final renderBox = terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox =
+        terminalViewKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null || renderTerminal == null) return;
 
     final localPos = renderBox.globalToLocal(details.globalPosition);
@@ -160,8 +176,9 @@ class TerminalSelectionOverlay extends StatelessWidget {
             startOffset.dy + lineHeight >= 0 && startOffset.dy <= canvasHeight;
         final isEndVisible =
             endOffset.dy + lineHeight >= 0 && endOffset.dy <= canvasHeight;
-        final isAnyVisible =
-            isStartVisible || isEndVisible || (startOffset.dy < 0 && endOffset.dy > canvasHeight);
+        final isAnyVisible = isStartVisible ||
+            isEndVisible ||
+            (startOffset.dy < 0 && endOffset.dy > canvasHeight);
         if (!isAnyVisible) return const SizedBox.shrink();
 
         final isStartNearBottom =
@@ -173,6 +190,7 @@ class TerminalSelectionOverlay extends StatelessWidget {
           children: [
             if (isStartVisible)
               TerminalSelectionHandle(
+                scrollController: scrollController,
                 handleKey: const Key('terminal_selection_handle_start'),
                 position: TerminalHandlePosition.left,
                 offset: startOffset,
@@ -186,6 +204,7 @@ class TerminalSelectionOverlay extends StatelessWidget {
               ),
             if (isEndVisible)
               TerminalSelectionHandle(
+                scrollController: scrollController,
                 handleKey: const Key('terminal_selection_handle_end'),
                 position: TerminalHandlePosition.right,
                 offset: endOffset,
@@ -206,6 +225,27 @@ class TerminalSelectionOverlay extends StatelessWidget {
               isDisconnected: isDisconnected,
               onCopy: () => _copySelection(context),
               onSelectAll: _selectAll,
+              onOpenLink: terminalLink(terminal.buffer.getText(selection)) ==
+                      null
+                  ? null
+                  : () async {
+                      final uri =
+                          terminalLink(terminal.buffer.getText(selection));
+                      if (uri == null) return;
+                      bool opened;
+                      try {
+                        opened = await linkService.open(uri);
+                      } catch (_) {
+                        opened = false;
+                      }
+                      if (!opened && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Could not open link. Copy it and open it in your browser.')),
+                        );
+                      }
+                    },
               theme: theme,
             ),
           ],

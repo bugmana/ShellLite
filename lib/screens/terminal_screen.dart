@@ -1,3 +1,4 @@
+import '../services/terminal_selection_controller.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -44,7 +45,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
       maxLines: TerminalConfig.maxScrollbackLines,
       mouseHandler: const ShellLiteMouseHandler(),
     );
-    _fallbackController = TerminalController();
+    _fallbackController = TerminalSelectionController(_fallbackTerminal);
     _terminalFocusNode = FocusNode();
     _terminalScrollController.addListener(_handleTerminalScroll);
 

@@ -1,3 +1,4 @@
+import '../services/terminal_selection_controller.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:xterm/xterm.dart';
@@ -95,7 +96,7 @@ class SessionStore extends ChangeNotifier {
       maxLines: TerminalConfig.maxScrollbackLines,
       mouseHandler: const ShellLiteMouseHandler(),
     );
-    final controller = TerminalController();
+    final controller = TerminalSelectionController(terminal);
     final sshService = SSHService(storageService: _storageService);
 
     terminal.onOutput = (data) {
