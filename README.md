@@ -25,7 +25,7 @@ ShellLite targets three platforms:
 - ANSI/VT100 terminal emulation via [`xterm.dart`](https://pub.dev/packages/xterm) with dynamic PTY window resizing and configurable scrollback up to 10,000 lines.
 - Stateful UTF-8 stream decoding to prevent character truncation across network packet boundaries.
 - Six color presets: ShellLite Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
-- Adjustable terminal font size (9 to 26 pt) using JetBrains Mono with system fallbacks.
+- Terminal text size from 10 to 22 pt, adjusted with the minus and plus buttons in Settings.
 - Touch text selection with draggable handles, edge scrolling, and a floating action toolbar.
 - Tap or long-press printed HTTP(S) links to select the full URL and copy it with **Copy link**.
 
@@ -40,6 +40,7 @@ ShellLite targets three platforms:
 - Password authentication and unencrypted or passphrase-encrypted OpenSSH private keys (Ed25519, ECDSA, RSA).
 - Credentials encrypted locally via hardware security: Apple Keychain on iOS and KeyStore on Android.
 - Limit of 10 configured server profiles.
+- Start with Host, Username, and authentication. More options contains Name, Port, tmux, and Startup command. Startup command stays editable with tmux enabled and runs on connections without tmux.
 
 ### File Transfer
 - Upload one file from the terminal menu. Confirm the destination folder (home by default), then tap Upload.
@@ -137,6 +138,31 @@ python3 -m venv /tmp/shelllite-smoke
 The test types into the real UI, adds a dummy server, reloads, checks its saved fields, and deletes it. Each run uses isolated browser storage and blocks WebSockets; no SSH connection is made. Use `--url http://localhost:8080` for a locally served web build. Traces and failure screenshots go to `build/web-smoke/`. The manual **Web smoke** Actions workflow runs desktop and mobile viewport checks against `https://shell.strandberg.dev`; mobile emulation does not replace device testing.
 
 See [Repository Guidelines](AGENTS.md) for project structure, build and test commands, code style, and pull request conventions. CI definitions in [`.github/workflows/`](.github/workflows/) describe the checks and platform builds used for code changes.
+
+## Releases and web deployment
+
+Native releases and the hosted web app deploy separately.
+
+After checking and pushing changes to `main`, create a release with:
+
+```bash
+gh workflow run release.yml -f bump_type=auto -f deploy_to_play_store=true -f play_store_track=internal
+gh run list --workflow=release.yml
+gh run watch <run-id>
+```
+
+The workflow derives the next version from Conventional Commits, creates a tag, builds Android and iOS artifacts, publishes a GitHub release with release notes, and deploys the Android bundle to Google Play internal testing. Use the workflow's `custom_changelog` and `custom_play_store_notes` inputs for curated notes; Play notes must be at most 500 characters. Production promotion is a separate action.
+
+On the host serving `shell.strandberg.dev`, rebuild the web app with the release version:
+
+```bash
+flutter build web --release --base-href / --build-name=1.11.3
+chmod -R a+rX build/web
+```
+
+The host serves `build/web/` through its reverse proxy. GitHub release publication does not update that directory. The optional watcher units in `systemd/` are not installed on the current host; rebuild explicitly. Verify the served build and run the desktop/mobile smoke checks after deploying. The manual **Web smoke** workflow can also run these checks with `gh workflow run web-smoke.yml`.
+
+The sibling [`strandberg.dev`](https://github.com/bugmana/strandberg.dev) repository publishes the main website and ShellLite privacy page through GitHub Pages. Its deployment does not rebuild the ShellLite app.
 
 ---
 
