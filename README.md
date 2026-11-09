@@ -27,7 +27,7 @@ ShellLite targets three platforms:
 - Six color presets: ShellLite Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
 - Adjustable terminal font size (9 to 26 pt) using JetBrains Mono with system fallbacks.
 - Touch text selection with draggable handles, edge scrolling, and a floating action toolbar.
-- Long-press printed HTTP(S) links to select the full URL and copy it with **Copy link**.
+- Tap or long-press printed HTTP(S) links to select the full URL and copy it with **Copy link**.
 
 ### Keyboard Accessory Bar
 - One key row with Escape, Tab, Ctrl, arrows, Paste, More keys, and the keyboard toggle.
@@ -99,7 +99,7 @@ Native targets (iOS and Android) connect directly to SSH servers over TCP.
 
 ## Using terminal links and selection
 
-Long-press a printed `http://` or `https://` URL to select the whole link, including soft-wrapped lines, then tap **Copy link**. Paste it into your preferred browser. Ordinary taps continue to focus the terminal.
+Tap or long-press a printed `http://` or `https://` URL to select the whole link, including soft-wrapped lines, then tap **Copy link**. Paste it into your preferred browser. Printed URL taps stay in ShellLite for copying, even when a remote app requests mouse input. Other taps keep their normal terminal behavior.
 
 For other output, long-press a word and drag the selection handles to adjust the range. Drag near the top or bottom of the terminal to scroll through output. Choose **Copy** to copy the selection or **Select All** to select the buffer.
 

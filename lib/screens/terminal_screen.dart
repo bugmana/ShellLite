@@ -1,6 +1,7 @@
 import '../services/terminal_selection_controller.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
 import '../config/app_config.dart';
@@ -34,6 +35,65 @@ class _TerminalScreenState extends State<TerminalScreen>
   final GlobalKey<TerminalViewState> _terminalViewKey =
       GlobalKey<TerminalViewState>();
   ScrollPosition? _attachedScrollPosition;
+
+  TerminalController? _localLinkController;
+  PointerInputs? _savedPointerInputs;
+  final _localLinkPointers = <int>{};
+  final _localLinkOrigins = <int, Offset>{};
+
+  void _restorePointerInputs() {
+    final controller = _localLinkController;
+    final inputs = _savedPointerInputs;
+    _localLinkController = null;
+    _savedPointerInputs = null;
+    _localLinkPointers.clear();
+    _localLinkOrigins.clear();
+    if (controller != null && inputs != null) {
+      controller.setPointerInputs(inputs);
+    }
+  }
+
+  void _linkPointerDown(PointerDownEvent event, TerminalController controller) {
+    if (_localLinkController != null) {
+      _localLinkPointers.add(event.pointer);
+      return;
+    }
+    if (controller is! TerminalSelectionController) return;
+    final render = _renderTerminal;
+    if (render == null) return;
+    final cell = render.getCellOffset(render.globalToLocal(event.position))
+        as CellOffset;
+    if (controller.linkAt(cell) == null) return;
+    _localLinkPointers.add(event.pointer);
+    _localLinkOrigins[event.pointer] = event.position;
+    _localLinkController = controller;
+    _savedPointerInputs = controller.pointerInput;
+    controller.setPointerInputs(PointerInputs(controller.pointerInput.inputs
+        .difference({PointerInput.tap, PointerInput.drag, PointerInput.move})));
+  }
+
+  void _linkPointerEnd(PointerEvent event) {
+    final origin = _localLinkOrigins.remove(event.pointer);
+    final linkController = _localLinkController;
+    _localLinkPointers.remove(event.pointer);
+    // xterm 4.0 does not dispatch TerminalView.onTapUp to its consumer.
+    // Finish local taps after its own tap handlers have cleared old selection.
+    scheduleMicrotask(() {
+      if (mounted &&
+          event is PointerUpEvent &&
+          origin != null &&
+          (event.position - origin).distance <= kTouchSlop &&
+          linkController is TerminalSelectionController) {
+        final render = _renderTerminal;
+        if (render != null) {
+          linkController.selectLinkAt(
+              render.getCellOffset(render.globalToLocal(event.position))
+                  as CellOffset);
+        }
+      }
+      if (_localLinkPointers.isEmpty) _restorePointerInputs();
+    });
+  }
 
   bool _isKeyboardVisible = true;
   bool _hasObservedKeyboardInset = false;
@@ -167,6 +227,7 @@ class _TerminalScreenState extends State<TerminalScreen>
 
   @override
   void dispose() {
+    _restorePointerInputs();
     WidgetsBinding.instance.removeObserver(this);
     _attachedScrollPosition?.isScrollingNotifier
         .removeListener(_handleScrollSettled);
@@ -364,14 +425,18 @@ class _TerminalScreenState extends State<TerminalScreen>
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    _getStatusText(session, connectionState),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: _getStatusColor(session, connectionState, theme),
-                      fontWeight: FontWeight.w500,
+                  Flexible(
+                    child: Text(
+                      _getStatusText(session, connectionState),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _getStatusColor(session, connectionState, theme),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
+                  )
                 ],
               ),
             ],
@@ -409,22 +474,27 @@ class _TerminalScreenState extends State<TerminalScreen>
                     children: [
                       Container(
                         color: activeTheme.background,
-                        child: TerminalView(
-                          terminal,
-                          key: _terminalViewKey,
-                          controller: controller,
-                          scrollController: _terminalScrollController,
-                          theme: activeTheme,
-                          focusNode: _terminalFocusNode,
-                          autofocus: true,
-                          textStyle: textStyle,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          deleteDetection: true,
-                          hardwareKeyboardOnly: !_isKeyboardVisible,
-                          simulateScroll: false,
-                          onTapUp: (details, offset) => _focusTerminal(),
-                        ),
+                        child: Listener(
+                            onPointerDown: (event) =>
+                                _linkPointerDown(event, controller),
+                            onPointerUp: _linkPointerEnd,
+                            onPointerCancel: _linkPointerEnd,
+                            child: TerminalView(
+                              terminal,
+                              key: _terminalViewKey,
+                              controller: controller,
+                              scrollController: _terminalScrollController,
+                              theme: activeTheme,
+                              focusNode: _terminalFocusNode,
+                              autofocus: true,
+                              textStyle: textStyle,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              deleteDetection: true,
+                              hardwareKeyboardOnly: !_isKeyboardVisible,
+                              simulateScroll: false,
+                              onTapUp: (details, offset) => _focusTerminal(),
+                            )),
                       ),
                       TerminalSelectionOverlay(
                         terminal: terminal,

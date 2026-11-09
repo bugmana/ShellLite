@@ -56,4 +56,18 @@ void main() {
         'https://example.com/a(b)');
     controller.dispose();
   });
+  test('URL hit testing spans wraps and does not change an existing selection',
+      () {
+    final terminal = Terminal()..resize(20, 10);
+    terminal.write('Go https://example.com/login?code=123');
+    final controller = TerminalSelectionController(terminal);
+    controller.setSelection(
+        terminal.buffer.createAnchor(0, 0), terminal.buffer.createAnchor(2, 0));
+    final link = controller.linkAt(const CellOffset(4, 1));
+    expect(link, isNotNull);
+    expect(terminal.buffer.getText(link), 'https://example.com/login?code=123');
+    expect(terminal.buffer.getText(controller.selection), 'Go');
+    expect(controller.linkAt(const CellOffset(1, 0)), isNull);
+    controller.dispose();
+  });
 }

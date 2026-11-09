@@ -617,4 +617,56 @@ void main() {
     expect(find.text('Paste Clipboard'), findsNothing);
     expect(find.text('Keys & Shortcuts'), findsNothing);
   });
+  for (final width in [320.0, 800.0]) {
+    testWidgets(
+        'URL taps stay local while remote mouse reporting is enabled at width $width',
+        (tester) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+      final session = sessionStore.getSession(testProfile.id)!;
+      const url = 'https://github.com/bugmana/ShellLite/releases/tag/v1.11.2';
+      session.terminal
+          .write('\x1b[?1049h\x1b[2J\x1b[H$url\r\n\x1b[?1000h\x1b[?1006h');
+      expect(
+          session.terminal.buffer.lines[0].getText(), startsWith('https://'));
+      final sent = <String>[];
+      session.terminal.onOutput = sent.add;
+      await tester.pumpAndSettle();
+      final view = find.byType(TerminalView);
+      final state = tester.state<TerminalViewState>(view);
+      final render = state.renderTerminal;
+      final originalInputs = session.controller.pointerInput;
+      final point = render.localToGlobal(
+          render.getOffset(const CellOffset(8, 0)) + const Offset(2, 4));
+      await tester.tapAt(point);
+      await tester.pumpAndSettle();
+      expect(sent, isEmpty,
+          reason: 'URL taps must not reach the remote browser opener');
+      expect(
+          session.terminal.buffer.getText(session.controller.selection), url);
+      expect(find.text('Copy link'), findsOneWidget);
+      expect(session.controller.pointerInput, same(originalInputs));
+      sent.clear();
+      final ordinaryPoint = render.localToGlobal(
+          render.getOffset(const CellOffset(4, 10)) + const Offset(2, 4));
+      await tester.tapAt(ordinaryPoint);
+      await tester.pumpAndSettle();
+      expect(sent.any((value) => value.startsWith('\x1b[<0;')), isTrue,
+          reason: 'Ordinary remote terminal clicks must keep working');
+      sent.clear();
+      final gesture = await tester.startGesture(point);
+      expect(session.controller.pointerInput.inputs.contains(PointerInput.tap),
+          isFalse);
+      await gesture.moveBy(const Offset(0, -80));
+      await gesture.cancel();
+      await tester.pumpAndSettle();
+      expect(session.controller.pointerInput, same(originalInputs));
+      expect(sent, isEmpty);
+      await tester.pump(const Duration(milliseconds: 350));
+    });
+  }
 }
