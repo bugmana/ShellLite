@@ -36,18 +36,29 @@ void main() {
     );
   }
 
-  testWidgets('ServerFormScreen creates a new server with password auth', (tester) async {
+  testWidgets('ServerFormScreen creates a new server with password auth',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     // Verify Title
-    expect(find.text('New Server'), findsOneWidget);
+    expect(find.text('New server'), findsOneWidget);
 
     // Enter details
-    await tester.enterText(find.widgetWithText(TextFormField, 'Name (optional)'), 'Ubuntu Test Server');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'testuser');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'TestUserPass123!');
+    await tester.ensureVisible(find.text('More options'));
+    await tester.tap(find.text('More options'));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.widgetWithText(TextFormField, 'Name (optional)'));
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Name (optional)'),
+        'Ubuntu Test Server');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Username'), 'testuser');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Password'), 'TestUserPass123!');
 
     // Tap Save
     await tester.tap(find.text('Save'));
@@ -66,17 +77,21 @@ void main() {
     expect(savedPassword, 'TestUserPass123!');
   });
 
-  testWidgets('ServerFormScreen uses host as name when name is blank', (tester) async {
+  testWidgets('ServerFormScreen uses host as name when name is blank',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     // Verify Title
-    expect(find.text('New Server'), findsOneWidget);
+    expect(find.text('New server'), findsOneWidget);
 
     // Enter details
-    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'testuser');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'TestUserPass123!');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Username'), 'testuser');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Password'), 'TestUserPass123!');
 
     // Tap Save
     await tester.tap(find.text('Save'));
@@ -96,25 +111,31 @@ void main() {
     expect(savedPassword, 'TestUserPass123!');
   });
 
-  testWidgets('ServerFormScreen toggles between Password and SSH Key without leaking input text', (tester) async {
+  testWidgets(
+      'ServerFormScreen toggles between Password and SSH key without leaking input text',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     // Enter a password first
-    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'MySecretPassword');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Password'), 'MySecretPassword');
     await tester.pump();
 
-    // Switch to SSH Key mode
-    await tester.tap(find.text('SSH Key'));
+    // Switch to SSH key mode
+    await tester.tap(find.text('SSH key'));
     await tester.pumpAndSettle();
 
     // SSH key field should be visible and empty (not holding MySecretPassword)
-    expect(find.text('OpenSSH Private Key'), findsOneWidget);
+    expect(find.text('Private key'), findsOneWidget);
     final keyFieldFinder = find.byWidgetPredicate(
-      (w) => w is TextField && (w.decoration?.hintText?.contains('BEGIN OPENSSH') ?? false),
+      (w) =>
+          w is TextField &&
+          (w.decoration?.hintText?.contains('Paste your OpenSSH') ?? false),
     );
     expect(keyFieldFinder, findsOneWidget);
-    expect((tester.widget(keyFieldFinder) as TextField).controller?.text, isEmpty);
+    expect(
+        (tester.widget(keyFieldFinder) as TextField).controller?.text, isEmpty);
 
     // Switch back to Password mode
     await tester.tap(find.text('Password'));
@@ -124,60 +145,21 @@ void main() {
     expect(find.text('MySecretPassword'), findsOneWidget);
   });
 
-  testWidgets('ServerFormScreen generate key and clear key workflow', (tester) async {
+  testWidgets(
+      'existing private keys can be entered and cleared without generation',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
-
-    // Switch to SSH Key mode
-    await tester.tap(find.text('SSH Key'));
+    await tester.tap(find.text('SSH key'));
     await tester.pumpAndSettle();
-
-    final keyFieldFinder = find.byWidgetPredicate(
-      (w) => w is TextField && (w.decoration?.hintText?.contains('BEGIN OPENSSH') ?? false),
-    );
-
-    // Tap Generate
-    await tester.tap(find.text('Generate'));
-    await tester.pumpAndSettle();
-
-    // Verify the private key text is populated and contains OPENSSH PRIVATE KEY
-    expect(keyFieldFinder, findsOneWidget);
-    expect(
-      (tester.widget(keyFieldFinder) as TextField).controller?.text,
-      contains('BEGIN OPENSSH PRIVATE KEY'),
-    );
-
-    // Scroll down until Copy Public Key button is visible
-    final outerScrollable = find.byType(Scrollable).first;
-    await tester.scrollUntilVisible(find.text('Copy Public Key'), 150, scrollable: outerScrollable);
-    await tester.pumpAndSettle();
-
-    // Verify inline Public Key card is displayed and both copy buttons are available
-    expect(find.textContaining('Public Key'), findsWidgets);
-    expect(find.text('Copy Public Key'), findsOneWidget);
-    expect(find.text('Copy 1-Line Setup Script'), findsOneWidget);
-
-    await tester.tap(find.text('Copy Public Key'));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Copied!'), findsOneWidget);
-
-    await tester.tap(find.text('Copy 1-Line Setup Script'));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Copied Script!'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 2));
-
-    // Scroll back up until Clear button is visible
-    await tester.scrollUntilVisible(find.text('Clear'), -150, scrollable: outerScrollable);
-    await tester.pumpAndSettle();
-    expect(find.text('Clear'), findsOneWidget);
-
-    // Tap Clear
+    expect(find.text('Generate'), findsNothing);
+    final field = find.byWidgetPredicate((w) =>
+        w is TextField &&
+        (w.decoration?.hintText?.contains('Paste your OpenSSH') ?? false));
+    await tester.enterText(field, 'invalid key');
     await tester.tap(find.text('Clear'));
-    await tester.pumpAndSettle();
-
-    // Verify key and public key card are cleared
-    expect((tester.widget(keyFieldFinder) as TextField).controller?.text, isEmpty);
-    expect(find.text('Copy Public Key'), findsNothing);
+    await tester.pump();
+    expect((tester.widget(field) as TextField).controller!.text, isEmpty);
   });
 
   testWidgets('ServerFormScreen validates required fields', (tester) async {
@@ -197,7 +179,8 @@ void main() {
     expect(serverStore.profiles, isEmpty);
   });
 
-  testWidgets('ServerFormScreen validates invalid SSH key format', (tester) async {
+  testWidgets('ServerFormScreen validates invalid SSH key format',
+      (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -206,17 +189,28 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Name (optional)'), 'Invalid Key Server');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'testuser');
+    await tester.ensureVisible(find.text('More options'));
+    await tester.tap(find.text('More options'));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.widgetWithText(TextFormField, 'Name (optional)'));
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Name (optional)'),
+        'Invalid Key Server');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Host'), '127.0.0.1');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Username'), 'testuser');
 
-    // Switch to SSH Key mode
-    await tester.tap(find.text('SSH Key'));
+    // Switch to SSH key mode
+    await tester.tap(find.text('SSH key'));
     await tester.pumpAndSettle();
 
     // Enter invalid key
     final keyFieldFinder = find.byWidgetPredicate(
-      (w) => w is TextField && (w.decoration?.hintText?.contains('BEGIN OPENSSH') ?? false),
+      (w) =>
+          w is TextField &&
+          (w.decoration?.hintText?.contains('Paste your OpenSSH') ?? false),
     );
     await tester.enterText(keyFieldFinder, 'invalid-key-data-not-pem');
     await tester.pump();
@@ -226,11 +220,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Error message should be visible
-    expect(find.textContaining('Key must be wrapped in PEM headers'), findsOneWidget);
+    expect(find.textContaining('Key must be wrapped in PEM headers'),
+        findsOneWidget);
     expect(serverStore.profiles, isEmpty);
   });
 
-  testWidgets('ServerFormScreen creates server with passphrase-protected SSH key', (tester) async {
+  testWidgets(
+      'ServerFormScreen creates server with passphrase-protected SSH key',
+      (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -251,22 +248,34 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Name (optional)'), 'Encrypted Key Server');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Host'), '10.0.0.99');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Username'), 'arch');
+    await tester.ensureVisible(find.text('More options'));
+    await tester.tap(find.text('More options'));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.widgetWithText(TextFormField, 'Name (optional)'));
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Name (optional)'),
+        'Encrypted Key Server');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Host'), '10.0.0.99');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Username'), 'arch');
 
-    // Switch to SSH Key mode
-    await tester.tap(find.text('SSH Key'));
+    // Switch to SSH key mode
+    await tester.tap(find.text('SSH key'));
     await tester.pumpAndSettle();
 
     final keyFieldFinder = find.byWidgetPredicate(
-      (w) => w is TextField && (w.decoration?.hintText?.contains('BEGIN OPENSSH') ?? false),
+      (w) =>
+          w is TextField &&
+          (w.decoration?.hintText?.contains('Paste your OpenSSH') ?? false),
     );
     await tester.enterText(keyFieldFinder, encryptedKey);
     await tester.pumpAndSettle();
 
     // Verify passphrase field indicates required
-    final passFieldFinder = find.widgetWithText(TextFormField, 'Key Passphrase (Required)');
+    final passFieldFinder =
+        find.widgetWithText(TextFormField, 'Key Passphrase (Required)');
     expect(passFieldFinder, findsOneWidget);
 
     // Enter wrong passphrase first
@@ -301,21 +310,29 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     expect(storedPass, validPassphrase);
   });
 
-  testWidgets('ServerFormScreen disables Startup Command box when tmux is toggled on', (tester) async {
+  testWidgets(
+      'ServerFormScreen disables Startup Command box when tmux is toggled on',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     // Scroll down in ListView to reveal Persistent Session and Startup Command sections
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.drag(
+        find.byType(SingleChildScrollView).first, const Offset(0, -600));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('More options'));
+    await tester.tap(find.text('More options'));
+    await tester.pumpAndSettle();
     final initialCmdFinder = find.byKey(const Key('initialCommandField'));
     expect(initialCmdFinder, findsOneWidget);
     expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isTrue);
 
     // Toggle on Persistent Session (tmux)
-    final tmuxSwitch = find.widgetWithText(SwitchListTile, 'Persistent Session (tmux)');
+    final tmuxSwitch =
+        find.widgetWithText(SwitchListTile, 'Persistent Session (tmux)');
     expect(tmuxSwitch, findsOneWidget);
+    await tester.ensureVisible(tmuxSwitch);
     await tester.tap(tmuxSwitch);
     await tester.pumpAndSettle();
 
@@ -323,10 +340,44 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isFalse);
 
     // Toggle off Persistent Session (tmux)
+    await tester.ensureVisible(tmuxSwitch);
     await tester.tap(tmuxSwitch);
     await tester.pumpAndSettle();
 
     // Initial Command box should be enabled again
     expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isTrue);
   });
+  for (final persistent in [false, true]) {
+    testWidgets(
+        'editing preserves collapsed advanced fields and credentials (tmux=$persistent)',
+        (tester) async {
+      final original = ServerProfile(
+          id: 'existing',
+          displayName: 'Custom name',
+          host: 'old.example.com',
+          port: 2222,
+          username: 'alice',
+          authMethod: const PasswordAuth(credentialTag: 'cred_existing'),
+          initialCommand: 'cd /srv',
+          persistSession: persistent,
+          tmuxSessionName: 'work');
+      await serverStore.addProfile(original, credential: ' saved-password ');
+      await tester.pumpWidget(createTestWidget(existingProfile: original));
+      await tester.pumpAndSettle();
+      expect(find.text('More options'), findsOneWidget);
+      expect(find.text('Custom name'), findsNothing);
+      await tester.enterText(
+          find.widgetWithText(TextFormField, 'Host'), 'new.example.com');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      final saved = serverStore.profiles.single;
+      expect(saved.id, original.id);
+      expect(saved.displayName, original.displayName);
+      expect(saved.port, 2222);
+      expect(saved.initialCommand, 'cd /srv');
+      expect(saved.persistSession, persistent);
+      expect(saved.tmuxSessionName, 'work');
+      expect(await serverStore.getCredential(saved), ' saved-password ');
+    });
+  }
 }

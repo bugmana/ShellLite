@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/server_profile.dart';
 import '../providers/server_store.dart';
-import '../providers/telemetry_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/server_card.dart';
 import '../widgets/terminal_appearance_modal.dart';
@@ -62,7 +61,11 @@ class _ServerListScreenState extends State<ServerListScreen> {
           children: [
             Icon(Icons.delete_outline_rounded, color: theme.error, size: 22),
             const SizedBox(width: 8),
-            Text('Delete Server', style: TextStyle(color: theme.textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+            Text('Delete Server',
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
@@ -78,13 +81,15 @@ class _ServerListScreenState extends State<ServerListScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
               context.read<ServerStore>().deleteProfile(profile.id);
               Navigator.of(ctx).pop();
             },
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Delete',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -93,13 +98,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
 
   Future<void> _handleRefresh() async {
     final serverStore = context.read<ServerStore>();
-    final telemetryStore = context.read<TelemetryStore?>();
     await serverStore.load();
-    if (telemetryStore != null) {
-      for (final profile in serverStore.profiles) {
-        telemetryStore.refresh(profile);
-      }
-    }
   }
 
   @override
@@ -128,7 +127,8 @@ class _ServerListScreenState extends State<ServerListScreen> {
         ),
         actions: [
           IconButton(
-            constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
+            constraints: const BoxConstraints(
+                minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
             icon: const Icon(Icons.tune_rounded),
             tooltip: 'Settings',
             onPressed: () => TerminalAppearanceModal.show(context),
@@ -144,9 +144,11 @@ class _ServerListScreenState extends State<ServerListScreen> {
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Add server', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text('Add server',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(width: 4),
-                  Text('(${profiles.length}/${store.maxServers})', style: const TextStyle(fontSize: 12)),
+                  Text('(${profiles.length}/${store.maxServers})',
+                      style: const TextStyle(fontSize: 12)),
                 ],
               ),
             )
@@ -160,7 +162,8 @@ class _ServerListScreenState extends State<ServerListScreen> {
                   backgroundColor: theme.surface,
                   onRefresh: _handleRefresh,
                   child: ListView.builder(
-                    padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: 88),
+                    padding:
+                        const EdgeInsets.only(top: AppSpacing.sm, bottom: 88),
                     itemCount: profiles.length,
                     itemBuilder: (context, index) {
                       final profile = profiles[index];

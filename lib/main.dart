@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/server_store.dart';
 import 'providers/session_store.dart';
-import 'providers/telemetry_store.dart';
 import 'providers/terminal_settings_store.dart';
 import 'screens/privacy_policy_screen.dart';
 import 'screens/server_list_screen.dart';
@@ -26,8 +25,8 @@ void main() async {
   final storageService = StorageService();
 
   final store = ServerStore(storageService: storageService);
-  final terminalSettings = TerminalSettingsStore(storageService: storageService);
-  final telemetryStore = TelemetryStore(storageService: storageService);
+  final terminalSettings =
+      TerminalSettingsStore(storageService: storageService);
   final sessionStore = SessionStore(storageService: storageService);
 
   await Future.wait([
@@ -40,8 +39,8 @@ void main() async {
       providers: [
         Provider<StorageService>.value(value: storageService),
         ChangeNotifierProvider<ServerStore>.value(value: store),
-        ChangeNotifierProvider<TerminalSettingsStore>.value(value: terminalSettings),
-        ChangeNotifierProvider<TelemetryStore>.value(value: telemetryStore),
+        ChangeNotifierProvider<TerminalSettingsStore>.value(
+            value: terminalSettings),
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
       ],
       child: const ShellLiteApp(),

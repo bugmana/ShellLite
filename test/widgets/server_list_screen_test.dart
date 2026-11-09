@@ -5,9 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shell_lite/models/auth_method.dart';
 import 'package:shell_lite/models/server_profile.dart';
-import 'package:shell_lite/models/server_telemetry.dart';
 import 'package:shell_lite/providers/server_store.dart';
-import 'package:shell_lite/providers/telemetry_store.dart';
 import 'package:shell_lite/screens/server_list_screen.dart';
 import 'package:shell_lite/services/storage_service.dart';
 import 'package:shell_lite/widgets/server_card.dart';
@@ -20,7 +18,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('ServerListScreen shows empty state when no servers configured', (tester) async {
+  testWidgets('ServerListScreen shows empty state when no servers configured',
+      (tester) async {
     final prefs = await SharedPreferences.getInstance();
     final storage = StorageService(prefs: prefs);
     final store = ServerStore(storageService: storage);
@@ -37,7 +36,8 @@ void main() {
     expect(find.text('Add server'), findsWidgets);
   });
 
-  testWidgets('ServerCard renders displayName and connection details', (tester) async {
+  testWidgets('ServerCard renders displayName and connection details',
+      (tester) async {
     final profile = ServerProfile(
       displayName: 'My Production Server',
       host: 'prod.example.com',
@@ -59,57 +59,33 @@ void main() {
     );
 
     expect(find.text('My Production Server'), findsOneWidget);
-    expect(find.text('admin@prod.example.com:22'), findsOneWidget);
-    expect(find.text('Pass'), findsOneWidget);
+    expect(find.text('admin@prod.example.com'), findsOneWidget);
+    expect(find.text('Disconnected'), findsOneWidget);
   });
 
-  testWidgets('ServerCard renders CPU, RAM, Disk, and Uptime metrics when telemetry is loaded', (tester) async {
+  testWidgets('ServerCard shows connection state without health actions',
+      (tester) async {
     final profile = ServerProfile(
-      displayName: 'Prod Node',
-      host: 'node1.example.com',
-      username: 'root',
-      authMethod: const PasswordAuth(credentialTag: 'p-telemetry'),
-    );
-
-    final telemetry = ServerTelemetry.fromSSHOutput('''
- 10:00:00 up 5 days, 1 user, load average: 0.12, 0.20, 0.15
----CPU---
-%Cpu(s): 15.0 us, 5.0 sy, 0.0 ni, 80.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st
----MEM---
-               total        used        free      shared  buff/cache   available
-Mem:          16.0Gi       4.0Gi      12.0Gi       100Mi       2.0Gi      11.0Gi
----DISK---
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda1       100G   30G   70G  30% /
-''');
-
-    final telemetryStore = TelemetryStore();
-    telemetryStore.setTelemetry(profile.id, telemetry);
-
-    await tester.pumpWidget(
-      ChangeNotifierProvider<TelemetryStore>.value(
-        value: telemetryStore,
-        child: MaterialApp(
-          home: Scaffold(
+        displayName: 'Prod',
+        host: 'prod.example.com',
+        username: 'admin',
+        authMethod: const PasswordAuth(credentialTag: 'p'));
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
             body: ServerCard(
-              profile: profile,
-              onTap: () {},
-              onEdit: () {},
-              onDelete: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('Prod Node'), findsOneWidget);
-    expect(find.text('CPU: 20.0%'), findsOneWidget);
-    expect(find.text('RAM: 4.0Gi / 16.0Gi'), findsOneWidget);
-    expect(find.text('Disk: 30G / 100G (30%)'), findsOneWidget);
-    expect(find.text('5 days'), findsOneWidget);
+                profile: profile,
+                onTap: () {},
+                onEdit: () {},
+                onDelete: () {}))));
+    expect(find.text('Disconnected'), findsOneWidget);
+    await tester.tap(find.byTooltip('Server options'));
+    await tester.pumpAndSettle();
+    expect(find.text('Health Check'), findsNothing);
+    expect(find.text('Edit'), findsOneWidget);
   });
 
-  testWidgets('ServerListScreen displays server count badge on add button', (tester) async {
+  testWidgets('ServerListScreen displays server count badge on add button',
+      (tester) async {
     final prefs = await SharedPreferences.getInstance();
     final storage = StorageService(prefs: prefs);
     final store = ServerStore(storageService: storage);
