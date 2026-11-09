@@ -1,0 +1,38 @@
+name: Web smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        viewport: [desktop, mobile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r scripts/requirements-web-smoke.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Exercise deployed app
+        env:
+          VIEWPORT: ${{ matrix.viewport }}
+        run: |
+          if [ "$VIEWPORT" = mobile ]; then
+            python scripts/web_smoke.py --mobile
+          else
+            python scripts/web_smoke.py
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-smoke-${{ matrix.viewport }}
+          path: build/web-smoke/
+          retention-days: 7

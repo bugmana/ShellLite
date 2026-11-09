@@ -124,6 +124,18 @@ Run local checks with one dependency setup:
 
 Use focused tests while editing, then run the full command before pushing. CI still runs the full suite and platform builds.
 
+Run a browser smoke test against the deployed app:
+
+```bash
+python3 -m venv /tmp/shelllite-smoke
+/tmp/shelllite-smoke/bin/pip install -r scripts/requirements-web-smoke.txt
+/tmp/shelllite-smoke/bin/python -m playwright install chromium
+/tmp/shelllite-smoke/bin/python scripts/web_smoke.py
+/tmp/shelllite-smoke/bin/python scripts/web_smoke.py --mobile
+```
+
+The test types into the real UI, adds a dummy server, reloads, checks its saved fields, and deletes it. Each run uses isolated browser storage and blocks WebSockets; no SSH connection is made. Use `--url http://localhost:8080` for a locally served web build. Traces and failure screenshots go to `build/web-smoke/`. The manual **Web smoke** Actions workflow runs desktop and mobile viewport checks against `https://shell.strandberg.dev`; mobile emulation does not replace device testing.
+
 See [Repository Guidelines](AGENTS.md) for project structure, build and test commands, code style, and pull request conventions. CI definitions in [`.github/workflows/`](.github/workflows/) describe the checks and platform builds used for code changes.
 
 ---

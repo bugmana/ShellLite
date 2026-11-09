@@ -401,12 +401,14 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                           TextFormField(
                             key: const Key('initialCommandField'),
                             controller: _initialCommandController,
-                            enabled: !_persistSession,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Startup command',
                               hintText: 'e.g. htop or cd /var/www',
-                              prefixIcon:
-                                  Icon(Icons.play_arrow_outlined, size: 20),
+                              helperText: _persistSession
+                                  ? 'Saved for connections without tmux.'
+                                  : null,
+                              prefixIcon: const Icon(Icons.play_arrow_outlined,
+                                  size: 20),
                             ),
                           ),
                         ],

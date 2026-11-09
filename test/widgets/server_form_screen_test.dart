@@ -310,8 +310,7 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     expect(storedPass, validPassphrase);
   });
 
-  testWidgets(
-      'ServerFormScreen disables Startup Command box when tmux is toggled on',
+  testWidgets('Startup command remains editable when tmux is enabled',
       (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
@@ -326,7 +325,8 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     await tester.pumpAndSettle();
     final initialCmdFinder = find.byKey(const Key('initialCommandField'));
     expect(initialCmdFinder, findsOneWidget);
-    expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isTrue);
+    expect((tester.widget(initialCmdFinder) as TextFormField).enabled,
+        isNot(false));
 
     // Toggle on Persistent Session (tmux)
     final tmuxSwitch =
@@ -336,16 +336,20 @@ AK9jJFzpo0q4FnYkalW4fo/nosGUM/bq5LR2M=
     await tester.tap(tmuxSwitch);
     await tester.pumpAndSettle();
 
-    // Initial Command box should be disabled / grayed out
-    expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isFalse);
+    await tester.ensureVisible(initialCmdFinder);
+    await tester.tap(initialCmdFinder);
+    await tester.enterText(initialCmdFinder, 'htop');
+    expect(find.text('Saved for connections without tmux.'), findsOneWidget);
 
     // Toggle off Persistent Session (tmux)
     await tester.ensureVisible(tmuxSwitch);
     await tester.tap(tmuxSwitch);
     await tester.pumpAndSettle();
 
-    // Initial Command box should be enabled again
-    expect((tester.widget(initialCmdFinder) as TextFormField).enabled, isTrue);
+    expect((tester.widget(initialCmdFinder) as TextFormField).enabled,
+        isNot(false));
+    expect((tester.widget(initialCmdFinder) as TextFormField).controller!.text,
+        'htop');
   });
   for (final persistent in [false, true]) {
     testWidgets(
