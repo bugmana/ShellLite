@@ -28,6 +28,7 @@ class _PasswordAuthSectionState extends State<PasswordAuthSection> {
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscurePassword,
+      onChanged: (_) => setState(() {}),
       decoration: InputDecoration(
         labelText: 'Password',
         hintText: widget.isEditing && widget.controller.text.isEmpty
@@ -45,11 +46,14 @@ class _PasswordAuthSectionState extends State<PasswordAuthSection> {
               ),
             IconButton(
               icon: Icon(
-                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                _obscurePassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 size: 20,
               ),
               tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
           ],
         ),

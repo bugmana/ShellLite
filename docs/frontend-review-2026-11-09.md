@@ -4,7 +4,24 @@ Target: https://shell.strandberg.dev. Deployed from local commit `4f7b544`.
 The served `main.dart.js` SHA-256 matched the local release build:
 `f7eecfcb4943534d541d7319cda353bc3d277b613e8a048efa86b5e873139d34`.
 
-## Method and limits
+## Follow-up fixes
+
+The original review below records the earlier UI. All eight findings and the duplicate empty-state Add server action have been addressed:
+
+- Empty lists have one Add server button; saved-server lists retain the floating action.
+- Corrected fields revalidate after the first failed submission. Clear password appears immediately after typing.
+- Hidden keys say “Private key hidden,” and the key field has a permanent label.
+- Settings switches and key visibility switches have accessible names. The redundant slider was removed; labeled minus/plus controls adjust text size, and the point size is announced as it changes.
+- Selected themes expose their state, and theme names wrap onto two lines with a layout that adapts to larger text.
+- Key configuration uses shorter, consistent wording; shortcut fields keep their labels after prefilling. Reset descriptions match the actual defaults.
+- Shortcut messages replace prior messages and are scoped to the Keys screen. They disappear when leaving it.
+- Settings has an explicit Close button.
+
+Regression coverage includes the single empty-state action, corrected validation, immediate clearing, hidden-key wording, accessible text-size/settings controls, and notification replacement/navigation cleanup.
+
+Verification: the 198-test Flutter suite passed; the final simplified text-size controls also passed their focused settings tests. Static analysis and the release web build passed. Desktop and mobile lifecycle checks and the detailed browser review passed against the rebuilt live site with no WebSocket attempts. The served JavaScript matched SHA-256 `99714e0a23f4978678451d585d4b60f5a17932dd1910b0ee45ed3836fa02e5ca`. Updated screenshots and trace are in `build/frontend-fixes/`.
+
+## Original method and limits
 
 An agent drove Chromium with Playwright through the deployed UI. Server lifecycle tests passed at 1280×900 and 390×844, including editing Startup command with tmux enabled, saving, reloading, editing, and deleting the dummy server. The extended control review used the mobile viewport. Each run used fresh browser storage, dummy credentials, and the reserved address `192.0.2.1`. All WebSockets were intercepted and blocked; no connection was attempted.
 

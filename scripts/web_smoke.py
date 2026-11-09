@@ -30,6 +30,7 @@ def run(url, artifacts, mobile):
         context.route_web_socket("**/*", block_socket)
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
         page = context.new_page()
+        ui = page.locator("flt-semantics-host")
         page.set_default_timeout(20000)
         name = f"UI smoke {uuid4().hex[:8]}"
         card = page.get_by_role("button", name=re.compile("^" + re.escape(name) + r"\s"))
@@ -50,11 +51,20 @@ def run(url, artifacts, mobile):
 
         try:
             load()
+            expect(page.get_by_role("button", name=re.compile("^Add server"))).to_have_count(1)
             page.get_by_role("button", name="Add server", exact=True).click()
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(ui.get_by_text("Host is required", exact=True)).to_be_visible()
             type_field("Host", "192.0.2.1")
             type_field("Username", "smoke-test")
             type_field("Password", "dummy-test-only")
-            page.get_by_role("button", name="More options", exact=True).click()
+            expect(ui.get_by_text("Host is required", exact=True)).to_have_count(0)
+            expect(ui.get_by_text("Username is required", exact=True)).to_have_count(0)
+            expect(ui.get_by_text("Password is required", exact=True)).to_have_count(0)
+            page.get_by_role("button", name="Clear password", exact=True).click()
+            expect(ui.get_by_text("Password is required", exact=True)).to_be_visible()
+            type_field("Password", "dummy-test-only")
+            # Invalid submission already expands the advanced fields.
             type_field("Name (optional)", name)
             page.get_by_role("switch", name=re.compile("^Persistent Session")).click()
             type_field("Session Name", "smoke-session")
@@ -86,7 +96,7 @@ def run(url, artifacts, mobile):
             page.get_by_role("button", name="Delete", exact=True).click()
             expect(card).to_have_count(0)
             load()
-            expect(page.get_by_text("No servers yet", exact=False)).to_be_visible()
+            expect(ui.get_by_text("No servers yet", exact=False)).to_be_visible()
             assert not sockets, f"Unexpected WebSocket attempts: {sockets}"
             print(f"PASS: {'mobile' if mobile else 'desktop'} create/reload/edit/delete; no connections")
         except Exception:

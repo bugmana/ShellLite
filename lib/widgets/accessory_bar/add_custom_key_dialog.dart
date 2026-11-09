@@ -75,10 +75,11 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
       ),
       title: Row(
         children: [
-          Icon(Icons.add_circle_outline_rounded, color: theme.primaryAccent, size: 22),
+          Icon(Icons.add_circle_outline_rounded,
+              color: theme.primaryAccent, size: 22),
           const SizedBox(width: 8),
           Text(
-            'Add Custom Key',
+            'New shortcut',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
@@ -90,29 +91,24 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Key Label',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
               TextFormField(
                 controller: _labelController,
                 autofocus: true,
                 style: TextStyle(color: theme.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
+                  labelText: 'Key label',
                   hintText: 'e.g. ^X, sudo, :wq',
-                  hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.6)),
+                  hintStyle: TextStyle(
+                      color: theme.textSecondary.withValues(alpha: 0.6)),
                   filled: true,
                   fillColor: theme.cardSurface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: theme.border),
@@ -123,7 +119,8 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: theme.primaryAccent, width: 1.5),
+                    borderSide:
+                        BorderSide(color: theme.primaryAccent, width: 1.5),
                   ),
                 ),
                 validator: (val) {
@@ -137,15 +134,6 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
                 },
               ),
               const SizedBox(height: 14),
-              Text(
-                'Sequence / Text',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
               TextFormField(
                 controller: _sequenceController,
                 style: TextStyle(
@@ -154,11 +142,14 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
+                  labelText: 'Sequence or text',
                   hintText: r'e.g. \x18, \e, ^C, git status\n',
-                  hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.6)),
+                  hintStyle: TextStyle(
+                      color: theme.textSecondary.withValues(alpha: 0.6)),
                   filled: true,
                   fillColor: theme.cardSurface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: theme.border),
@@ -169,7 +160,8 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: theme.primaryAccent, width: 1.5),
+                    borderSide:
+                        BorderSide(color: theme.primaryAccent, width: 1.5),
                   ),
                 ),
                 validator: (val) {
@@ -181,7 +173,7 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Quick Presets (Extended Keys):',
+                'Presets',
                 style: TextStyle(
                   fontSize: 11,
                   color: theme.textSecondary,
@@ -192,21 +184,71 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F1', sequence: '\x1BOP', description: 'Help / Menu')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F2', sequence: '\x1BOQ', description: 'User menu')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F5', sequence: '\x1B[15~', description: 'Copy / Refresh')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F10', sequence: '\x1B[21~', description: 'Quit / Exit')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'F12', sequence: '\x1B[24~', description: 'Function 12')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'Home', sequence: '\x1B[H', description: 'Cursor to start')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'End', sequence: '\x1B[F', description: 'Cursor to end')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'PgUp', sequence: '\x1B[5~', description: 'Page Up')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'PgDn', sequence: '\x1B[6~', description: 'Page Down')),
-                  _buildPresetChip(theme, const TerminalKeyShortcut(label: 'Del', sequence: '\x1B[3~', description: 'Forward delete')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'F1',
+                          sequence: '\x1BOP',
+                          description: 'Help / Menu')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'F2',
+                          sequence: '\x1BOQ',
+                          description: 'User menu')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'F5',
+                          sequence: '\x1B[15~',
+                          description: 'Copy / Refresh')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'F10',
+                          sequence: '\x1B[21~',
+                          description: 'Quit / Exit')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'F12',
+                          sequence: '\x1B[24~',
+                          description: 'Function 12')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'Home',
+                          sequence: '\x1B[H',
+                          description: 'Cursor to start')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'End',
+                          sequence: '\x1B[F',
+                          description: 'Cursor to end')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'PgUp',
+                          sequence: '\x1B[5~',
+                          description: 'Page Up')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'PgDn',
+                          sequence: '\x1B[6~',
+                          description: 'Page Down')),
+                  _buildPresetChip(
+                      theme,
+                      const TerminalKeyShortcut(
+                          label: 'Delete',
+                          sequence: '\x1B[3~',
+                          description: 'Forward delete')),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
-                'Quick Insert Escape Codes:',
+                'Insert code',
                 style: TextStyle(
                   fontSize: 11,
                   color: theme.textSecondary,
@@ -220,31 +262,25 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
                   _buildCodeChip(theme, r'\e', 'Esc', _insertCode),
                   _buildCodeChip(theme, r'\t', 'Tab', _insertCode),
                   _buildCodeChip(theme, r'\n', 'Enter', _insertCode),
-                  _buildCodeChip(theme, '^C', 'SIGINT', _insertCode),
-                  _buildCodeChip(theme, '^D', 'EOF', _insertCode),
-                  _buildCodeChip(theme, '^Z', 'SIGTSTP', _insertCode),
-                  _buildCodeChip(theme, '^R', 'Reverse', _insertCode),
+                  _buildCodeChip(theme, '^C', 'Interrupt', _insertCode),
+                  _buildCodeChip(theme, '^D', 'End of input', _insertCode),
+                  _buildCodeChip(theme, '^Z', 'Suspend', _insertCode),
+                  _buildCodeChip(theme, '^R', 'Search history', _insertCode),
                 ],
               ),
               const SizedBox(height: 14),
-              Text(
-                'Description (Optional)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
               TextFormField(
                 controller: _descriptionController,
                 style: TextStyle(color: theme.textPrimary, fontSize: 13),
                 decoration: InputDecoration(
+                  labelText: 'Description (optional)',
                   hintText: 'e.g. Save and quit editor',
-                  hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.6)),
+                  hintStyle: TextStyle(
+                      color: theme.textSecondary.withValues(alpha: 0.6)),
                   filled: true,
                   fillColor: theme.cardSurface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: theme.border),
@@ -255,7 +291,8 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: theme.primaryAccent, width: 1.5),
+                    borderSide:
+                        BorderSide(color: theme.primaryAccent, width: 1.5),
                   ),
                 ),
               ),
@@ -272,7 +309,8 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.primaryAccent,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           onPressed: () {
             if (_formKey.currentState?.validate() ?? false) {
@@ -284,7 +322,8 @@ class _AddCustomKeyDialogState extends State<AddCustomKeyDialog> {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Add Key', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text('Add shortcut',
+              style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );

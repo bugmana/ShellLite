@@ -35,15 +35,43 @@ void main() {
     );
   }
 
+  testWidgets('shortcut feedback replaces older messages and stays on Keys',
+      (tester) async {
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: settingsStore,
+      child: MaterialApp(home: Builder(builder: (context) {
+        return Scaffold(
+            body: TextButton(
+          onPressed: () => TerminalKeysScreen.open(context),
+          child: const Text('Open keys'),
+        ));
+      })),
+    ));
+    await tester.tap(find.text('Open keys'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Function (F1–F12)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('F1'));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(find.text('F2'));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Added "F2" to key row'), findsOneWidget);
+    expect(find.text('Added "F1" to key row'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
   testWidgets(
       'CustomizeAccessoryKeysModal renders sticky modifiers and toggles them',
       (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    expect(find.text('STICKY MODIFIERS'), findsOneWidget);
-    expect(find.text('Ctrl Sticky Modifier'), findsOneWidget);
-    expect(find.text('Alt / Meta Sticky Modifier'), findsOneWidget);
+    expect(find.text('Modifiers'), findsOneWidget);
+    expect(find.text('Ctrl modifier'), findsOneWidget);
+    expect(find.text('Alt modifier'), findsOneWidget);
 
     expect(settingsStore.ctrlModifierEnabled, isTrue);
     expect(settingsStore.altModifierEnabled, isTrue);
@@ -67,7 +95,7 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
-    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
+    expect(find.text('Keys'), findsOneWidget);
     expect(find.text('Tab'), findsOneWidget);
     expect(find.text('⇧Tab'), findsNothing);
 
@@ -97,7 +125,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Add Custom Key dialog is open
-    expect(find.text('Add Custom Key'), findsOneWidget);
+    expect(find.text('New shortcut'), findsOneWidget);
 
     // Enter label and sequence
     final textFields = find.byType(TextFormField);
@@ -111,7 +139,7 @@ void main() {
     await tester.pump();
 
     // Tap Add Key submit button
-    final submitButton = find.widgetWithText(ElevatedButton, 'Add Key');
+    final submitButton = find.widgetWithText(ElevatedButton, 'Add shortcut');
     await tester.tap(submitButton);
     await tester.pumpAndSettle();
 
@@ -174,11 +202,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // Confirmation dialog appears
-    expect(find.text('Reset Terminal Keys?'), findsOneWidget);
+    expect(find.text('Reset keys?'), findsOneWidget);
 
-    // Tap Reset Layout button
+    // Tap Reset keys button
     final confirmResetButton =
-        find.widgetWithText(ElevatedButton, 'Reset Layout');
+        find.widgetWithText(ElevatedButton, 'Reset keys');
     await tester.tap(confirmResetButton);
     await tester.pumpAndSettle();
 
@@ -228,7 +256,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify quick preset chips exist
-    expect(find.text('Quick Presets (Extended Keys):'), findsOneWidget);
+    expect(find.text('Presets'), findsOneWidget);
     expect(find.text('F5'), findsOneWidget);
 
     // Tap F5 preset
@@ -236,7 +264,7 @@ void main() {
     await tester.pump();
 
     // Tap Add Key submit button
-    final submitButton = find.widgetWithText(ElevatedButton, 'Add Key');
+    final submitButton = find.widgetWithText(ElevatedButton, 'Add shortcut');
     await tester.tap(submitButton);
     await tester.pumpAndSettle();
 
@@ -254,10 +282,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify all 4 unified tabs exist
-    expect(find.text('Key Bar Layout'), findsOneWidget);
+    expect(find.text('Key row'), findsOneWidget);
     expect(find.text('Function (F1–F12)'), findsOneWidget);
     expect(find.text('Navigation'), findsOneWidget);
-    expect(find.text('Control Keys'), findsOneWidget);
+    expect(find.text('Control keys'), findsOneWidget);
 
     // Switch to Function (F1-F12) tab
     await tester.tap(find.text('Function (F1–F12)'));
@@ -280,8 +308,8 @@ void main() {
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('End'), findsOneWidget);
 
-    // Switch to Control Keys tab
-    await tester.tap(find.text('Control Keys'));
+    // Switch to Control keys tab
+    await tester.tap(find.text('Control keys'));
     await tester.pumpAndSettle();
 
     expect(find.text('^A'), findsOneWidget);
@@ -295,16 +323,16 @@ void main() {
 
     // Verify page AppBar with title and actions
     expect(find.byType(AppBar), findsOneWidget);
-    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
+    expect(find.text('Keys'), findsOneWidget);
     expect(find.byIcon(Icons.add_rounded), findsOneWidget);
     expect(find.byIcon(Icons.restore_rounded), findsOneWidget);
 
     // Verify TabBar with all 4 tabs
     expect(find.byType(TabBar), findsOneWidget);
     expect(find.byType(TabBarView), findsOneWidget);
-    expect(find.text('Key Bar Layout'), findsOneWidget);
+    expect(find.text('Key row'), findsOneWidget);
     expect(find.text('Function (F1–F12)'), findsOneWidget);
     expect(find.text('Navigation'), findsOneWidget);
-    expect(find.text('Control Keys'), findsOneWidget);
+    expect(find.text('Control keys'), findsOneWidget);
   });
 }

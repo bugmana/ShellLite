@@ -35,7 +35,17 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('Text size'), findsOneWidget);
-    expect(find.byType(Slider), findsOneWidget);
+    expect(find.byType(Slider), findsNothing);
+    final semantics = tester.ensureSemantics();
+    try {
+      expect(tester.getSemantics(find.text('13.5 pt')).label,
+          'Text size 13.5 points');
+      expect(
+          tester.getSemantics(find.byType(Switch).first).label, 'Show key row');
+      expect(tester.getSemantics(find.byType(Switch).last).label, 'Haptics');
+    } finally {
+      semantics.dispose();
+    }
     expect(find.textContaining('Obsidian'), findsWidgets);
     expect(find.text('Catppuccin Mocha'), findsOneWidget);
     expect(find.text('Dracula'), findsOneWidget);
@@ -66,7 +76,7 @@ void main() {
     expect(store.hapticFeedbackEnabled, isFalse);
 
     // Tap Reset
-    await tester.tap(find.text('Reset'));
+    await tester.tap(find.text('Reset settings'));
     await tester.pump();
 
     expect(store.themeId, 'obsidian');
@@ -100,7 +110,7 @@ void main() {
     await tester.tap(find.text('Keys'));
     await tester.pumpAndSettle();
 
-    expect(find.text('STICKY MODIFIERS'), findsOneWidget);
-    expect(find.text('SHORTCUT KEYS & MACROS'), findsOneWidget);
+    expect(find.text('Modifiers'), findsOneWidget);
+    expect(find.text('Shortcuts'), findsOneWidget);
   });
 }

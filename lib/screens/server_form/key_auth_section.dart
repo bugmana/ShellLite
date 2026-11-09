@@ -25,16 +25,15 @@ class KeyAuthSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Private key'),
         Wrap(spacing: 8, runSpacing: 4, children: [
           TextButton(
               onPressed: onToggleObscureKey,
               child: Text(obscureKey ? 'Show key' : 'Hide key')),
-          TextButton(onPressed: onClearKey, child: const Text('Clear')),
+          TextButton(onPressed: onClearKey, child: const Text('Clear key')),
         ]),
         if (obscureKey && keyController.text.isNotEmpty)
           const Padding(
-              padding: EdgeInsets.all(16), child: Text('Private key saved'))
+              padding: EdgeInsets.all(16), child: Text('Private key hidden'))
         else
           TextFormField(
               controller: keyController,
@@ -44,6 +43,7 @@ class KeyAuthSection extends StatelessWidget {
               enableSuggestions: false,
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
               decoration: const InputDecoration(
+                  labelText: 'Private key',
                   hintText: 'Paste your OpenSSH private key'),
               onChanged: onKeyChanged,
               validator: (value) =>

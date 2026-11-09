@@ -38,7 +38,7 @@ class TerminalKeysScreen extends StatelessWidget {
             Icon(Icons.restore_rounded, color: theme.warning, size: 22),
             const SizedBox(width: 8),
             Text(
-              'Reset Terminal Keys?',
+              'Reset keys?',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -48,8 +48,9 @@ class TerminalKeysScreen extends StatelessWidget {
           ],
         ),
         content: Text(
-          'This will reset your terminal keys and shortcuts back to the default layout (Tab, Arrows, Esc, ^C, ^D, etc.).',
-          style: TextStyle(color: theme.textSecondary, fontSize: 13, height: 1.4),
+          'Restore Esc, Tab, and arrow keys, enable Ctrl and Alt, and remove custom shortcuts.',
+          style:
+              TextStyle(color: theme.textSecondary, fontSize: 13, height: 1.4),
         ),
         actions: [
           TextButton(
@@ -60,13 +61,15 @@ class TerminalKeysScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.warning,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
               store.resetAccessoryKeysToDefault();
               Navigator.of(dialogCtx).pop();
             },
-            child: const Text('Reset Layout', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Reset keys',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -79,48 +82,57 @@ class TerminalKeysScreen extends StatelessWidget {
     final store = context.watch<TerminalSettingsStore>();
     final keys = store.configuredAccessoryKeys;
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Terminal Keys & Shortcuts'),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.add_rounded, color: theme.primaryAccent, size: 22),
-              tooltip: 'Add Custom Key',
-              onPressed: () => _showAddKeyDialog(context),
+    return ScaffoldMessenger(
+      child: Builder(builder: (context) {
+        return DefaultTabController(
+          length: 4,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Keys'),
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.add_rounded,
+                      color: theme.primaryAccent, size: 22),
+                  tooltip: 'Add shortcut',
+                  onPressed: () => _showAddKeyDialog(context),
+                ),
+                IconButton(
+                  icon: Icon(Icons.restore_rounded,
+                      color: theme.textSecondary, size: 20),
+                  tooltip: 'Reset keys',
+                  onPressed: () => _confirmReset(context),
+                ),
+                const SizedBox(width: 4),
+              ],
+              bottom: TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: theme.primaryAccent,
+                unselectedLabelColor: theme.textSecondary,
+                indicatorColor: theme.primaryAccent,
+                dividerColor: theme.border,
+                tabs: const [
+                  Tab(text: 'Key row'),
+                  Tab(text: 'Function (F1–F12)'),
+                  Tab(text: 'Navigation'),
+                  Tab(text: 'Control keys'),
+                ],
+              ),
             ),
-            IconButton(
-              icon: Icon(Icons.restore_rounded, color: theme.textSecondary, size: 20),
-              tooltip: 'Reset Defaults',
-              onPressed: () => _confirmReset(context),
+            body: TabBarView(
+              children: [
+                _buildKeyBarLayoutTab(context, theme, store, keys),
+                _buildPresetGridTab(
+                    context, theme, store, AccessoryBarConfig.functionKeys),
+                _buildPresetGridTab(
+                    context, theme, store, AccessoryBarConfig.navigationKeys),
+                _buildPresetGridTab(
+                    context, theme, store, AccessoryBarConfig.controlKeys),
+              ],
             ),
-            const SizedBox(width: 4),
-          ],
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            labelColor: theme.primaryAccent,
-            unselectedLabelColor: theme.textSecondary,
-            indicatorColor: theme.primaryAccent,
-            dividerColor: theme.border,
-            tabs: const [
-              Tab(text: 'Key Bar Layout'),
-              Tab(text: 'Function (F1–F12)'),
-              Tab(text: 'Navigation'),
-              Tab(text: 'Control Keys'),
-            ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildKeyBarLayoutTab(context, theme, store, keys),
-            _buildPresetGridTab(context, theme, store, AccessoryBarConfig.functionKeys),
-            _buildPresetGridTab(context, theme, store, AccessoryBarConfig.navigationKeys),
-            _buildPresetGridTab(context, theme, store, AccessoryBarConfig.controlKeys),
-          ],
-        ),
-      ),
+        );
+      }),
     );
   }
 
@@ -138,7 +150,7 @@ class TerminalKeysScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'STICKY MODIFIERS',
+                'Modifiers',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -150,22 +162,22 @@ class TerminalKeysScreen extends StatelessWidget {
               _buildModifierTile(
                 theme: theme,
                 label: 'Ctrl',
-                title: 'Ctrl Sticky Modifier',
-                subtitle: 'Tap to latch next key, double-tap to lock (Ctrl+Key)',
+                title: 'Ctrl modifier',
+                subtitle: 'Apply Ctrl to the next key. Double-tap to lock.',
                 isEnabled: store.ctrlModifierEnabled,
                 onChanged: (_) => store.toggleCtrlModifier(),
               ),
               _buildModifierTile(
                 theme: theme,
                 label: 'Alt',
-                title: 'Alt / Meta Sticky Modifier',
-                subtitle: 'Tap to prefix next key with ESC, double-tap to lock (Alt+Key)',
+                title: 'Alt modifier',
+                subtitle: 'Apply Alt to the next key. Double-tap to lock.',
                 isEnabled: store.altModifierEnabled,
                 onChanged: (_) => store.toggleAltModifier(),
               ),
               const SizedBox(height: 8),
               Text(
-                'SHORTCUT KEYS & MACROS',
+                'Shortcuts',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -205,16 +217,22 @@ class TerminalKeysScreen extends StatelessWidget {
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   decoration: BoxDecoration(
-                    color: item.isEnabled ? theme.cardSurface : theme.cardSurface.withValues(alpha: 0.4),
+                    color: item.isEnabled
+                        ? theme.cardSurface
+                        : theme.cardSurface.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: item.isEnabled ? theme.border : theme.border.withValues(alpha: 0.4),
+                      color: item.isEnabled
+                          ? theme.border
+                          : theme.border.withValues(alpha: 0.4),
                     ),
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                     leading: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: item.isEnabled
                             ? theme.primaryAccent.withValues(alpha: 0.15)
@@ -232,16 +250,21 @@ class TerminalKeysScreen extends StatelessWidget {
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: item.isEnabled ? theme.textPrimary : theme.textSecondary,
+                          color: item.isEnabled
+                              ? theme.textPrimary
+                              : theme.textSecondary,
                         ),
                       ),
                     ),
                     title: Text(
-                      item.description ?? (item.isCustom ? 'Custom Macro' : 'Default Shortcut'),
+                      item.description ??
+                          (item.isCustom ? 'Custom Macro' : 'Default Shortcut'),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: item.isEnabled ? theme.textPrimary : theme.textSecondary,
+                        color: item.isEnabled
+                            ? theme.textPrimary
+                            : theme.textSecondary,
                       ),
                     ),
                     subtitle: Text(
@@ -261,14 +284,19 @@ class TerminalKeysScreen extends StatelessWidget {
                               minWidth: AppTouchTarget.min,
                               minHeight: AppTouchTarget.min,
                             ),
-                            icon: Icon(Icons.delete_outline_rounded, color: theme.error, size: 20),
+                            icon: Icon(Icons.delete_outline_rounded,
+                                color: theme.error, size: 20),
                             tooltip: 'Delete custom key',
                             onPressed: () => store.removeAccessoryKey(index),
                           ),
-                        Switch(
-                          value: item.isEnabled,
-                          activeThumbColor: theme.primaryAccent,
-                          onChanged: (_) => store.toggleAccessoryKeyVisibility(index),
+                        Semantics(
+                          label: "Show ${item.label} on key row",
+                          child: Switch(
+                            value: item.isEnabled,
+                            activeThumbColor: theme.primaryAccent,
+                            onChanged: (_) =>
+                                store.toggleAccessoryKeyVisibility(index),
+                          ),
                         ),
                         ReorderableDragStartListener(
                           index: index,
@@ -317,45 +345,59 @@ class TerminalKeysScreen extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (ctx, index) {
         final item = items[index];
-        final isOnBar = store.configuredAccessoryKeys.any((k) => k.sequence == item.sequence && k.isEnabled);
+        final isOnBar = store.configuredAccessoryKeys
+            .any((k) => k.sequence == item.sequence && k.isEnabled);
 
         return TactileKeyButton(
           theme: theme,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          backgroundColor: isOnBar ? theme.primaryAccent.withValues(alpha: 0.12) : theme.cardSurface,
+          backgroundColor: isOnBar
+              ? theme.primaryAccent.withValues(alpha: 0.12)
+              : theme.cardSurface,
           customBorder: Border.all(
-            color: isOnBar ? theme.primaryAccent.withValues(alpha: 0.6) : theme.border,
+            color: isOnBar
+                ? theme.primaryAccent.withValues(alpha: 0.6)
+                : theme.border,
             width: isOnBar ? 1.5 : 1,
           ),
           onTap: () {
             if (store.hapticFeedbackEnabled) {
               HapticFeedback.lightImpact();
             }
-            final existingIndex = store.configuredAccessoryKeys.indexWhere((k) => k.sequence == item.sequence);
+            final existingIndex = store.configuredAccessoryKeys
+                .indexWhere((k) => k.sequence == item.sequence);
             if (existingIndex >= 0) {
               final existingItem = store.configuredAccessoryKeys[existingIndex];
               store.toggleAccessoryKeyVisibility(existingIndex);
               final newState = !existingItem.isEnabled;
-              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                SnackBar(
-                  content: Text(newState ? 'Enabled "${item.label}" on key bar' : 'Disabled "${item.label}" from key bar'),
-                  duration: const Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              ScaffoldMessenger.maybeOf(context)
+                ?..removeCurrentSnackBar()
+                ..clearSnackBars()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(newState
+                        ? 'Enabled "${item.label}" on key row'
+                        : 'Disabled "${item.label}" from key row'),
+                    duration: const Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
             } else {
               store.addCustomAccessoryKey(
                 label: item.label,
                 sequence: item.sequence,
                 description: item.description,
               );
-              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                SnackBar(
-                  content: Text('Added "${item.label}" to key bar'),
-                  duration: const Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              ScaffoldMessenger.maybeOf(context)
+                ?..removeCurrentSnackBar()
+                ..clearSnackBars()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text('Added "${item.label}" to key row'),
+                    duration: const Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
             }
           },
           child: Column(
@@ -376,7 +418,8 @@ class TerminalKeysScreen extends StatelessWidget {
                   ),
                   if (isOnBar) ...[
                     const SizedBox(width: 4),
-                    Icon(Icons.check_circle_rounded, size: 12, color: theme.primaryAccent),
+                    Icon(Icons.check_circle_rounded,
+                        size: 12, color: theme.primaryAccent),
                   ],
                 ],
               ),
@@ -409,7 +452,9 @@ class TerminalKeysScreen extends StatelessWidget {
     if (seq == '\x1B[B') return 'Code: Down Arrow (\\x1B[B)';
     if (seq == '\x1B[D') return 'Code: Left Arrow (\\x1B[D)';
     if (seq == '\x1B[C') return 'Code: Right Arrow (\\x1B[C)';
-    if (seq.startsWith('\x1B')) return 'Code: Escape sequence (${seq.length} bytes)';
+    if (seq.startsWith('\x1B')) {
+      return 'Code: Escape sequence (${seq.length} bytes)';
+    }
     if (seq.length == 1 && seq.codeUnitAt(0) < 32) {
       return 'Code: Ctrl+${String.fromCharCode(64 + seq.codeUnitAt(0))}';
     }
@@ -427,7 +472,9 @@ class TerminalKeysScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 3),
       decoration: BoxDecoration(
-        color: isEnabled ? theme.cardSurface : theme.cardSurface.withValues(alpha: 0.4),
+        color: isEnabled
+            ? theme.cardSurface
+            : theme.cardSurface.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isEnabled ? theme.border : theme.border.withValues(alpha: 0.4),
@@ -473,10 +520,13 @@ class TerminalKeysScreen extends StatelessWidget {
             color: theme.textSecondary,
           ),
         ),
-        trailing: Switch(
-          value: isEnabled,
-          activeThumbColor: theme.primaryAccent,
-          onChanged: onChanged,
+        trailing: Semantics(
+          label: title,
+          child: Switch(
+            value: isEnabled,
+            activeThumbColor: theme.primaryAccent,
+            onChanged: onChanged,
+          ),
         ),
       ),
     );

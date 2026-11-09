@@ -33,7 +33,8 @@ void main() {
     );
 
     expect(find.text('No servers yet'), findsOneWidget);
-    expect(find.text('Add server'), findsWidgets);
+    expect(find.text('Add server'), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsNothing);
   });
 
   testWidgets('ServerCard renders displayName and connection details',

@@ -40,6 +40,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   bool _isKeyEncrypted = false;
   bool _isLoadingCredential = false;
   bool _persistSession = false;
+  bool _submitted = false;
   String? _keyValidationError;
   @override
   void initState() {
@@ -140,6 +141,7 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
   }
 
   Future<void> _save() async {
+    setState(() => _submitted = true);
     if (!_formKey.currentState!.validate()) {
       _moreOptions.expand();
       return;
@@ -238,6 +240,9 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
       body: _isLoadingCredential
           ? Center(child: CircularProgressIndicator(color: theme.primaryAccent))
           : Form(
+              autovalidateMode: _submitted
+                  ? AutovalidateMode.onUserInteraction
+                  : AutovalidateMode.disabled,
               key: _formKey,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.lg),

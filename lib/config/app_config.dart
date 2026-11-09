@@ -303,7 +303,7 @@ class AccessoryBarConfig {
     TerminalKeyShortcut(
         label: 'F5', sequence: '\x1B[15~', description: 'Copy / Refresh'),
     TerminalKeyShortcut(
-        label: 'F6', sequence: '\x1B[17~', description: 'Move / Ren'),
+        label: 'F6', sequence: '\x1B[17~', description: 'Move / Rename'),
     TerminalKeyShortcut(
         label: 'F7', sequence: '\x1B[18~', description: 'Mkdir / Search'),
     TerminalKeyShortcut(

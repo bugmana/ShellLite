@@ -27,6 +27,7 @@ class TerminalAppearanceModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final settings = context.watch<TerminalSettingsStore>();
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -41,16 +42,22 @@ class TerminalAppearanceModal extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                Expanded(
+                    child: Text(
                   'Settings',
                   style: Theme.of(context).textTheme.titleLarge,
-                ),
+                )),
                 TextButton(
                   onPressed: () => settings.resetDefaults(),
                   child: Text(
-                    'Reset',
+                    'Reset settings',
                     style: TextStyle(color: theme.textSecondary, fontSize: 13),
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Close settings',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
@@ -70,93 +77,97 @@ class TerminalAppearanceModal extends StatelessWidget {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount:
+                    MediaQuery.sizeOf(context).width / textScale < 360 ? 2 : 3,
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
-                childAspectRatio: 1.4,
+                childAspectRatio: (1.4 / textScale).clamp(0.6, 1.4),
               ),
               itemCount: TerminalThemePresets.all.length,
               itemBuilder: (context, index) {
                 final preset = TerminalThemePresets.all[index];
                 final isSelected = preset.id == settings.themeId;
 
-                return InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => settings.setTheme(preset.id),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: preset.theme.background,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected
-                            ? preset.palette.primaryAccent
-                            : theme.border,
-                        width: isSelected ? 2 : 1,
+                return Semantics(
+                  selected: isSelected,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => settings.setTheme(preset.id),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: preset.theme.background,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? preset.palette.primaryAccent
+                              : theme.border,
+                          width: isSelected ? 2 : 1,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                preset.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: preset.palette.textPrimary,
-                                  fontSize: 11,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  preset.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: preset.palette.textPrimary,
+                                    fontSize: 11,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
-                            if (isSelected)
-                              Icon(
-                                Icons.check_circle_rounded,
-                                color: preset.palette.primaryAccent,
-                                size: 14,
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: preset.palette.primaryAccent,
+                                  size: 14,
+                                ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                  color: preset.palette.primaryAccent,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              margin: const EdgeInsets.only(right: 4),
-                              decoration: BoxDecoration(
-                                color: preset.palette.primaryAccent,
-                                shape: BoxShape.circle,
+                              Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                  color: preset.palette.secondaryAccent,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            Container(
-                              width: 8,
-                              height: 8,
-                              margin: const EdgeInsets.only(right: 4),
-                              decoration: BoxDecoration(
-                                color: preset.palette.secondaryAccent,
-                                shape: BoxShape.circle,
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: preset.palette.warning,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: preset.palette.warning,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -252,12 +263,17 @@ class TerminalAppearanceModal extends StatelessWidget {
                               (settings.fontSize - 0.5).clamp(10.0, 22.0))
                           : null,
                     ),
-                    Text(
-                      '${settings.fontSize.toStringAsFixed(1)} pt',
-                      style: TextStyle(
-                        color: theme.primaryAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        '${settings.fontSize.toStringAsFixed(1)} pt',
+                        semanticsLabel:
+                            'Text size ${settings.fontSize.toStringAsFixed(1)} points',
+                        style: TextStyle(
+                          color: theme.primaryAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -275,23 +291,6 @@ class TerminalAppearanceModal extends StatelessWidget {
                   ],
                 ),
               ],
-            ),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: theme.primaryAccent,
-                inactiveTrackColor: theme.border,
-                thumbColor: theme.primaryAccent,
-                overlayColor: theme.primaryAccent.withValues(alpha: 0.2),
-              ),
-              child: Slider(
-                value: settings.fontSize,
-                min: 10.0,
-                max: 22.0,
-                divisions: 24,
-                semanticFormatterCallback: (val) =>
-                    '${val.toStringAsFixed(1)} points',
-                onChanged: (val) => settings.setFontSize(val),
-              ),
             ),
             const SizedBox(height: 16),
 
@@ -387,10 +386,13 @@ class TerminalAppearanceModal extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Switch(
-                    value: settings.showKeyboardBar,
-                    activeThumbColor: theme.primaryAccent,
-                    onChanged: (val) => settings.setShowKeyboardBar(val),
+                  Semantics(
+                    label: "Show key row",
+                    child: Switch(
+                      value: settings.showKeyboardBar,
+                      activeThumbColor: theme.primaryAccent,
+                      onChanged: (val) => settings.setShowKeyboardBar(val),
+                    ),
                   ),
                 ],
               ),
@@ -428,10 +430,14 @@ class TerminalAppearanceModal extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Switch(
-                    value: settings.hapticFeedbackEnabled,
-                    activeThumbColor: theme.primaryAccent,
-                    onChanged: (val) => settings.setHapticFeedbackEnabled(val),
+                  Semantics(
+                    label: "Haptics",
+                    child: Switch(
+                      value: settings.hapticFeedbackEnabled,
+                      activeThumbColor: theme.primaryAccent,
+                      onChanged: (val) =>
+                          settings.setHapticFeedbackEnabled(val),
+                    ),
                   ),
                 ],
               ),

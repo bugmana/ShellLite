@@ -36,6 +36,29 @@ void main() {
     );
   }
 
+  testWidgets(
+      'corrected fields clear errors and password can be cleared immediately',
+      (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), '192.0.2.1');
+    await tester.enterText(fields.at(1), 'test');
+    await tester.enterText(fields.at(2), 'dummy-only');
+    await tester.pump();
+    expect(find.text('Host is required'), findsNothing);
+    expect(find.text('Username is required'), findsNothing);
+    expect(find.text('Password is required'), findsNothing);
+    final clear = find.byTooltip('Clear password');
+    expect(clear, findsOneWidget);
+    await tester.ensureVisible(clear);
+    await tester.tap(clear);
+    await tester.pump();
+    expect(find.byTooltip('Clear password'), findsNothing);
+    expect(find.text('Password is required'), findsOneWidget);
+  });
+
   testWidgets('ServerFormScreen creates a new server with password auth',
       (tester) async {
     await tester.pumpWidget(createTestWidget());
@@ -157,7 +180,13 @@ void main() {
         w is TextField &&
         (w.decoration?.hintText?.contains('Paste your OpenSSH') ?? false));
     await tester.enterText(field, 'invalid key');
-    await tester.tap(find.text('Clear'));
+    await tester.tap(find.text('Hide key'));
+    await tester.pump();
+    expect(find.text('Private key hidden'), findsOneWidget);
+    expect(find.text('Private key saved'), findsNothing);
+    await tester.tap(find.text('Show key'));
+    await tester.pump();
+    await tester.tap(find.text('Clear key'));
     await tester.pump();
     expect((tester.widget(field) as TextField).controller!.text, isEmpty);
   });

@@ -135,7 +135,7 @@ class _ServerListScreenState extends State<ServerListScreen> {
           ),
         ],
       ),
-      floatingActionButton: store.canAddServer
+      floatingActionButton: profiles.isNotEmpty && store.canAddServer
           ? FloatingActionButton.extended(
               onPressed: () => _openForm(),
               backgroundColor: theme.primaryAccent,

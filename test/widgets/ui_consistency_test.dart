@@ -34,7 +34,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('Hide key'), findsOneWidget);
-    expect(find.text('Clear'), findsOneWidget);
+    expect(find.text('Clear key'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
   });
