@@ -561,6 +561,118 @@ void main() {
     sessionStore.cancelAutoReconnect(testProfile.id);
   });
 
+  Widget keyboardTestWidget() => MaterialApp(
+        theme: AppTheme.buildTheme(TerminalThemePresets.obsidian),
+        home: TerminalScreen(profile: testProfile),
+      );
+
+  for (final hideBeforeInactive in [false, true]) {
+    testWidgets(
+        'resume restores typing after background keyboard dismissal (insets first=$hideBeforeInactive)',
+        (tester) async {
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpWidget(keyboardTestWidget());
+      await tester.pumpAndSettle();
+      tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+      await tester.pumpAndSettle();
+      if (hideBeforeInactive) {
+        tester.view.viewInsets = FakeViewPadding.zero;
+      }
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      if (!hideBeforeInactive) {
+        tester.view.viewInsets = FakeViewPadding.zero;
+      }
+      await tester.pumpAndSettle();
+      tester.testTextInput.log.clear();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      final terminal = tester.widget<TerminalView>(find.byType(TerminalView));
+      expect(terminal.hardwareKeyboardOnly, isFalse);
+      expect(terminal.focusNode!.hasFocus, isTrue);
+      expect(
+          tester.testTextInput.log
+              .any((call) => call.method == 'TextInput.show'),
+          isTrue);
+      expect(find.byTooltip('Hide keyboard'), findsOneWidget);
+    });
+  }
+
+  for (final systemDismissal in [false, true]) {
+    testWidgets(
+        'resume respects an intentionally hidden keyboard (system=$systemDismissal)',
+        (tester) async {
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpWidget(keyboardTestWidget());
+      await tester.pumpAndSettle();
+      tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+      await tester.pumpAndSettle();
+      if (systemDismissal) {
+        tester.view.viewInsets = FakeViewPadding.zero;
+      } else {
+        await tester.tap(find.byTooltip('Hide keyboard'));
+      }
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pumpAndSettle();
+      tester.testTextInput.log.clear();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<TerminalView>(find.byType(TerminalView))
+              .hardwareKeyboardOnly,
+          isTrue);
+      expect(find.byTooltip('Show keyboard'), findsOneWidget);
+      expect(
+          tester.testTextInput.log
+              .any((call) => call.method == 'TextInput.show'),
+          isFalse);
+    });
+  }
+
+  testWidgets(
+      'a keyboard that stays visible during resume can still be dismissed',
+      (tester) async {
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpWidget(keyboardTestWidget());
+    await tester.pumpAndSettle();
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+    await tester.pumpAndSettle();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    tester.view.viewInsets = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Show keyboard'), findsOneWidget);
+    expect(
+        tester
+            .widget<TerminalView>(find.byType(TerminalView))
+            .hardwareKeyboardOnly,
+        isTrue);
+  });
+
+  testWidgets('resume does not focus the terminal underneath another screen',
+      (tester) async {
+    final editorFocus = FocusNode();
+    addTearDown(editorFocus.dispose);
+    await tester.pumpWidget(keyboardTestWidget());
+    await tester.pumpAndSettle();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    final terminalContext = tester.element(find.byType(TerminalScreen));
+    Navigator.of(terminalContext).push(MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+            body: TextField(focusNode: editorFocus, autofocus: true))));
+    await tester.pumpAndSettle();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    final terminal = tester
+        .widget<TerminalView>(find.byType(TerminalView, skipOffstage: false));
+    expect(terminal.focusNode!.hasFocus, isFalse);
+    expect(editorFocus.hasFocus, isTrue);
+  });
+
   testWidgets(
       'TerminalScreen updates keyboard visibility when external insets change',
       (tester) async {

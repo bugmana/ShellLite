@@ -97,6 +97,8 @@ class _TerminalScreenState extends State<TerminalScreen>
 
   bool _isKeyboardVisible = true;
   bool _hasObservedKeyboardInset = false;
+  bool _isAppActive = true;
+  bool _restoreKeyboardOnResume = false;
 
   @override
   void initState() {
@@ -112,6 +114,7 @@ class _TerminalScreenState extends State<TerminalScreen>
     _terminalScrollController.addListener(_handleTerminalScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final sessionStore = context.maybeRead<SessionStore>();
       if (sessionStore != null) {
         sessionStore.getOrCreateSession(widget.profile);
@@ -162,6 +165,22 @@ class _TerminalScreenState extends State<TerminalScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    if (!mounted) return;
+    if (state != AppLifecycleState.resumed) {
+      if (_isAppActive) {
+        _restoreKeyboardOnResume =
+            _isKeyboardVisible && (ModalRoute.of(context)?.isCurrent ?? false);
+      }
+      _isAppActive = false;
+      // Insets disappearing in the background are not a keyboard dismissal.
+      _hasObservedKeyboardInset = false;
+    } else {
+      _isAppActive = true;
+      _hasObservedKeyboardInset = View.of(context).viewInsets.bottom > 0;
+      final restoreKeyboard = _restoreKeyboardOnResume;
+      _restoreKeyboardOnResume = false;
+      if (restoreKeyboard) _focusTerminal();
+    }
     final sessionStore = context.maybeRead<SessionStore>();
     final session = _readSession(context);
 
@@ -207,6 +226,7 @@ class _TerminalScreenState extends State<TerminalScreen>
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
+    if (!mounted || !_isAppActive) return;
     final bottomInset = View.of(context).viewInsets.bottom;
     if (bottomInset > 0) {
       _hasObservedKeyboardInset = true;
@@ -216,12 +236,20 @@ class _TerminalScreenState extends State<TerminalScreen>
         });
       }
     } else if (_hasObservedKeyboardInset && bottomInset == 0) {
-      _hasObservedKeyboardInset = false;
-      if (_isKeyboardVisible && mounted) {
-        setState(() {
-          _isKeyboardVisible = false;
-        });
-      }
+      // A pause can follow the inset update in the same frame. Let lifecycle
+      // events distinguish backgrounding from an intentional system dismissal.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !_isAppActive ||
+            !_hasObservedKeyboardInset ||
+            View.of(context).viewInsets.bottom != 0) {
+          return;
+        }
+        _hasObservedKeyboardInset = false;
+        if (_isKeyboardVisible) {
+          setState(() => _isKeyboardVisible = false);
+        }
+      });
     }
   }
 
@@ -256,7 +284,11 @@ class _TerminalScreenState extends State<TerminalScreen>
       _readSession(context)?.terminal ?? _fallbackTerminal;
 
   void _focusTerminal() {
-    if (!mounted) return;
+    if (!mounted ||
+        !_isAppActive ||
+        !(ModalRoute.of(context)?.isCurrent ?? false)) {
+      return;
+    }
     final wasHidden = !_isKeyboardVisible;
     if (wasHidden) {
       setState(() {
@@ -265,7 +297,11 @@ class _TerminalScreenState extends State<TerminalScreen>
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted ||
+          !_isAppActive ||
+          !(ModalRoute.of(context)?.isCurrent ?? false)) {
+        return;
+      }
       if (!_terminalFocusNode.hasFocus) {
         _terminalFocusNode.requestFocus();
       }
@@ -530,7 +566,6 @@ class _TerminalScreenState extends State<TerminalScreen>
         border: Border(top: BorderSide(color: theme.border, width: 1.0)),
       ),
       child: KeyboardAccessoryBar(
-        isTmuxEnabled: widget.profile.persistSession,
         onKeyTap: _handleKeyTap,
         onInteraction: _focusTerminal,
         isKeyboardVisible: _isKeyboardVisible,
