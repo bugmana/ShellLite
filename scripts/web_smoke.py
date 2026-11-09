@@ -56,6 +56,8 @@ def run(url, artifacts, mobile):
             type_field("Password", "dummy-test-only")
             page.get_by_role("button", name="More options", exact=True).click()
             type_field("Name (optional)", name)
+            page.get_by_role("switch", name=re.compile("^Persistent Session")).click()
+            type_field("Session Name", "smoke-session")
             type_field("Startup command", "pwd")
             page.get_by_role("button", name="Save", exact=True).click()
             expect(card).to_be_visible()
@@ -65,7 +67,12 @@ def run(url, artifacts, mobile):
             page.get_by_role("button", name="Server options", exact=True).click()
             page.get_by_role("menuitem", name="Edit", exact=True).click()
             page.get_by_role("button", name="More options", exact=True).click()
-            for label, value in [("Name (optional)", name), ("Startup command", "pwd")]:
+            expect(page.get_by_role("switch", name=re.compile("^Persistent Session"))).to_be_checked()
+            for label, value in [
+                ("Name (optional)", name),
+                ("Session Name", "smoke-session"),
+                ("Startup command", "pwd"),
+            ]:
                 field = page.get_by_role(
                     "textbox", name=re.compile("^" + re.escape(label) + r"(?:\s|$)")
                 )
