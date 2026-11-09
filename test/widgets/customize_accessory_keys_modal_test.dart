@@ -35,7 +35,9 @@ void main() {
     );
   }
 
-  testWidgets('CustomizeAccessoryKeysModal renders sticky modifiers and toggles them', (tester) async {
+  testWidgets(
+      'CustomizeAccessoryKeysModal renders sticky modifiers and toggles them',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -59,19 +61,23 @@ void main() {
     expect(settingsStore.altModifierEnabled, isFalse);
   });
 
-  testWidgets('CustomizeAccessoryKeysModal renders key list and toggle switches', (tester) async {
+  testWidgets(
+      'CustomizeAccessoryKeysModal renders key list and toggle switches',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
     expect(find.text('Tab'), findsOneWidget);
-    expect(find.text('⇧Tab'), findsOneWidget);
+    expect(find.text('⇧Tab'), findsNothing);
 
     // Toggle the first switch in ReorderableListView
-    final firstKeySwitch = find.descendant(
-      of: find.byType(ReorderableListView),
-      matching: find.byType(Switch),
-    ).first;
+    final firstKeySwitch = find
+        .descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Switch),
+        )
+        .first;
     await tester.tap(firstKeySwitch);
     await tester.pumpAndSettle();
 
@@ -79,7 +85,8 @@ void main() {
     expect(settingsStore.configuredAccessoryKeys.first.isEnabled, isFalse);
   });
 
-  testWidgets('CustomizeAccessoryKeysModal adds a custom key via Add Dialog', (tester) async {
+  testWidgets('CustomizeAccessoryKeysModal adds a custom key via Add Dialog',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -109,12 +116,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify modal now contains the new key in store and in list
-    expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'git'), isTrue);
+    expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'git'),
+        isTrue);
     final listScrollable = find.descendant(
       of: find.byType(ReorderableListView),
       matching: find.byType(Scrollable),
     );
-    await tester.scrollUntilVisible(find.text('git'), 200, scrollable: listScrollable);
+    await tester.scrollUntilVisible(find.text('git'), 200,
+        scrollable: listScrollable);
     expect(find.text('git'), findsOneWidget);
   });
 
@@ -142,10 +151,14 @@ void main() {
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
 
-    expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'test_del'), isFalse);
+    expect(
+        settingsStore.configuredAccessoryKeys.any((k) => k.label == 'test_del'),
+        isFalse);
   });
 
-  testWidgets('CustomizeAccessoryKeysModal resets to default layout with confirmation', (tester) async {
+  testWidgets(
+      'CustomizeAccessoryKeysModal resets to default layout with confirmation',
+      (tester) async {
     await settingsStore.addCustomAccessoryKey(
       label: 'cust_reset',
       sequence: 'test',
@@ -164,16 +177,23 @@ void main() {
     expect(find.text('Reset Terminal Keys?'), findsOneWidget);
 
     // Tap Reset Layout button
-    final confirmResetButton = find.widgetWithText(ElevatedButton, 'Reset Layout');
+    final confirmResetButton =
+        find.widgetWithText(ElevatedButton, 'Reset Layout');
     await tester.tap(confirmResetButton);
     await tester.pumpAndSettle();
 
     // Verify custom key is gone and default length restored
-    expect(settingsStore.configuredAccessoryKeys.length, AccessoryBarConfig.defaultKeys.length);
-    expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'cust_reset'), isFalse);
+    expect(settingsStore.configuredAccessoryKeys.length,
+        AccessoryBarConfig.defaultKeys.length);
+    expect(
+        settingsStore.configuredAccessoryKeys
+            .any((k) => k.label == 'cust_reset'),
+        isFalse);
   });
 
-  testWidgets('CustomizeAccessoryKeysModal renders ReorderableListView with drag handles and reorders items', (tester) async {
+  testWidgets(
+      'CustomizeAccessoryKeysModal renders ReorderableListView with drag handles and reorders items',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -196,7 +216,9 @@ void main() {
     expect(settingsStore.configuredAccessoryKeys[1].label, initialFirstKey);
   });
 
-  testWidgets('AddCustomKeyDialog fills form from Quick Presets (Extended Keys) and adds key', (tester) async {
+  testWidgets(
+      'AddCustomKeyDialog fills form from Quick Presets (Extended Keys) and adds key',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -219,12 +241,15 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify modal and store have F5 key with sequence '\x1B[15~'
-    final f5Key = settingsStore.configuredAccessoryKeys.firstWhere((k) => k.label == 'F5');
+    final f5Key = settingsStore.configuredAccessoryKeys
+        .firstWhere((k) => k.label == 'F5');
     expect(f5Key.sequence, '\x1B[15~');
     expect(f5Key.description, 'Copy / Refresh');
   });
 
-  testWidgets('CustomizeAccessoryKeysModal renders unified tabs and adds extended keys on tap', (tester) async {
+  testWidgets(
+      'CustomizeAccessoryKeysModal renders unified tabs and adds extended keys on tap',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -245,7 +270,8 @@ void main() {
     await tester.tap(find.text('F5'));
     await tester.pumpAndSettle();
 
-    expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'F5'), isTrue);
+    expect(settingsStore.configuredAccessoryKeys.any((k) => k.label == 'F5'),
+        isTrue);
 
     // Switch to Navigation tab
     await tester.tap(find.text('Navigation'));
@@ -261,7 +287,9 @@ void main() {
     expect(find.text('^A'), findsOneWidget);
   });
 
-  testWidgets('TerminalKeysScreen renders as an entire page similar to PrivacyPolicyScreen', (tester) async {
+  testWidgets(
+      'TerminalKeysScreen renders as an entire page similar to PrivacyPolicyScreen',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 

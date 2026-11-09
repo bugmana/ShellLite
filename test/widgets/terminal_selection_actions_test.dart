@@ -14,6 +14,17 @@ class _RenderTerminal {
 }
 
 void main() {
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+            const MethodChannel('com.bugmana.shell_lite/platform'),
+            (_) async => 32);
+  });
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+            const MethodChannel('com.bugmana.shell_lite/platform'), null);
+  });
   for (final columns in [80, 20]) {
     testWidgets('copies whole URL without browser actions at width $columns',
         (tester) async {

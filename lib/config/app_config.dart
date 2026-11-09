@@ -51,15 +51,20 @@ class StorageConfig {
   static const String keyPassphrasePrefix = 'key_pass_';
   static const String terminalThemeKey = 'shell_lite_terminal_theme_id_v1';
   static const String terminalFontSizeKey = 'shell_lite_terminal_font_size_v1';
-  static const String terminalFontFamilyKey = 'shell_lite_terminal_font_family_v1';
+  static const String terminalFontFamilyKey =
+      'shell_lite_terminal_font_family_v1';
   static const String accessoryKeysKey = 'shell_lite_accessory_keys_v2';
   static const String hapticFeedbackKey = 'shell_lite_haptic_feedback_v1';
-  static const String ctrlModifierEnabledKey = 'shell_lite_ctrl_modifier_enabled_v1';
-  static const String altModifierEnabledKey = 'shell_lite_alt_modifier_enabled_v1';
+  static const String ctrlModifierEnabledKey =
+      'shell_lite_ctrl_modifier_enabled_v1';
+  static const String altModifierEnabledKey =
+      'shell_lite_alt_modifier_enabled_v1';
   static const String showKeyboardBarKey = 'shell_lite_show_keyboard_bar_v1';
 
-  static String buildCredentialTag(String profileId) => '$credentialPrefix$profileId';
-  static String buildKeyPassphraseTag(String profileId) => '$keyPassphrasePrefix$profileId';
+  static String buildCredentialTag(String profileId) =>
+      '$credentialPrefix$profileId';
+  static String buildKeyPassphraseTag(String profileId) =>
+      '$keyPassphrasePrefix$profileId';
 }
 
 final _keyEscapeRegex = RegExp(r'\\[enrt]|\\x1[bB]|\^([A-Za-z_\]\^\\?\[])');
@@ -77,12 +82,18 @@ String parseKeySequence(String raw) {
       if (code >= 65 && code <= 90) return String.fromCharCode(code - 64);
       if (code >= 97 && code <= 122) return String.fromCharCode(code - 96);
       switch (s[1]) {
-        case '[': return '\x1B';
-        case r'\': return '\x1C';
-        case ']': return '\x1D';
-        case '^': return '\x1E';
-        case '_': return '\x1F';
-        case '?': return '\x7F';
+        case '[':
+          return '\x1B';
+        case r'\':
+          return '\x1C';
+        case ']':
+          return '\x1D';
+        case '^':
+          return '\x1E';
+        case '_':
+          return '\x1F';
+        case '?':
+          return '\x7F';
       }
     }
     return s;
@@ -183,13 +194,12 @@ class AccessoryBarConfig {
   static const double barHeight = 52.0;
 
   static const List<TerminalKeyShortcut> defaultKeys = [
+    TerminalKeyShortcut(label: 'Esc', sequence: '\x1B'),
     TerminalKeyShortcut(label: 'Tab', sequence: '\t'),
-    TerminalKeyShortcut(label: '⇧Tab', sequence: '\x1B[Z'),
     TerminalKeyShortcut(label: '↑', sequence: '\x1B[A'),
     TerminalKeyShortcut(label: '↓', sequence: '\x1B[B'),
     TerminalKeyShortcut(label: '←', sequence: '\x1B[D'),
     TerminalKeyShortcut(label: '→', sequence: '\x1B[C'),
-    TerminalKeyShortcut(label: 'Esc', sequence: '\x1B'),
   ];
 
   static List<AccessoryKeyItem> get initialConfiguredKeys => defaultKeys
@@ -208,52 +218,105 @@ class AccessoryBarConfig {
       .toList();
 
   static const List<TerminalKeyShortcut> controlKeys = [
-    TerminalKeyShortcut(label: '^A', sequence: '\x01', description: 'Start of line'),
-    TerminalKeyShortcut(label: '^E', sequence: '\x05', description: 'End of line'),
-    TerminalKeyShortcut(label: '^U', sequence: '\x15', description: 'Clear line before cursor'),
-    TerminalKeyShortcut(label: '^K', sequence: '\x0B', description: 'Clear line after cursor'),
-    TerminalKeyShortcut(label: '^W', sequence: '\x17', description: 'Delete word backward'),
-    TerminalKeyShortcut(label: '^R', sequence: '\x12', description: 'History reverse search'),
-    TerminalKeyShortcut(label: '^L', sequence: '\x0C', description: 'Clear screen'),
-    TerminalKeyShortcut(label: '^Z', sequence: '\x1A', description: 'Suspend process (SIGTSTP)'),
-    TerminalKeyShortcut(label: '^C', sequence: '\x03', description: 'Interrupt process (SIGINT)'),
-    TerminalKeyShortcut(label: '^D', sequence: '\x04', description: 'EOF / Exit shell'),
-    TerminalKeyShortcut(label: '^O', sequence: '\x0F', description: 'Save file (nano)'),
-    TerminalKeyShortcut(label: '^X', sequence: '\x18', description: 'Exit (nano)'),
-    TerminalKeyShortcut(label: '^G', sequence: '\x07', description: 'Get Help (nano)'),
-    TerminalKeyShortcut(label: '^T', sequence: '\x14', description: 'Transpose chars'),
-    TerminalKeyShortcut(label: '^S', sequence: '\x13', description: 'Forward search / freeze'),
-    TerminalKeyShortcut(label: '^B', sequence: '\x02', description: 'Cursor back / tmux prefix'),
-    TerminalKeyShortcut(label: '^F', sequence: '\x06', description: 'Cursor forward'),
-    TerminalKeyShortcut(label: '^P', sequence: '\x10', description: 'Previous command'),
-    TerminalKeyShortcut(label: '^N', sequence: '\x0E', description: 'Next command'),
-    TerminalKeyShortcut(label: '^\\', sequence: '\x1C', description: 'Quit process (SIGQUIT)'),
+    TerminalKeyShortcut(
+        label: '^A', sequence: '\x01', description: 'Start of line'),
+    TerminalKeyShortcut(
+        label: '^E', sequence: '\x05', description: 'End of line'),
+    TerminalKeyShortcut(
+        label: '^U', sequence: '\x15', description: 'Clear line before cursor'),
+    TerminalKeyShortcut(
+        label: '^K', sequence: '\x0B', description: 'Clear line after cursor'),
+    TerminalKeyShortcut(
+        label: '^W', sequence: '\x17', description: 'Delete word backward'),
+    TerminalKeyShortcut(
+        label: '^R', sequence: '\x12', description: 'History reverse search'),
+    TerminalKeyShortcut(
+        label: '^L', sequence: '\x0C', description: 'Clear screen'),
+    TerminalKeyShortcut(
+        label: '^Z',
+        sequence: '\x1A',
+        description: 'Suspend process (SIGTSTP)'),
+    TerminalKeyShortcut(
+        label: '^C',
+        sequence: '\x03',
+        description: 'Interrupt process (SIGINT)'),
+    TerminalKeyShortcut(
+        label: '^D', sequence: '\x04', description: 'EOF / Exit shell'),
+    TerminalKeyShortcut(
+        label: '^O', sequence: '\x0F', description: 'Save file (nano)'),
+    TerminalKeyShortcut(
+        label: '^X', sequence: '\x18', description: 'Exit (nano)'),
+    TerminalKeyShortcut(
+        label: '^G', sequence: '\x07', description: 'Get Help (nano)'),
+    TerminalKeyShortcut(
+        label: '^T', sequence: '\x14', description: 'Transpose chars'),
+    TerminalKeyShortcut(
+        label: '^S', sequence: '\x13', description: 'Forward search / freeze'),
+    TerminalKeyShortcut(
+        label: '^B',
+        sequence: '\x02',
+        description: 'Cursor back / tmux prefix'),
+    TerminalKeyShortcut(
+        label: '^F', sequence: '\x06', description: 'Cursor forward'),
+    TerminalKeyShortcut(
+        label: '^P', sequence: '\x10', description: 'Previous command'),
+    TerminalKeyShortcut(
+        label: '^N', sequence: '\x0E', description: 'Next command'),
+    TerminalKeyShortcut(
+        label: '^\\', sequence: '\x1C', description: 'Quit process (SIGQUIT)'),
   ];
 
   static const List<TerminalKeyShortcut> navigationKeys = [
-    TerminalKeyShortcut(label: 'Home', sequence: '\x1B[H', description: 'Cursor to start of line'),
-    TerminalKeyShortcut(label: 'End', sequence: '\x1B[F', description: 'Cursor to end of line'),
-    TerminalKeyShortcut(label: 'PgUp', sequence: '\x1B[5~', description: 'Page Up'),
-    TerminalKeyShortcut(label: 'PgDn', sequence: '\x1B[6~', description: 'Page Down'),
-    TerminalKeyShortcut(label: 'Insert', sequence: '\x1B[2~', description: 'Insert toggle'),
-    TerminalKeyShortcut(label: 'Delete', sequence: '\x1B[3~', description: 'Forward delete'),
-    TerminalKeyShortcut(label: 'Tab', sequence: '\t', description: 'Forward tab'),
-    TerminalKeyShortcut(label: '⇧Tab', sequence: '\x1B[Z', description: 'Back tab / Reverse navigation'),
-    TerminalKeyShortcut(label: 'Esc', sequence: '\x1B', description: 'Escape key'),
+    TerminalKeyShortcut(
+        label: 'Home',
+        sequence: '\x1B[H',
+        description: 'Cursor to start of line'),
+    TerminalKeyShortcut(
+        label: 'End', sequence: '\x1B[F', description: 'Cursor to end of line'),
+    TerminalKeyShortcut(
+        label: 'PgUp', sequence: '\x1B[5~', description: 'Page Up'),
+    TerminalKeyShortcut(
+        label: 'PgDn', sequence: '\x1B[6~', description: 'Page Down'),
+    TerminalKeyShortcut(
+        label: 'Insert', sequence: '\x1B[2~', description: 'Insert toggle'),
+    TerminalKeyShortcut(
+        label: 'Delete', sequence: '\x1B[3~', description: 'Forward delete'),
+    TerminalKeyShortcut(
+        label: 'Tab', sequence: '\t', description: 'Forward tab'),
+    TerminalKeyShortcut(
+        label: '⇧Tab',
+        sequence: '\x1B[Z',
+        description: 'Back tab / Reverse navigation'),
+    TerminalKeyShortcut(
+        label: 'Esc', sequence: '\x1B', description: 'Escape key'),
   ];
 
   static const List<TerminalKeyShortcut> functionKeys = [
-    TerminalKeyShortcut(label: 'F1', sequence: '\x1BOP', description: 'Help / Menu'),
-    TerminalKeyShortcut(label: 'F2', sequence: '\x1BOQ', description: 'Menu / User menu'),
-    TerminalKeyShortcut(label: 'F3', sequence: '\x1BOR', description: 'View file'),
-    TerminalKeyShortcut(label: 'F4', sequence: '\x1BOS', description: 'Edit file'),
-    TerminalKeyShortcut(label: 'F5', sequence: '\x1B[15~', description: 'Copy / Refresh'),
-    TerminalKeyShortcut(label: 'F6', sequence: '\x1B[17~', description: 'Move / Ren'),
-    TerminalKeyShortcut(label: 'F7', sequence: '\x1B[18~', description: 'Mkdir / Search'),
-    TerminalKeyShortcut(label: 'F8', sequence: '\x1B[19~', description: 'Delete file'),
-    TerminalKeyShortcut(label: 'F9', sequence: '\x1B[20~', description: 'Pull-down menu'),
-    TerminalKeyShortcut(label: 'F10', sequence: '\x1B[21~', description: 'Quit / Exit'),
-    TerminalKeyShortcut(label: 'F11', sequence: '\x1B[23~', description: 'Full screen / Function 11'),
-    TerminalKeyShortcut(label: 'F12', sequence: '\x1B[24~', description: 'Function 12'),
+    TerminalKeyShortcut(
+        label: 'F1', sequence: '\x1BOP', description: 'Help / Menu'),
+    TerminalKeyShortcut(
+        label: 'F2', sequence: '\x1BOQ', description: 'Menu / User menu'),
+    TerminalKeyShortcut(
+        label: 'F3', sequence: '\x1BOR', description: 'View file'),
+    TerminalKeyShortcut(
+        label: 'F4', sequence: '\x1BOS', description: 'Edit file'),
+    TerminalKeyShortcut(
+        label: 'F5', sequence: '\x1B[15~', description: 'Copy / Refresh'),
+    TerminalKeyShortcut(
+        label: 'F6', sequence: '\x1B[17~', description: 'Move / Ren'),
+    TerminalKeyShortcut(
+        label: 'F7', sequence: '\x1B[18~', description: 'Mkdir / Search'),
+    TerminalKeyShortcut(
+        label: 'F8', sequence: '\x1B[19~', description: 'Delete file'),
+    TerminalKeyShortcut(
+        label: 'F9', sequence: '\x1B[20~', description: 'Pull-down menu'),
+    TerminalKeyShortcut(
+        label: 'F10', sequence: '\x1B[21~', description: 'Quit / Exit'),
+    TerminalKeyShortcut(
+        label: 'F11',
+        sequence: '\x1B[23~',
+        description: 'Full screen / Function 11'),
+    TerminalKeyShortcut(
+        label: 'F12', sequence: '\x1B[24~', description: 'Function 12'),
   ];
 }

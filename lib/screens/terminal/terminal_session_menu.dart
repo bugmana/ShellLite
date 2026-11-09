@@ -46,9 +46,11 @@ class TerminalSessionMenu extends StatelessWidget {
           value: 'upload',
           child: Row(
             children: [
-              Icon(Icons.cloud_upload_outlined, size: 18, color: theme.textSecondary),
+              Icon(Icons.cloud_upload_outlined,
+                  size: 18, color: theme.textSecondary),
               const SizedBox(width: AppSpacing.sm),
-              Text('Upload File', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
+              Text('Upload file',
+                  style: TextStyle(color: theme.textPrimary, fontSize: 14)),
             ],
           ),
         ),
@@ -58,7 +60,8 @@ class TerminalSessionMenu extends StatelessWidget {
             children: [
               Icon(Icons.tune_rounded, size: 18, color: theme.textSecondary),
               const SizedBox(width: AppSpacing.sm),
-              Text('Settings', style: TextStyle(color: theme.textPrimary, fontSize: 14)),
+              Text('Settings',
+                  style: TextStyle(color: theme.textPrimary, fontSize: 14)),
             ],
           ),
         ),
@@ -67,7 +70,8 @@ class TerminalSessionMenu extends StatelessWidget {
           value: 'disconnect',
           child: Row(
             children: [
-              Icon(Icons.power_settings_new_rounded, size: 18, color: theme.error),
+              Icon(Icons.power_settings_new_rounded,
+                  size: 18, color: theme.error),
               const SizedBox(width: AppSpacing.sm),
               Text(
                 'Disconnect',

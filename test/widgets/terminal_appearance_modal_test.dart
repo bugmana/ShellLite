@@ -9,7 +9,8 @@ import 'package:shell_lite/widgets/terminal_appearance_modal.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('TerminalAppearanceModal renders themes and font size controls', (tester) async {
+  testWidgets('TerminalAppearanceModal renders themes and font size controls',
+      (tester) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -32,20 +33,20 @@ void main() {
     );
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('COLOR SCHEME'), findsOneWidget);
-    expect(find.text('FONT SIZE'), findsOneWidget);
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Text size'), findsOneWidget);
     expect(find.byType(Slider), findsOneWidget);
     expect(find.textContaining('Obsidian'), findsWidgets);
     expect(find.text('Catppuccin Mocha'), findsOneWidget);
     expect(find.text('Dracula'), findsOneWidget);
 
-    expect(find.text('Haptic Feedback'), findsOneWidget);
-    expect(find.text('ABOUT & PRIVACY'), findsOneWidget);
-    expect(find.text('Privacy Policy'), findsOneWidget);
-    expect(find.text('KEYBOARD & SHORTCUT KEYS'), findsOneWidget);
-    expect(find.text('Terminal Keys & Shortcuts'), findsOneWidget);
-    expect(find.text('Configure keys (F1–F12, navigation, macros) and modifiers'), findsOneWidget);
-    expect(find.text('Show On-Screen Key Bar'), findsOneWidget);
+    expect(find.text('Haptics'), findsOneWidget);
+    expect(find.text('About'), findsOneWidget);
+    expect(find.text('Privacy'), findsOneWidget);
+    expect(find.text('Keyboard'), findsOneWidget);
+    expect(find.text('Keys'), findsOneWidget);
+    expect(find.text('Choose keys and shortcuts'), findsOneWidget);
+    expect(find.text('Show key row'), findsOneWidget);
 
     // Tap on Dracula theme preset
     await tester.tap(find.text('Dracula'));
@@ -53,9 +54,12 @@ void main() {
 
     expect(store.themeId, 'dracula');
 
-    // Toggle Haptic Feedback switch
-    final hapticFinder = find.ancestor(of: find.text('Haptic Feedback'), matching: find.byType(Container)).first;
-    final hapticSwitch = find.descendant(of: hapticFinder, matching: find.byType(Switch));
+    // Toggle Haptics switch
+    final hapticFinder = find
+        .ancestor(of: find.text('Haptics'), matching: find.byType(Container))
+        .first;
+    final hapticSwitch =
+        find.descendant(of: hapticFinder, matching: find.byType(Switch));
     expect(store.hapticFeedbackEnabled, isTrue);
     await tester.tap(hapticSwitch);
     await tester.pump();
@@ -69,7 +73,9 @@ void main() {
     expect(store.hapticFeedbackEnabled, isTrue);
   });
 
-  testWidgets('TerminalAppearanceModal opens CustomizeAccessoryKeysModal when tapped', (tester) async {
+  testWidgets(
+      'TerminalAppearanceModal opens CustomizeAccessoryKeysModal when tapped',
+      (tester) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -91,7 +97,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Terminal Keys & Shortcuts'));
+    await tester.tap(find.text('Keys'));
     await tester.pumpAndSettle();
 
     expect(find.text('STICKY MODIFIERS'), findsOneWidget);

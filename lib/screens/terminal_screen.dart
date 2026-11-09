@@ -25,12 +25,14 @@ class TerminalScreen extends StatefulWidget {
   State<TerminalScreen> createState() => _TerminalScreenState();
 }
 
-class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObserver {
+class _TerminalScreenState extends State<TerminalScreen>
+    with WidgetsBindingObserver {
   late final Terminal _fallbackTerminal;
   late final TerminalController _fallbackController;
   late final FocusNode _terminalFocusNode;
   final ScrollController _terminalScrollController = ScrollController();
-  final GlobalKey<TerminalViewState> _terminalViewKey = GlobalKey<TerminalViewState>();
+  final GlobalKey<TerminalViewState> _terminalViewKey =
+      GlobalKey<TerminalViewState>();
   ScrollPosition? _attachedScrollPosition;
 
   bool _isKeyboardVisible = true;
@@ -62,9 +64,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     if (!_terminalScrollController.hasClients) return;
     final pos = _terminalScrollController.position;
     if (_attachedScrollPosition != pos) {
-      _attachedScrollPosition?.isScrollingNotifier.removeListener(_handleScrollSettled);
+      _attachedScrollPosition?.isScrollingNotifier
+          .removeListener(_handleScrollSettled);
       _attachedScrollPosition = pos;
-      _attachedScrollPosition?.isScrollingNotifier.addListener(_handleScrollSettled);
+      _attachedScrollPosition?.isScrollingNotifier
+          .addListener(_handleScrollSettled);
     }
   }
 
@@ -101,7 +105,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     final sessionStore = context.maybeRead<SessionStore>();
     final session = _readSession(context);
 
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
       sessionStore?.setAppBackgrounded(true);
     } else if (state == AppLifecycleState.resumed && mounted) {
       sessionStore?.setAppBackgrounded(false);
@@ -115,12 +120,13 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           // Active ping probe to detect zombie / half-open TCP sockets killed by OS while asleep
           session.sshService.probeConnection().then((isAlive) {
             if (!mounted) return;
-            if (!isAlive && session.connectionState == SSHConnectionState.connected) {
+            if (!isAlive &&
+                session.connectionState == SSHConnectionState.connected) {
               _handleDeadSocketOnResume(session);
             }
           });
         } else if (session.connectionState == SSHConnectionState.disconnected ||
-                   session.connectionState == SSHConnectionState.error) {
+            session.connectionState == SSHConnectionState.error) {
           // Socket was disconnected while user was away: auto-reconnect cleanly on resume
           sessionStore?.reconnectSession(session.id, isManual: true);
         }
@@ -131,11 +137,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   void _handleDeadSocketOnResume(OpenSession session) {
     session.sshService.disconnect();
     context.maybeRead<SessionStore>()?.updateSessionConnectionState(
-      session.id,
-      SSHConnectionState.disconnected,
-      wasConnected: true,
-      triggerAutoReconnect: true,
-    );
+          session.id,
+          SSHConnectionState.disconnected,
+          wasConnected: true,
+          triggerAutoReconnect: true,
+        );
   }
 
   @override
@@ -162,7 +168,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _attachedScrollPosition?.isScrollingNotifier.removeListener(_handleScrollSettled);
+    _attachedScrollPosition?.isScrollingNotifier
+        .removeListener(_handleScrollSettled);
     _attachedScrollPosition = null;
     _terminalScrollController.removeListener(_handleTerminalScroll);
     _terminalScrollController.dispose();
@@ -266,7 +273,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     });
   }
 
-  Color _getStatusColor(OpenSession? session, SSHConnectionState state, AppThemeExtension theme) {
+  Color _getStatusColor(
+      OpenSession? session, SSHConnectionState state, AppThemeExtension theme) {
     if (session?.autoReconnectCountdown != null) {
       return theme.warning;
     }
@@ -290,11 +298,15 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
       case SSHConnectionState.connected:
         return 'Connected';
       case SSHConnectionState.connecting:
-        return session?.wasConnected == true ? 'Reconnecting...' : 'Connecting...';
+        return session?.wasConnected == true
+            ? 'Reconnecting...'
+            : 'Connecting...';
       case SSHConnectionState.error:
         return 'Connection Error (tap to retry)';
       case SSHConnectionState.disconnected:
-        return session?.wasConnected == true ? 'Disconnected (tap to retry)' : 'Disconnected';
+        return session?.wasConnected == true
+            ? 'Disconnected (tap to retry)'
+            : 'Disconnected';
     }
   }
 
@@ -303,14 +315,17 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     final theme = context.appTheme;
     final terminalSettings = context.maybeWatch<TerminalSettingsStore>();
     final sessionStore = context.maybeWatch<SessionStore>();
-    final session = sessionStore?.activeSession ?? sessionStore?.getSession(widget.profile.id);
+    final session = sessionStore?.activeSession ??
+        sessionStore?.getSession(widget.profile.id);
 
     final terminal = session?.terminal ?? _fallbackTerminal;
     final controller = session?.controller ?? _fallbackController;
-    final connectionState = session?.connectionState ?? SSHConnectionState.disconnected;
+    final connectionState =
+        session?.connectionState ?? SSHConnectionState.disconnected;
 
     final activeTheme = terminalSettings?.activeTheme ?? TerminalConfig.theme;
-    final textStyle = terminalSettings?.terminalStyle ?? TerminalConfig.textStyle;
+    final textStyle =
+        terminalSettings?.terminalStyle ?? TerminalConfig.textStyle;
 
     return Scaffold(
       appBar: AppBar(
@@ -321,7 +336,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           onTap: () {
             if (session != null &&
                 (connectionState == SSHConnectionState.disconnected ||
-                 connectionState == SSHConnectionState.error)) {
+                    connectionState == SSHConnectionState.error)) {
               sessionStore?.reconnectSession(session.id, isManual: true);
             }
           },
@@ -331,7 +346,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
             children: [
               Text(
                 session?.profile.displayName ?? widget.profile.displayName,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -364,7 +380,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
         actions: [
           TerminalSessionMenu(
             onUpload: () => _openFileUpload(context),
-            onSettings: () => TerminalAppearanceModal.show(context).then((_) => _focusTerminal()),
+            onSettings: () => TerminalAppearanceModal.show(context)
+                .then((_) => _focusTerminal()),
             onDisconnect: () {
               if (session != null) {
                 sessionStore?.closeSession(session.id);
@@ -384,8 +401,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                 builder: (context, constraints) {
                   final canvasWidth = constraints.maxWidth;
                   final canvasHeight = constraints.maxHeight;
-                  final isDisconnected = connectionState == SSHConnectionState.disconnected ||
-                      connectionState == SSHConnectionState.error;
+                  final isDisconnected =
+                      connectionState == SSHConnectionState.disconnected ||
+                          connectionState == SSHConnectionState.error;
 
                   return Stack(
                     children: [
@@ -400,7 +418,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                           focusNode: _terminalFocusNode,
                           autofocus: true,
                           textStyle: textStyle,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           deleteDetection: true,
                           hardwareKeyboardOnly: !_isKeyboardVisible,
                           simulateScroll: false,
@@ -441,6 +460,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
         border: Border(top: BorderSide(color: theme.border, width: 1.0)),
       ),
       child: KeyboardAccessoryBar(
+        isTmuxEnabled: widget.profile.persistSession,
         onKeyTap: _handleKeyTap,
         onInteraction: _focusTerminal,
         isKeyboardVisible: _isKeyboardVisible,

@@ -35,7 +35,8 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     storageService = StorageService(prefs: prefs);
     sessionStore = SessionStore(storageService: storageService);
-    terminalSettingsStore = TerminalSettingsStore(storageService: storageService);
+    terminalSettingsStore =
+        TerminalSettingsStore(storageService: storageService);
 
     await terminalSettingsStore.load();
 
@@ -57,7 +58,8 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
-        ChangeNotifierProvider<TerminalSettingsStore>.value(value: terminalSettingsStore),
+        ChangeNotifierProvider<TerminalSettingsStore>.value(
+            value: terminalSettingsStore),
         Provider<StorageService>.value(value: storageService),
       ],
       child: MaterialApp(
@@ -67,7 +69,9 @@ void main() {
     );
   }
 
-  testWidgets('TerminalScreen initializes session and displays connecting status', (tester) async {
+  testWidgets(
+      'TerminalScreen initializes session and displays connecting status',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -84,7 +88,9 @@ void main() {
     expect(bufferText, contains('Connecting to testuser@127.0.0.1:22'));
   });
 
-  testWidgets('TerminalScreen renders KeyboardAccessoryBar and handles key shortcuts', (tester) async {
+  testWidgets(
+      'TerminalScreen renders KeyboardAccessoryBar and handles key shortcuts',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -93,7 +99,6 @@ void main() {
 
     // Find and tap accessory keys
     final tabKey = find.text('Tab');
-    final shiftTabKey = find.text('⇧Tab');
     final upKey = find.text('↑');
     final downKey = find.text('↓');
     final leftKey = find.text('←');
@@ -101,7 +106,6 @@ void main() {
     final escKey = find.text('Esc');
 
     expect(tabKey, findsOneWidget);
-    expect(shiftTabKey, findsOneWidget);
     expect(upKey, findsOneWidget);
     expect(downKey, findsOneWidget);
     expect(leftKey, findsOneWidget);
@@ -116,10 +120,6 @@ void main() {
     expect(terminalView.focusNode!.hasFocus, isTrue);
 
     await tester.tap(tabKey);
-    await tester.pump();
-    expect(terminalView.focusNode!.hasFocus, isTrue);
-
-    await tester.tap(shiftTabKey);
     await tester.pump();
     expect(terminalView.focusNode!.hasFocus, isTrue);
 
@@ -144,7 +144,9 @@ void main() {
     expect(terminalView.focusNode!.hasFocus, isTrue);
   });
 
-  testWidgets('TerminalScreen shows Paste action button in KeyboardAccessoryBar and handles paste', (tester) async {
+  testWidgets(
+      'TerminalScreen shows Paste action button in KeyboardAccessoryBar and handles paste',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -155,7 +157,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('TerminalScreen shows Disconnect action in Session Menu and handles session disconnect', (tester) async {
+  testWidgets(
+      'TerminalScreen shows Disconnect action in Session Menu and handles session disconnect',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -185,7 +189,8 @@ void main() {
     expect(sessionStore.getSession(testProfile.id), isNull);
   });
 
-  testWidgets('TerminalScreen shows Upload File action in Session Menu', (tester) async {
+  testWidgets('TerminalScreen shows Upload file action in Session Menu',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -195,7 +200,7 @@ void main() {
     await tester.tap(menuButton);
     await tester.pumpAndSettle();
 
-    final uploadItem = find.text('Upload File');
+    final uploadItem = find.text('Upload file');
     expect(uploadItem, findsOneWidget);
 
     // Tapping when disconnected shows disconnected snackbar
@@ -204,7 +209,8 @@ void main() {
     expect(find.text('Terminal session is not connected'), findsOneWidget);
   });
 
-  testWidgets('TerminalScreen opens Settings modal via Session Menu', (tester) async {
+  testWidgets('TerminalScreen opens Settings modal via Session Menu',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -231,7 +237,9 @@ void main() {
     expect(terminalSettingsStore.themeId, 'catppuccin');
   });
 
-  testWidgets('TerminalScreen keyboard toggle button toggles between down arrow and up arrow', (tester) async {
+  testWidgets(
+      'TerminalScreen keyboard toggle button toggles between down arrow and up arrow',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -261,7 +269,9 @@ void main() {
     expect(terminalView.focusNode!.hasFocus, isTrue);
   });
 
-  testWidgets('TerminalScreen shows floating callout toolbar [Copy | Select All] when text is selected', (tester) async {
+  testWidgets(
+      'TerminalScreen shows floating callout toolbar [Copy | Select All] when text is selected',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -304,14 +314,18 @@ void main() {
     expect(session.controller.selection, isNull);
     expect(find.text('Copy'), findsNothing);
     expect(find.text('Select All'), findsNothing);
-    expect(find.byKey(const Key('terminal_selection_handle_start')), findsNothing);
-    expect(find.byKey(const Key('terminal_selection_handle_end')), findsNothing);
+    expect(
+        find.byKey(const Key('terminal_selection_handle_start')), findsNothing);
+    expect(
+        find.byKey(const Key('terminal_selection_handle_end')), findsNothing);
 
     // KeyboardAccessoryBar is still present
     expect(find.byType(KeyboardAccessoryBar), findsOneWidget);
   });
 
-  testWidgets('TerminalScreen renders selection handles and allows dragging markers to update selection', (tester) async {
+  testWidgets(
+      'TerminalScreen renders selection handles and allows dragging markers to update selection',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -337,14 +351,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final startHandleFinder = find.byKey(const Key('terminal_selection_handle_start'));
-    final endHandleFinder = find.byKey(const Key('terminal_selection_handle_end'));
+    final startHandleFinder =
+        find.byKey(const Key('terminal_selection_handle_start'));
+    final endHandleFinder =
+        find.byKey(const Key('terminal_selection_handle_end'));
 
     expect(startHandleFinder, findsOneWidget);
     expect(endHandleFinder, findsOneWidget);
 
     // Initial text should be "Hello"
-    expect(session.terminal.buffer.getText(session.controller.selection), 'Hello');
+    expect(
+        session.terminal.buffer.getText(session.controller.selection), 'Hello');
 
     // Drag end handle to the right
     await tester.drag(endHandleFinder, const Offset(60, 0));
@@ -363,7 +380,9 @@ void main() {
     expect(newStart.x, lessThan(helloCol));
   });
 
-  testWidgets('TerminalScreen AppBar centers title and uses clean 2-item header with overflow Session Menu', (tester) async {
+  testWidgets(
+      'TerminalScreen AppBar centers title and uses clean 2-item header with overflow Session Menu',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -375,7 +394,8 @@ void main() {
     // Verify clean header: Session Menu button is present with >= 44pt touch target
     final menuButton = find.byTooltip('Session Menu');
     expect(menuButton, findsOneWidget);
-    final menuWidget = tester.widget<PopupMenuButton<String>>(find.byWidgetPredicate((w) => w is PopupMenuButton<String>));
+    final menuWidget = tester.widget<PopupMenuButton<String>>(
+        find.byWidgetPredicate((w) => w is PopupMenuButton<String>));
     expect(menuWidget.constraints!.minWidth, greaterThanOrEqualTo(44.0));
     expect(menuWidget.constraints!.minHeight, greaterThanOrEqualTo(44.0));
 
@@ -390,12 +410,15 @@ void main() {
     expect(titleText.overflow, TextOverflow.ellipsis);
   });
 
-  testWidgets('TerminalScreen sets hardwareKeyboardOnly when virtual keyboard is toggled to prevent scroll interruption', (tester) async {
+  testWidgets(
+      'TerminalScreen sets hardwareKeyboardOnly when virtual keyboard is toggled to prevent scroll interruption',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     // Initially keyboard is visible -> hardwareKeyboardOnly is false
-    final terminalViewInitial = tester.widget<TerminalView>(find.byType(TerminalView));
+    final terminalViewInitial =
+        tester.widget<TerminalView>(find.byType(TerminalView));
     expect(terminalViewInitial.hardwareKeyboardOnly, isFalse);
 
     // Tap toggle keyboard (down arrow) to hide keyboard
@@ -405,7 +428,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Now keyboard is hidden -> hardwareKeyboardOnly is true to guard scrolling
-    final terminalViewHidden = tester.widget<TerminalView>(find.byType(TerminalView));
+    final terminalViewHidden =
+        tester.widget<TerminalView>(find.byType(TerminalView));
     expect(terminalViewHidden.hardwareKeyboardOnly, isTrue);
 
     // Tap toggle keyboard (up arrow) to show keyboard
@@ -415,11 +439,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Keyboard restored -> hardwareKeyboardOnly is false
-    final terminalViewRestored = tester.widget<TerminalView>(find.byType(TerminalView));
+    final terminalViewRestored =
+        tester.widget<TerminalView>(find.byType(TerminalView));
     expect(terminalViewRestored.hardwareKeyboardOnly, isFalse);
   });
 
-  testWidgets('TerminalScreen scrolls smoothly through buffer without rebuilding TerminalView or crashing', (tester) async {
+  testWidgets(
+      'TerminalScreen scrolls smoothly through buffer without rebuilding TerminalView or crashing',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -442,7 +469,9 @@ void main() {
     expect(find.byType(TerminalView), findsOneWidget);
   });
 
-  testWidgets('TerminalView configures simulateScroll to false to prevent alt-screen command history traversal', (tester) async {
+  testWidgets(
+      'TerminalView configures simulateScroll to false to prevent alt-screen command history traversal',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -450,7 +479,9 @@ void main() {
     expect(terminalView.simulateScroll, isFalse);
   });
 
-  testWidgets('TerminalScreen operates in buttonless Lite mode with clean terminal and status in AppBar', (tester) async {
+  testWidgets(
+      'TerminalScreen operates in buttonless Lite mode with clean terminal and status in AppBar',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -530,7 +561,9 @@ void main() {
     sessionStore.cancelAutoReconnect(testProfile.id);
   });
 
-  testWidgets('TerminalScreen updates keyboard visibility when external insets change', (tester) async {
+  testWidgets(
+      'TerminalScreen updates keyboard visibility when external insets change',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -558,7 +591,9 @@ void main() {
     expect(find.byTooltip('Hide keyboard'), findsOneWidget);
   });
 
-  testWidgets('TerminalScreen renders keyboard bar with keybinds, paste, and hide keyboard by default, and can be disabled in settings', (tester) async {
+  testWidgets(
+      'TerminalScreen renders keyboard bar with keybinds, paste, and hide keyboard by default, and can be disabled in settings',
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
@@ -572,11 +607,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(KeyboardAccessoryBar), findsNothing);
 
-    // Tap Session Menu -> verify clean menu with Upload File, Settings, Disconnect
+    // Tap Session Menu -> verify clean menu with Upload file, Settings, Disconnect
     await tester.tap(find.byTooltip('Session Menu'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Upload File'), findsOneWidget);
+    expect(find.text('Upload file'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Disconnect'), findsOneWidget);
     expect(find.text('Paste Clipboard'), findsNothing);

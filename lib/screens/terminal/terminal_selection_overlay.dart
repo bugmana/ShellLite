@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
 import '../../theme/app_theme.dart';
 import '../../services/terminal_link.dart';
+import '../../services/clipboard_feedback.dart';
 import '../../widgets/terminal_selection_handle.dart';
 import 'terminal_selection_toolbar.dart';
 
@@ -48,14 +49,18 @@ class TerminalSelectionOverlay extends StatelessWidget {
       }
       if (!context.mounted) return;
       controller.clearSelection();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Copied to clipboard'),
-          duration: const Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: theme.cardSurface,
-        ),
-      );
+      final showMessage = await ClipboardFeedback.showSuccessMessage;
+      if (!context.mounted) return;
+      if (showMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Copied to clipboard'),
+            duration: const Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: theme.cardSurface,
+          ),
+        );
+      }
     }
     if (!context.mounted) return;
     SemanticsService.sendAnnouncement(

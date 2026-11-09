@@ -47,7 +47,8 @@ void main() {
     expect(store.fontSize, 9.0);
   });
 
-  test('TerminalSettingsStore resetDefaults restores initial settings', () async {
+  test('TerminalSettingsStore resetDefaults restores initial settings',
+      () async {
     await store.load();
     await store.setTheme('catppuccin');
     await store.setFontSize(18.0);
@@ -57,10 +58,11 @@ void main() {
     expect(store.fontSize, 13.5);
   });
 
-  test('TerminalSettingsStore reorders, toggles, adds custom keys and resets', () async {
+  test('TerminalSettingsStore reorders, toggles, adds custom keys and resets',
+      () async {
     await store.load();
     expect(store.hapticFeedbackEnabled, isTrue);
-    expect(store.accessoryKeys.first.label, 'Tab');
+    expect(store.accessoryKeys.first.label, 'Esc');
 
     // Toggle haptic feedback
     await store.setHapticFeedbackEnabled(false);
@@ -70,7 +72,7 @@ void main() {
     final initialCount = store.accessoryKeys.length;
     await store.toggleAccessoryKeyVisibility(0); // disables 'Tab'
     expect(store.accessoryKeys.length, initialCount - 1);
-    expect(store.accessoryKeys.first.label, '⇧Tab');
+    expect(store.accessoryKeys.first.label, 'Tab');
 
     // Add custom key
     await store.addCustomAccessoryKey(
@@ -89,12 +91,12 @@ void main() {
 
     // Remove key
     await store.removeAccessoryKey(0);
-    expect(store.configuredAccessoryKeys.first.label, 'Tab');
+    expect(store.configuredAccessoryKeys.first.label, 'Esc');
 
     // Reset to defaults
     await store.resetAccessoryKeysToDefault();
-    expect(store.configuredAccessoryKeys.length, 7);
-    expect(store.accessoryKeys.first.label, 'Tab');
+    expect(store.configuredAccessoryKeys.length, 6);
+    expect(store.accessoryKeys.first.label, 'Esc');
   });
 
   test('TerminalThemePresets returns obsidian on unknown id', () {

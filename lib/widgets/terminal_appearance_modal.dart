@@ -62,7 +62,7 @@ class TerminalAppearanceModal extends StatelessWidget {
 
             // Color Themes Section
             Text(
-              'COLOR SCHEME',
+              'Theme',
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 11,
@@ -95,7 +95,9 @@ class TerminalAppearanceModal extends StatelessWidget {
                       color: preset.theme.background,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected ? preset.palette.primaryAccent : theme.border,
+                        color: isSelected
+                            ? preset.palette.primaryAccent
+                            : theme.border,
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -114,7 +116,9 @@ class TerminalAppearanceModal extends StatelessWidget {
                                 style: TextStyle(
                                   color: preset.palette.textPrimary,
                                   fontSize: 11,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -167,10 +171,12 @@ class TerminalAppearanceModal extends StatelessWidget {
             // Monospace CLI Preview Strip
             Builder(
               builder: (context) {
-                final activePreset = TerminalThemePresets.getById(settings.themeId);
+                final activePreset =
+                    TerminalThemePresets.getById(settings.themeId);
                 return Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: activePreset.theme.background,
                     borderRadius: BorderRadius.circular(8),
@@ -183,7 +189,8 @@ class TerminalAppearanceModal extends StatelessWidget {
                         text: TextSpan(
                           style: TextStyle(
                             fontFamily: 'monospace',
-                            fontSize: (settings.fontSize * 0.9).clamp(10.0, 14.0),
+                            fontSize:
+                                (settings.fontSize * 0.9).clamp(10.0, 14.0),
                           ),
                           children: [
                             TextSpan(
@@ -195,11 +202,13 @@ class TerminalAppearanceModal extends StatelessWidget {
                             ),
                             TextSpan(
                               text: ':~# ',
-                              style: TextStyle(color: activePreset.palette.textSecondary),
+                              style: TextStyle(
+                                  color: activePreset.palette.textSecondary),
                             ),
                             TextSpan(
                               text: 'ls -la /var/log | grep error',
-                              style: TextStyle(color: activePreset.palette.textPrimary),
+                              style: TextStyle(
+                                  color: activePreset.palette.textPrimary),
                             ),
                           ],
                         ),
@@ -225,7 +234,7 @@ class TerminalAppearanceModal extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'FONT SIZE',
+                  'Text size',
                   style: TextStyle(
                     color: theme.textSecondary,
                     fontSize: 11,
@@ -236,12 +245,15 @@ class TerminalAppearanceModal extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                      icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
+                      constraints:
+                          const BoxConstraints(minWidth: 44, minHeight: 44),
+                      icon: const Icon(Icons.remove_circle_outline_rounded,
+                          size: 20),
                       color: theme.primaryAccent,
                       tooltip: 'Decrease font size',
                       onPressed: settings.fontSize > 10.0
-                          ? () => settings.setFontSize((settings.fontSize - 0.5).clamp(10.0, 22.0))
+                          ? () => settings.setFontSize(
+                              (settings.fontSize - 0.5).clamp(10.0, 22.0))
                           : null,
                     ),
                     Text(
@@ -253,12 +265,15 @@ class TerminalAppearanceModal extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                      icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                      constraints:
+                          const BoxConstraints(minWidth: 44, minHeight: 44),
+                      icon: const Icon(Icons.add_circle_outline_rounded,
+                          size: 20),
                       color: theme.primaryAccent,
                       tooltip: 'Increase font size',
                       onPressed: settings.fontSize < 22.0
-                          ? () => settings.setFontSize((settings.fontSize + 0.5).clamp(10.0, 22.0))
+                          ? () => settings.setFontSize(
+                              (settings.fontSize + 0.5).clamp(10.0, 22.0))
                           : null,
                     ),
                   ],
@@ -277,7 +292,8 @@ class TerminalAppearanceModal extends StatelessWidget {
                 min: 10.0,
                 max: 22.0,
                 divisions: 24,
-                semanticFormatterCallback: (val) => '${val.toStringAsFixed(1)} points',
+                semanticFormatterCallback: (val) =>
+                    '${val.toStringAsFixed(1)} points',
                 onChanged: (val) => settings.setFontSize(val),
               ),
             ),
@@ -285,7 +301,7 @@ class TerminalAppearanceModal extends StatelessWidget {
 
             // Keyboard & Shortcut Keys
             Text(
-              'KEYBOARD & SHORTCUT KEYS',
+              'Keyboard',
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 11,
@@ -303,7 +319,8 @@ class TerminalAppearanceModal extends StatelessWidget {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: theme.cardSurface,
                   borderRadius: BorderRadius.circular(10),
@@ -311,14 +328,15 @@ class TerminalAppearanceModal extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.keyboard_rounded, color: theme.primaryAccent, size: 20),
+                    Icon(Icons.keyboard_rounded,
+                        color: theme.primaryAccent, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Terminal Keys & Shortcuts',
+                            'Keys',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -327,13 +345,15 @@ class TerminalAppearanceModal extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Configure keys (F1–F12, navigation, macros) and modifiers',
-                            style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                            'Choose keys and shortcuts',
+                            style: TextStyle(
+                                fontSize: 11, color: theme.textSecondary),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right_rounded, color: theme.textSecondary, size: 20),
+                    Icon(Icons.chevron_right_rounded,
+                        color: theme.textSecondary, size: 20),
                   ],
                 ),
               ),
@@ -348,14 +368,15 @@ class TerminalAppearanceModal extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.space_bar_rounded, color: theme.secondaryAccent, size: 20),
+                  Icon(Icons.space_bar_rounded,
+                      color: theme.secondaryAccent, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Show On-Screen Key Bar',
+                          'Show key row',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -363,8 +384,9 @@ class TerminalAppearanceModal extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Display shortcut key strip above virtual keyboard',
-                          style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                          'Show shortcuts above the keyboard',
+                          style: TextStyle(
+                              fontSize: 11, color: theme.textSecondary),
                         ),
                       ],
                     ),
@@ -387,14 +409,15 @@ class TerminalAppearanceModal extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.vibration_rounded, color: theme.secondaryAccent, size: 20),
+                  Icon(Icons.vibration_rounded,
+                      color: theme.secondaryAccent, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Haptic Feedback',
+                          'Haptics',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -402,8 +425,9 @@ class TerminalAppearanceModal extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Tactile vibration on terminal key press',
-                          style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                          'Vibrate when pressing terminal keys',
+                          style: TextStyle(
+                              fontSize: 11, color: theme.textSecondary),
                         ),
                       ],
                     ),
@@ -420,7 +444,7 @@ class TerminalAppearanceModal extends StatelessWidget {
 
             // About & Legal
             Text(
-              'ABOUT & PRIVACY',
+              'About',
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 11,
@@ -434,11 +458,13 @@ class TerminalAppearanceModal extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                  MaterialPageRoute(
+                      builder: (_) => const PrivacyPolicyScreen()),
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: theme.cardSurface,
                   borderRadius: BorderRadius.circular(10),
@@ -446,14 +472,15 @@ class TerminalAppearanceModal extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.privacy_tip_outlined, color: theme.primaryAccent, size: 20),
+                    Icon(Icons.privacy_tip_outlined,
+                        color: theme.primaryAccent, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Privacy Policy',
+                            'Privacy',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -462,13 +489,15 @@ class TerminalAppearanceModal extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'On-device processing & zero telemetry guarantee',
-                            style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                            'No analytics or tracking',
+                            style: TextStyle(
+                                fontSize: 11, color: theme.textSecondary),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right_rounded, color: theme.textSecondary, size: 20),
+                    Icon(Icons.chevron_right_rounded,
+                        color: theme.textSecondary, size: 20),
                   ],
                 ),
               ),
