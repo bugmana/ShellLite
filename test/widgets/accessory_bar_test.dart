@@ -5,7 +5,7 @@ import 'package:shell_lite/config/app_config.dart';
 
 void main() {
   testWidgets(
-      'KeyboardAccessoryBar renders default keys with Tab on far left and triggers callbacks',
+      'KeyboardAccessoryBar renders default keys and triggers callbacks',
       (tester) async {
     String? tappedSequence;
 
@@ -40,19 +40,19 @@ void main() {
     expect(tappedSequence, '\x1B');
   });
 
-  testWidgets('More keys sends a function key and returns to terminal',
+  testWidgets('configured function keys send directly from the row',
       (tester) async {
     String? sent;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
-            body: KeyboardAccessoryBar(onKeyTap: (value) => sent = value))));
-    await tester.tap(find.byTooltip('More keys'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('F5'));
+      body: KeyboardAccessoryBar(
+          onKeyTap: (value) => sent = value,
+          keys: const [TerminalKeyShortcut(label: 'F5', sequence: '\x1b[15~')]),
+    )));
+    expect(find.byTooltip('More keys'), findsNothing);
     await tester.tap(find.text('F5'));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(sent, '\x1b[15~');
-    expect(find.text('Customize keys'), findsNothing);
   });
 
   testWidgets('TactileKeyButton applies 0.94 micro-depression scale on press',
@@ -91,38 +91,26 @@ void main() {
     expect(tapped, isTrue);
   });
 
-  testWidgets(
-      'KeyboardAccessoryBar keeps More keys available in the default row',
+  testWidgets('only Paste and the keyboard toggle are pinned at narrow widths',
       (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
         home: Scaffold(
-          body: KeyboardAccessoryBar(
-            onKeyTap: (_) {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.byIcon(Icons.more_horiz), findsOneWidget);
-    expect(find.byIcon(Icons.bolt_rounded), findsNothing);
-  });
-
-  testWidgets(
-      'KeyboardAccessoryBar renders pinned extended keys button when showExtendedKeys is true',
-      (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: KeyboardAccessoryBar(
-            onKeyTap: (_) {},
-            showExtendedKeys: true,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.byIcon(Icons.more_horiz), findsOneWidget);
+      body: KeyboardAccessoryBar(
+          onKeyTap: (_) {}, onPaste: () {}, onToggleKeyboard: () {}),
+    )));
+    expect(find.byTooltip('More keys'), findsNothing);
+    expect(find.byIcon(Icons.more_horiz), findsNothing);
+    expect(find.byTooltip('Paste'), findsOneWidget);
+    expect(find.byTooltip('Hide keyboard'), findsOneWidget);
+    expect(
+        tester.getRect(find.byTooltip('Paste')).right, lessThanOrEqualTo(320));
+    expect(tester.getRect(find.byTooltip('Hide keyboard')).right,
+        lessThanOrEqualTo(320));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -225,8 +213,6 @@ void main() {
             body: KeyboardAccessoryBar(onKeyTap: sent.add, keys: const [
       TerminalKeyShortcut(label: 'C', sequence: 'c')
     ]))));
-    await tester.tap(find.byTooltip('More keys'));
-    await tester.pumpAndSettle();
     final alt = find.text('Alt');
     await tester.tap(alt);
     await tester.pump(const Duration(milliseconds: 40));
@@ -240,7 +226,7 @@ void main() {
     await tester.tap(find.text('Alt'));
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
-    expect(find.text('Alt'), findsNothing);
+    expect(find.text('Alt'), findsOneWidget);
     await tester.tap(find.text('C'));
     await tester.pump();
     expect(sent.last, 'c');

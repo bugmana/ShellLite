@@ -30,10 +30,10 @@ ShellLite targets three platforms:
 - Tap or long-press printed HTTP(S) links to select the full URL and copy it with **Copy link**.
 
 ### Keyboard Accessory Bar
-- One key row with Escape, Tab, Ctrl, arrows, Paste, More keys, and the keyboard toggle.
+- One key row with Escape, Tab, Ctrl, Alt, arrows, Paste, and the keyboard toggle.
 - Sticky modifier keys: `Ctrl` and `Alt` supporting single-tap latch (applies to next keystroke) and double-tap lock.
 - Customizable keys: Add custom keys with escape sequences (`\e`, `\t`, `\n`, `^C`, hex `\x1b`) and reorder via drag-and-drop.
-- More keys opens one sheet with control, navigation, function, and tmux shortcuts. Customize keys in Settings.
+- Choose control, navigation, and function shortcuts in Settings → Keys; enabled shortcuts appear directly in the scrollable key row.
 - Haptic feedback on keystroke (can be disabled in settings).
 
 ### Authentication and Key Management
