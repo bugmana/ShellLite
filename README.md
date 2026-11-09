@@ -114,6 +114,16 @@ flutter pub get
 flutter run -d chrome
 ```
 
+Run local checks with one dependency setup:
+
+```bash
+./scripts/check.sh                              # analysis and all tests
+./scripts/check.sh test/services/terminal_link_test.dart  # analysis and focused tests
+./scripts/check.sh --web                        # also build Web for release
+```
+
+Use focused tests while editing, then run the full command before pushing. CI still runs the full suite and platform builds.
+
 See [Repository Guidelines](AGENTS.md) for project structure, build and test commands, code style, and pull request conventions. CI definitions in [`.github/workflows/`](.github/workflows/) describe the checks and platform builds used for code changes.
 
 ---

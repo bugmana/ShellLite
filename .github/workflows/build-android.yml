@@ -76,7 +76,7 @@ jobs:
             BUILD_NUM=$(( ${{ github.run_number }} + OFFSET ))
           fi
           echo "==> Building Flutter Android Release APK (version: ${{ inputs.version }}, build: $BUILD_NUM)..."
-          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="$BUILD_NUM"
+          flutter build apk --release --no-pub --build-name="${{ inputs.version }}" --build-number="$BUILD_NUM"
 
       - name: Build Android App Bundle (AAB)
         if: inputs.upload_artifact
@@ -88,7 +88,7 @@ jobs:
             BUILD_NUM=$(( ${{ github.run_number }} + OFFSET ))
           fi
           echo "==> Building Flutter Android Release AAB (version: ${{ inputs.version }}, build: $BUILD_NUM)..."
-          flutter build appbundle --release --build-name="${{ inputs.version }}" --build-number="$BUILD_NUM"
+          flutter build appbundle --release --no-pub --build-name="${{ inputs.version }}" --build-number="$BUILD_NUM"
 
       - name: Prepare Artifacts
         if: inputs.upload_artifact

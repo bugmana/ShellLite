@@ -39,15 +39,15 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pods-v2-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', 'ios/Runner.xcodeproj/project.pbxproj') }}
           restore-keys: |
-            ${{ runner.os }}-pods-
+            ${{ runner.os }}-${{ runner.arch }}-pods-v2-
 
       - name: Build iOS App
         run: |
           set -e
           echo "==> Building Flutter iOS App..."
-          flutter build ios --no-codesign --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
+          flutter build ios --no-codesign --no-pub --release --build-name="${{ inputs.version }}" --build-number="${{ github.run_number }}"
 
       - name: Package .ipa
         if: inputs.upload_artifact
