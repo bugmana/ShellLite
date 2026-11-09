@@ -25,8 +25,8 @@ class KeyAuthSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Expanded(child: Text('Private key')),
+        const Text('Private key'),
+        Wrap(spacing: 8, runSpacing: 4, children: [
           TextButton(
               onPressed: onToggleObscureKey,
               child: Text(obscureKey ? 'Show key' : 'Hide key')),

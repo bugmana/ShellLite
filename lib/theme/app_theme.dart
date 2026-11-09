@@ -33,19 +33,39 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     if (other is! AppThemeExtension) return this;
     return AppThemeExtension(
       palette: AppThemePalette(
-        background: Color.lerp(palette.background, other.palette.background, t) ?? palette.background,
-        surface: Color.lerp(palette.surface, other.palette.surface, t) ?? palette.surface,
-        cardSurface: Color.lerp(palette.cardSurface, other.palette.cardSurface, t) ?? palette.cardSurface,
-        cardSurfaceHover: Color.lerp(palette.cardSurfaceHover, other.palette.cardSurfaceHover, t) ?? palette.cardSurfaceHover,
-        border: Color.lerp(palette.border, other.palette.border, t) ?? palette.border,
-        primaryAccent: Color.lerp(palette.primaryAccent, other.palette.primaryAccent, t) ?? palette.primaryAccent,
-        secondaryAccent: Color.lerp(palette.secondaryAccent, other.palette.secondaryAccent, t) ?? palette.secondaryAccent,
-        textPrimary: Color.lerp(palette.textPrimary, other.palette.textPrimary, t) ?? palette.textPrimary,
-        textSecondary: Color.lerp(palette.textSecondary, other.palette.textSecondary, t) ?? palette.textSecondary,
-        textMuted: Color.lerp(palette.textMuted, other.palette.textMuted, t) ?? palette.textMuted,
-        error: Color.lerp(palette.error, other.palette.error, t) ?? palette.error,
-        warning: Color.lerp(palette.warning, other.palette.warning, t) ?? palette.warning,
-        success: Color.lerp(palette.success, other.palette.success, t) ?? palette.success,
+        background:
+            Color.lerp(palette.background, other.palette.background, t) ??
+                palette.background,
+        surface: Color.lerp(palette.surface, other.palette.surface, t) ??
+            palette.surface,
+        cardSurface:
+            Color.lerp(palette.cardSurface, other.palette.cardSurface, t) ??
+                palette.cardSurface,
+        cardSurfaceHover: Color.lerp(
+                palette.cardSurfaceHover, other.palette.cardSurfaceHover, t) ??
+            palette.cardSurfaceHover,
+        border: Color.lerp(palette.border, other.palette.border, t) ??
+            palette.border,
+        primaryAccent:
+            Color.lerp(palette.primaryAccent, other.palette.primaryAccent, t) ??
+                palette.primaryAccent,
+        secondaryAccent: Color.lerp(
+                palette.secondaryAccent, other.palette.secondaryAccent, t) ??
+            palette.secondaryAccent,
+        textPrimary:
+            Color.lerp(palette.textPrimary, other.palette.textPrimary, t) ??
+                palette.textPrimary,
+        textSecondary:
+            Color.lerp(palette.textSecondary, other.palette.textSecondary, t) ??
+                palette.textSecondary,
+        textMuted: Color.lerp(palette.textMuted, other.palette.textMuted, t) ??
+            palette.textMuted,
+        error:
+            Color.lerp(palette.error, other.palette.error, t) ?? palette.error,
+        warning: Color.lerp(palette.warning, other.palette.warning, t) ??
+            palette.warning,
+        success: Color.lerp(palette.success, other.palette.success, t) ??
+            palette.success,
       ),
     );
   }
@@ -53,7 +73,8 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
 
 extension AppThemeContextExtension on BuildContext {
   AppThemeExtension get appTheme {
-    return Theme.of(this).extension<AppThemeExtension>() ?? AppTheme.defaultExtension;
+    return Theme.of(this).extension<AppThemeExtension>() ??
+        AppTheme.defaultExtension;
   }
 
   T? maybeWatch<T>() {
@@ -75,11 +96,11 @@ extension AppThemeContextExtension on BuildContext {
 
 abstract final class AppSpacing {
   static const double xxs = 2.0;
-  static const double xs  = 4.0;
-  static const double sm  = 8.0;
-  static const double md  = 12.0;
-  static const double lg  = 16.0;
-  static const double xl  = 24.0;
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 12.0;
+  static const double lg = 16.0;
+  static const double xl = 24.0;
   static const double xxl = 32.0;
 }
 
@@ -91,7 +112,7 @@ abstract final class AppRadius {
 }
 
 abstract final class AppTouchTarget {
-  static const double min = 44.0;         // Apple HIG minimum (44pt)
+  static const double min = 44.0; // Apple HIG minimum (44pt)
   static const double recommended = 48.0; // Material 3 standard (48dp)
 }
 
@@ -198,7 +219,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: p.cardSurface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: TextStyle(color: p.textSecondary, fontSize: 14),
         labelStyle: TextStyle(color: p.textSecondary, fontSize: 14),
         border: OutlineInputBorder(
@@ -230,17 +252,35 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: p.primaryAccent,
           foregroundColor: onPrimary,
-          minimumSize: const Size(0, AppTouchTarget.min),
+          minimumSize: const Size(
+              AppTouchTarget.recommended, AppTouchTarget.recommended),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md)),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: p.primaryAccent,
+          foregroundColor: onPrimary,
+          minimumSize: const Size(
+              AppTouchTarget.recommended, AppTouchTarget.recommended),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xl, vertical: 14),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
       textTheme: TextTheme(
-        headlineMedium: TextStyle(color: p.textPrimary, fontWeight: FontWeight.bold),
-        titleLarge: TextStyle(color: p.textPrimary, fontWeight: FontWeight.w600, fontSize: 18),
-        titleMedium: TextStyle(color: p.textPrimary, fontWeight: FontWeight.w600, fontSize: 15),
+        headlineMedium:
+            TextStyle(color: p.textPrimary, fontWeight: FontWeight.bold),
+        titleLarge: TextStyle(
+            color: p.textPrimary, fontWeight: FontWeight.w600, fontSize: 18),
+        titleMedium: TextStyle(
+            color: p.textPrimary, fontWeight: FontWeight.w600, fontSize: 15),
         bodyLarge: TextStyle(color: p.textPrimary, fontSize: 14),
         bodyMedium: TextStyle(color: p.textSecondary, fontSize: 13),
         bodySmall: TextStyle(color: p.textMuted, fontSize: 11),
@@ -250,7 +290,8 @@ class AppTheme {
           foregroundColor: p.textPrimary,
           side: BorderSide(color: p.border),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -271,7 +312,9 @@ class AppTheme {
           return p.textSecondary;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return p.primaryAccent.withValues(alpha: 0.4);
+          if (states.contains(WidgetState.selected)) {
+            return p.primaryAccent.withValues(alpha: 0.4);
+          }
           return p.cardSurface;
         }),
         trackOutlineColor: WidgetStateProperty.all(p.border),
@@ -312,4 +355,3 @@ class SheetDragHandle extends StatelessWidget {
     );
   }
 }
-

@@ -42,7 +42,9 @@ class _StickyModifierKeyState extends State<StickyModifierKey> {
     return Semantics(
       toggled: state != ModifierState.inactive,
       label: '${widget.label} modifier, ${state.name}',
-      hint: 'Tap to latch, double tap to lock',
+      hint: state == ModifierState.inactive
+          ? 'Tap to latch, double tap to lock'
+          : 'Tap to release, double tap to lock',
       child: AnimatedScale(
         scale: disableAnimations || !_isPressed ? 1.0 : 0.94,
         duration: const Duration(milliseconds: 60),
@@ -54,13 +56,16 @@ class _StickyModifierKeyState extends State<StickyModifierKey> {
           onTap: widget.onTap,
           onDoubleTap: widget.onDoubleTap,
           child: Container(
-            constraints: const BoxConstraints(minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
+            constraints: const BoxConstraints(
+                minWidth: AppTouchTarget.min, minHeight: AppTouchTarget.min),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: state != ModifierState.inactive
                   ? activeBg
-                  : (_isPressed ? theme.primaryAccent.withValues(alpha: 0.18) : theme.cardSurface),
+                  : (_isPressed
+                      ? theme.primaryAccent.withValues(alpha: 0.18)
+                      : theme.cardSurface),
               borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(
                 color: state != ModifierState.inactive
@@ -78,7 +83,9 @@ class _StickyModifierKeyState extends State<StickyModifierKey> {
                     fontFamily: 'monospace',
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: state != ModifierState.inactive ? activeFg : theme.textPrimary,
+                    color: state != ModifierState.inactive
+                        ? activeFg
+                        : theme.textPrimary,
                   ),
                 ),
                 if (state == ModifierState.locked) ...[

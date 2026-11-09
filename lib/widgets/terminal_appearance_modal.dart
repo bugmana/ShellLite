@@ -43,11 +43,7 @@ class TerminalAppearanceModal extends StatelessWidget {
               children: [
                 Text(
                   'Settings',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: theme.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 TextButton(
                   onPressed: () => settings.resetDefaults(),

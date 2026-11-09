@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_lite/widgets/keyboard_accessory_bar.dart';
+import 'package:shell_lite/config/app_config.dart';
 
 void main() {
   testWidgets(
@@ -215,5 +216,33 @@ void main() {
     await tester.tap(pasteButton);
     await tester.pump();
     expect(pasteCalled, isTrue);
+  });
+  testWidgets('locked Alt stays visible and can be released from the key row',
+      (tester) async {
+    final sent = <String>[];
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: KeyboardAccessoryBar(onKeyTap: sent.add, keys: const [
+      TerminalKeyShortcut(label: 'C', sequence: 'c')
+    ]))));
+    await tester.tap(find.byTooltip('More keys'));
+    await tester.pumpAndSettle();
+    final alt = find.text('Alt');
+    await tester.tap(alt);
+    await tester.pump(const Duration(milliseconds: 40));
+    await tester.tap(alt);
+    await tester.pumpAndSettle();
+    expect(find.text('Alt'), findsOneWidget);
+    await tester.tap(find.text('C'));
+    await tester.pumpAndSettle();
+    expect(sent.last, '\x1bc');
+    expect(find.text('Alt'), findsOneWidget);
+    await tester.tap(find.text('Alt'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(find.text('Alt'), findsNothing);
+    await tester.tap(find.text('C'));
+    await tester.pump();
+    expect(sent.last, 'c');
   });
 }

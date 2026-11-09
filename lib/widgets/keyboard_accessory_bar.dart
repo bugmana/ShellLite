@@ -125,7 +125,9 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
           child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Text('More keys'),
+                Text('More keys',
+                    style: Theme.of(sheetContext).textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.lg),
                 if (context
                         .maybeRead<TerminalSettingsStore>()
                         ?.altModifierEnabled ??
@@ -243,6 +245,17 @@ class _KeyboardAccessoryBarState extends State<KeyboardAccessoryBar> {
                         horizontal: AppSpacing.sm, vertical: 4),
                     scrollDirection: Axis.horizontal,
                     children: [
+                      if (_altState != ModifierState.inactive) ...[
+                        StickyModifierKey(
+                            label: 'Alt',
+                            state: _altState,
+                            onTap: () => setState(
+                                () => _altState = ModifierState.inactive),
+                            onDoubleTap: () => setState(
+                                () => _altState = ModifierState.locked),
+                            theme: theme),
+                        const SizedBox(width: AppSpacing.sm),
+                      ],
                       // Sticky Ctrl Modifier
                       if (ctrlEnabled) ...[
                         StickyModifierKey(
