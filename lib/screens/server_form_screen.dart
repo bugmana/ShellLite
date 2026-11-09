@@ -354,6 +354,10 @@ class _ServerFormScreenState extends State<ServerFormScreen> {
                         controller: _moreOptions,
                         title: const Text('More options'),
                         maintainState: true,
+                        childrenPadding: const EdgeInsets.only(
+                          top: AppSpacing.lg,
+                          bottom: AppSpacing.sm,
+                        ),
                         children: [
                           TextFormField(
                             controller: _nameController,
