@@ -9,6 +9,7 @@ class MemoryUploadDestination implements UploadDestination {
   bool failHome = false;
   void Function()? duringWrite;
   Completer<void>? block;
+  Completer<void>? publishBlock;
   @override
   Future<String> home() async {
     if (failHome) throw StateError('home unavailable');
@@ -34,6 +35,7 @@ class MemoryUploadDestination implements UploadDestination {
 
   @override
   Future<void> publish(String temporary, String path, bool replace) async {
+    if (publishBlock != null) await publishBlock!.future;
     if (!replace && files.containsKey(path)) throw StateError('File exists');
     files[path] = files.remove(temporary)!;
   }

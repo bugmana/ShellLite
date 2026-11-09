@@ -40,17 +40,27 @@ void main() {
 
   testWidgets('shows one file, home folder and completion until Done',
       (tester) async {
-    await tester.pumpWidget(build());
-    await tester.pumpAndSettle();
-    expect(find.text('hello.txt'), findsOneWidget);
-    expect(find.text('/home/user'), findsOneWidget);
-    await tester.tap(find.text('Upload'));
-    await tester.pumpAndSettle();
-    expect(destination.files['/home/user/hello.txt'], [1, 2, 3]);
-    expect(find.text('Upload complete'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-    expect(find.text('Done'), findsOneWidget);
-    expect(session.terminal.buffer.getText(), isNot(contains('Uploaded')));
+    final semantics = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(build());
+      await tester.pumpAndSettle();
+      expect(find.text('hello.txt'), findsOneWidget);
+      expect(find.text('/home/user'), findsOneWidget);
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(destination.files['/home/user/hello.txt'], [1, 2, 3]);
+      expect(find.text('Upload complete'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.text('Done'), findsOneWidget);
+      expect(session.terminal.buffer.getText(), isNot(contains('Uploaded')));
+      final status = tester
+          .getSemantics(find.byKey(const Key('upload_status')))
+          .getSemanticsData();
+      expect(status.flagsCollection.isLiveRegion, isTrue);
+      expect(status.label, 'Upload complete');
+    } finally {
+      semantics.dispose();
+    }
   });
   for (final replace in [false, true]) {
     testWidgets('replacement confirmation replace=$replace', (tester) async {
@@ -93,17 +103,27 @@ void main() {
   testWidgets(
       'home failure permits explicit folder and failed transfer retains controls',
       (tester) async {
-    destination.failHome = true;
-    destination.failWrite = true;
-    await tester.pumpWidget(build());
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Could not find the home'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '/tmp');
-    await tester.tap(find.text('Upload'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Upload failed.'), findsOneWidget);
-    expect(destination.files, isEmpty);
-    expect(find.text('Choose another file'), findsOneWidget);
+    final semantics = tester.ensureSemantics();
+    try {
+      destination.failHome = true;
+      destination.failWrite = true;
+      await tester.pumpWidget(build());
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Could not find the home'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '/tmp');
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Upload failed.'), findsOneWidget);
+      final status = tester
+          .getSemantics(find.byKey(const Key('upload_status')))
+          .getSemanticsData();
+      expect(status.flagsCollection.isLiveRegion, isTrue);
+      expect(status.label, contains('Upload failed.'));
+      expect(destination.files, isEmpty);
+      expect(find.text('Choose another file'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
   testWidgets('Cancel stops staged upload without changing existing file',
       (tester) async {
@@ -115,7 +135,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Replace'));
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.descendant(of: find.byType(FileUploadModal), matching: find.text('Cancel')));
+    await tester.tap(find.descendant(
+        of: find.byType(FileUploadModal), matching: find.text('Cancel')));
     await tester.pump();
     destination.block!.complete();
     await tester.pumpAndSettle();
@@ -123,5 +144,20 @@ void main() {
     expect(destination.files, {
       '/home/user/hello.txt': [9]
     });
+  });
+  testWidgets('finishing upload cannot accept a cancellation it cannot honor',
+      (tester) async {
+    destination.publishBlock = Completer<void>();
+    await tester.pumpWidget(build());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upload'));
+    await tester.pump();
+    expect(find.text('Finishing upload…'), findsOneWidget);
+    final finishButton =
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Cancel'));
+    expect(finishButton.onPressed, isNull);
+    destination.publishBlock!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Upload complete'), findsOneWidget);
   });
 }

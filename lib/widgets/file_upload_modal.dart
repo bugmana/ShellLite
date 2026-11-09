@@ -50,7 +50,10 @@ class FileUploadModal extends StatefulWidget {
 class _FileUploadModalState extends State<FileUploadModal> {
   late FileTransferItem _item;
   late final TextEditingController _folder;
-  bool _busy = false, _cancelled = false, _complete = false;
+  bool _busy = false,
+      _cancelled = false,
+      _complete = false,
+      _finalizing = false;
   int _uploaded = 0;
   String? _error;
   @override
@@ -98,6 +101,9 @@ class _FileUploadModalState extends State<FileUploadModal> {
                         onPressed: () => Navigator.pop(dialogContext, false),
                         child: const Text('Cancel')),
                     TextButton(
+                        style: TextButton.styleFrom(
+                            foregroundColor:
+                                Theme.of(dialogContext).colorScheme.error),
                         onPressed: () => Navigator.pop(dialogContext, true),
                         child: const Text('Replace')),
                   ],
@@ -117,6 +123,7 @@ class _FileUploadModalState extends State<FileUploadModal> {
       _cancelled = false;
       _error = null;
       _uploaded = 0;
+      _finalizing = false;
     });
     try {
       void progress(int sent, int total) {
@@ -130,7 +137,10 @@ class _FileUploadModalState extends State<FileUploadModal> {
             item: _item,
             onProgress: progress,
             isCancelled: () => _cancelled,
-            confirmReplace: _confirmReplace);
+            confirmReplace: _confirmReplace,
+            onFinalizing: () {
+              if (mounted) setState(() => _finalizing = true);
+            });
       } else {
         final client = widget.session.sshService.client;
         if (client == null || !widget.session.sshService.isConnected) {
@@ -142,7 +152,10 @@ class _FileUploadModalState extends State<FileUploadModal> {
             item: _item,
             onProgress: progress,
             isCancelled: () => _cancelled,
-            confirmReplace: _confirmReplace);
+            confirmReplace: _confirmReplace,
+            onFinalizing: () {
+              if (mounted) setState(() => _finalizing = true);
+            });
       }
       if (mounted) {
         setState(() {
@@ -191,8 +204,10 @@ class _FileUploadModalState extends State<FileUploadModal> {
             children: [
               Row(children: [
                 Expanded(
-                    child: Text(_complete ? 'Upload complete' : 'Upload file',
-                        style: Theme.of(context).textTheme.titleLarge)),
+                    child: Semantics(
+                        header: true,
+                        child: Text('Upload file',
+                            style: Theme.of(context).textTheme.titleLarge))),
                 IconButton(
                     tooltip: 'Close',
                     onPressed: _busy ? null : () => Navigator.pop(context),
@@ -201,6 +216,26 @@ class _FileUploadModalState extends State<FileUploadModal> {
               Text(_item.name),
               Text(_item.formattedSize),
               const SizedBox(height: 16),
+              Semantics(
+                  key: const Key('upload_status'),
+                  liveRegion: true,
+                  container: true,
+                  child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                          _error ??
+                              (_complete
+                                  ? 'Upload complete'
+                                  : _finalizing
+                                      ? 'Finishing upload…'
+                                      : _busy
+                                          ? 'Uploading…'
+                                          : ''),
+                          style: _error == null
+                              ? null
+                              : TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.error)))),
               if (_complete) ...[
                 Text('Destination: ${_folder.text}'),
                 FilledButton(
@@ -214,12 +249,6 @@ class _FileUploadModalState extends State<FileUploadModal> {
                     decoration: const InputDecoration(
                         labelText: 'Destination folder',
                         helperText: '~ is your home directory')),
-                if (_error != null)
-                  Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(_error!,
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.error))),
                 if (_busy) ...[
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
@@ -229,7 +258,7 @@ class _FileUploadModalState extends State<FileUploadModal> {
                   Text(
                       '${FileTransferService.formatBytes(_uploaded)} / ${_item.formattedSize}'),
                   TextButton(
-                      onPressed: _cancelled
+                      onPressed: _cancelled || _finalizing
                           ? null
                           : () => setState(() => _cancelled = true),
                       child: Text(_cancelled ? 'Cancelling…' : 'Cancel')),

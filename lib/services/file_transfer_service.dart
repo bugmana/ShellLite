@@ -130,6 +130,7 @@ class FileTransferService {
     void Function(int, int)? onProgress,
     bool Function()? isCancelled,
     Future<bool> Function(String)? confirmReplace,
+    VoidCallback? onFinalizing,
   }) =>
       uploadTo(
           destination: _SshUploadDestination(client),
@@ -137,7 +138,8 @@ class FileTransferService {
           item: item,
           onProgress: onProgress,
           isCancelled: isCancelled,
-          confirmReplace: confirmReplace);
+          confirmReplace: confirmReplace,
+          onFinalizing: onFinalizing);
 
   static Future<void> uploadTo({
     required UploadDestination destination,
@@ -146,6 +148,7 @@ class FileTransferService {
     void Function(int, int)? onProgress,
     bool Function()? isCancelled,
     Future<bool> Function(String)? confirmReplace,
+    VoidCallback? onFinalizing,
   }) async {
     final directory =
         await resolveDestination(remoteDirectory, destination.home);
@@ -171,6 +174,7 @@ class FileTransferService {
         if (!confirmed) throw const UploadCancelled();
       }
       checkCancelled();
+      onFinalizing?.call();
       await destination.publish(temporary, path, confirmed);
     } finally {
       // Only the staging path belongs to this upload. Never delete the target.
@@ -179,6 +183,17 @@ class FileTransferService {
       } catch (_) {/* Best effort after disconnect. */}
     }
   }
+
+  static String quoteRemotePath(String path) =>
+      "'${path.replaceAll("'", "'\\''")}'";
+
+  // The directory guard avoids mv/ln treating the target as a container.
+  // Use POSIX utility options so BSD and Linux SSH servers both work.
+  @visibleForTesting
+  static String publishCommand(String temporary, String path,
+          {required bool replace}) =>
+      'if test -d ${quoteRemotePath(path)}; then exit 2; fi; '
+      '${replace ? 'mv -f' : 'ln'} ${quoteRemotePath(temporary)} ${quoteRemotePath(path)}';
 
   /// Sanitizes a filename to protect against path traversal attacks (SEC-INJECT-01).
   /// Strips directory paths (POSIX and Windows separators), null bytes, and traversal tokens ('..').
@@ -358,7 +373,11 @@ class _SshUploadDestination implements UploadDestination {
     if (!kIsWeb) {
       final sftp = await client.sftp();
       try {
-        await sftp.stat(path, followLink: false);
+        final attrs = await sftp.stat(path, followLink: false);
+        if (attrs.isDirectory) {
+          throw StateError(
+              'A folder already exists at the destination. Choose another folder.');
+        }
         return true;
       } on SftpStatusError catch (error) {
         if (error.code == 2) return false;
@@ -367,10 +386,14 @@ class _SshUploadDestination implements UploadDestination {
         await sftp.close();
       }
     }
-    final code =
-        await command('test -e ${quote(path)} || test -L ${quote(path)}');
+    final code = await command(
+        'if test -d ${quote(path)}; then exit 2; elif test -e ${quote(path)} || test -L ${quote(path)}; then exit 0; else exit 1; fi');
     if (code == 0) return true;
     if (code == 1) return false;
+    if (code == 2) {
+      throw StateError(
+          'A folder already exists at the destination. Choose another folder.');
+    }
     throw StateError('Could not check destination');
   }
 
@@ -424,9 +447,8 @@ class _SshUploadDestination implements UploadDestination {
         await sftp.close();
       }
     } else {
-      final action = replace
-          ? 'mv -f -- ${quote(temporary)} ${quote(path)}'
-          : 'ln -T -- ${quote(temporary)} ${quote(path)}';
+      final action =
+          FileTransferService.publishCommand(temporary, path, replace: replace);
       if (await command(action) != 0) {
         throw StateError('Could not finish upload. Check the destination.');
       }
