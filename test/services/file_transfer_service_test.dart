@@ -92,25 +92,6 @@ void main() {
     });
   });
 
-  group('FileUploadProgress', () {
-    test('holds upload progress details', () {
-      const progress = FileUploadProgress(
-        fileName: 'package.tar.gz',
-        bytesUploaded: 524288,
-        totalBytes: 1048576,
-        percentage: 0.5,
-        isComplete: false,
-      );
-
-      expect(progress.fileName, 'package.tar.gz');
-      expect(progress.bytesUploaded, 524288);
-      expect(progress.totalBytes, 1048576);
-      expect(progress.percentage, 0.5);
-      expect(progress.isComplete, isFalse);
-      expect(progress.error, isNull);
-    });
-  });
-
   group('FileTransferService sanitizeFileName (SEC-INJECT-01)', () {
     test('preserves clean filenames', () {
       expect(FileTransferService.sanitizeFileName('document.pdf'), 'document.pdf');

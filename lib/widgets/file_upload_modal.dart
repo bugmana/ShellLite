@@ -1,54 +1,46 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../providers/session_store.dart';
 import '../services/file_picker/file_picker_service.dart';
 import '../services/file_transfer_service.dart';
-import '../theme/app_theme.dart';
-import 'file_upload/file_directory_section.dart';
-import 'file_upload/file_picker_dropzone.dart';
-import 'file_upload/file_upload_complete_view.dart';
-import 'file_upload/file_upload_header.dart';
-import 'file_upload/file_upload_progress_view.dart';
-import 'file_upload/selected_file_list.dart';
-
-export 'file_upload/file_directory_section.dart';
-export 'file_upload/file_picker_dropzone.dart';
-export 'file_upload/file_upload_complete_view.dart';
-export 'file_upload/file_upload_header.dart';
-export 'file_upload/file_upload_progress_view.dart';
-export 'file_upload/selected_file_list.dart';
 
 class FileUploadModal extends StatefulWidget {
+  const FileUploadModal(
+      {super.key,
+      required this.session,
+      required this.item,
+      this.initialDirectory,
+      this.destination,
+      this.pickFile = AppFilePicker.pickFile});
   final OpenSession session;
+  final FileTransferItem item;
   final String? initialDirectory;
+  final UploadDestination? destination;
+  final Future<FileTransferItem?> Function() pickFile;
 
-  const FileUploadModal({
-    super.key,
-    required this.session,
-    this.initialDirectory,
-  });
-
-  static Future<void> show(
-    BuildContext context, {
-    required OpenSession session,
-    String? initialDirectory,
-  }) {
-    final theme = context.appTheme;
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: theme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-        side: BorderSide(color: theme.border, width: 1),
-      ),
-      builder: (_) => FileUploadModal(
-        session: session,
-        initialDirectory: initialDirectory,
-      ),
-    );
+  static Future<void> show(BuildContext context,
+      {required OpenSession session,
+      String? initialDirectory,
+      Future<FileTransferItem?> Function() pickFile =
+          AppFilePicker.pickFile}) async {
+    try {
+      final item = await pickFile();
+      if (item == null || !context.mounted) return;
+      await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          isDismissible: false,
+          enableDrag: false,
+          builder: (_) => FileUploadModal(
+              session: session,
+              item: item,
+              initialDirectory: initialDirectory,
+              pickFile: pickFile));
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not choose a file. Try again.')));
+      }
+    }
   }
 
   @override
@@ -56,384 +48,198 @@ class FileUploadModal extends StatefulWidget {
 }
 
 class _FileUploadModalState extends State<FileUploadModal> {
-  final TextEditingController _dirController = TextEditingController();
-  final List<FileTransferItem> _selectedFiles = [];
-
-  bool _isLoadingDirectory = false;
-  bool _isUploading = false;
-  bool _uploadComplete = false;
-  bool _isCancelled = false;
-  String? _errorMessage;
-
-  int _currentFileIndex = 0;
-  int _currentFileUploadedBytes = 0;
-  int _currentFileTotalBytes = 0;
-  final List<String> _completedFiles = [];
-
+  late FileTransferItem _item;
+  late final TextEditingController _folder;
+  bool _busy = false, _cancelled = false, _complete = false;
+  int _uploaded = 0;
+  String? _error;
   @override
   void initState() {
     super.initState();
-    _initDirectory();
+    _item = widget.item;
+    _folder = TextEditingController(text: widget.initialDirectory ?? '~');
+    if (widget.initialDirectory == null) _loadHome();
+  }
+
+  Future<void> _loadHome() async {
+    try {
+      final client = widget.session.sshService.client;
+      final home = widget.destination != null
+          ? await widget.destination!.home()
+          : client != null
+              ? await FileTransferService.resolveHomeDirectory(client)
+              : throw StateError('Not connected');
+      if (mounted && _folder.text == '~') setState(() => _folder.text = home);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error =
+            'Could not find the home directory. Enter an absolute path.');
+      }
+    }
   }
 
   @override
   void dispose() {
-    _dirController.dispose();
+    _cancelled = true;
+    _folder.dispose();
     super.dispose();
   }
 
-  Future<void> _initDirectory() async {
-    if (widget.initialDirectory != null && widget.initialDirectory!.isNotEmpty) {
-      _dirController.text = widget.initialDirectory!;
+  Future<bool> _confirmReplace(String path) async {
+    if (!mounted || _cancelled) return false;
+    return await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+                  title: Text(
+                      'Replace “${FileTransferService.sanitizeFileName(_item.name)}”?'),
+                  content: Text('A file already exists at $path.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: const Text('Cancel')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text('Replace')),
+                  ],
+                )) ??
+        false;
+  }
+
+  Future<void> _upload() async {
+    if (_busy) return;
+    final path = _folder.text.trim();
+    if (!(path.startsWith('/') || path == '~' || path.startsWith('~/'))) {
+      setState(() => _error = 'Enter an absolute path or ~/folder');
       return;
     }
-
-    final client = widget.session.sshService.client;
-    if (client == null || !widget.session.sshService.isConnected) {
-      _dirController.text = '~';
-      return;
-    }
-
     setState(() {
-      _isLoadingDirectory = true;
-      _errorMessage = null;
+      _busy = true;
+      _cancelled = false;
+      _error = null;
+      _uploaded = 0;
     });
-
     try {
-      final resolved = await FileTransferService.resolveCurrentDirectory(client);
+      void progress(int sent, int total) {
+        if (mounted && !_cancelled) setState(() => _uploaded = sent);
+      }
+
+      if (widget.destination != null) {
+        await FileTransferService.uploadTo(
+            destination: widget.destination!,
+            remoteDirectory: path,
+            item: _item,
+            onProgress: progress,
+            isCancelled: () => _cancelled,
+            confirmReplace: _confirmReplace);
+      } else {
+        final client = widget.session.sshService.client;
+        if (client == null || !widget.session.sshService.isConnected) {
+          throw StateError('Not connected');
+        }
+        await FileTransferService.uploadFile(
+            client: client,
+            remoteDirectory: path,
+            item: _item,
+            onProgress: progress,
+            isCancelled: () => _cancelled,
+            confirmReplace: _confirmReplace);
+      }
       if (mounted) {
         setState(() {
-          _dirController.text = resolved;
-          _isLoadingDirectory = false;
+          _complete = true;
+          _busy = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = _cancelled || error is UploadCancelled
+              ? 'Upload cancelled'
+              : 'Upload failed. ${error.toString().replaceFirst('Bad state: ', '')}';
+        });
+      }
+    }
+  }
+
+  Future<void> _chooseAnother() async {
+    try {
+      final file = await widget.pickFile();
+      if (file != null && mounted) {
+        setState(() {
+          _item = file;
+          _error = null;
         });
       }
     } catch (_) {
       if (mounted) {
-        setState(() {
-          if (_dirController.text.isEmpty) {
-            _dirController.text = '~';
-          }
-          _isLoadingDirectory = false;
-        });
+        setState(() => _error = 'Could not choose a file. Try again.');
       }
     }
-  }
-
-  Future<void> _pickFiles() async {
-    try {
-      final items = await AppFilePicker.pickFiles();
-
-      if (items.isNotEmpty && mounted) {
-        setState(() {
-          for (final item in items) {
-            if (!_selectedFiles.any((f) => f.name == item.name)) {
-              _selectedFiles.add(item);
-            }
-          }
-          _errorMessage = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Error picking files: $e';
-        });
-      }
-    }
-  }
-
-  void _removeFile(int index) {
-    if (_isUploading) return;
-    setState(() {
-      _selectedFiles.removeAt(index);
-    });
-  }
-
-  Future<void> _startUpload() async {
-    if (_selectedFiles.isEmpty || _isUploading) return;
-
-    final client = widget.session.sshService.client;
-    if (client == null || !widget.session.sshService.isConnected) {
-      setState(() {
-        _errorMessage = 'SSH session is not connected.';
-      });
-      return;
-    }
-
-    final targetDir = _dirController.text.trim().isNotEmpty
-        ? _dirController.text.trim()
-        : '~';
-
-    setState(() {
-      _isUploading = true;
-      _isCancelled = false;
-      _errorMessage = null;
-      _uploadComplete = false;
-      _completedFiles.clear();
-      _currentFileIndex = 0;
-      _currentFileUploadedBytes = 0;
-      _currentFileTotalBytes = _selectedFiles.first.size;
-    });
-
-    try {
-      for (var i = 0; i < _selectedFiles.length; i++) {
-        if (_isCancelled) break;
-
-        final item = _selectedFiles[i];
-
-        setState(() {
-          _currentFileIndex = i;
-          _currentFileTotalBytes = item.size;
-          _currentFileUploadedBytes = 0;
-        });
-
-        await FileTransferService.uploadFile(
-          client: client,
-          remoteDirectory: targetDir,
-          item: item,
-          onProgress: (uploaded, total) {
-            if (mounted && !_isCancelled) {
-              setState(() {
-                _currentFileUploadedBytes = uploaded;
-                _currentFileTotalBytes = total;
-              });
-            }
-          },
-          isCancelled: () => _isCancelled,
-        );
-
-        if (!_isCancelled) {
-          _completedFiles.add(item.name);
-        }
-      }
-
-      if (mounted) {
-        if (_isCancelled) {
-          setState(() {
-            _isUploading = false;
-            _errorMessage = 'Upload cancelled by user.';
-          });
-        } else {
-          // Snap progress to 100% smoothly before celebratory switch
-          setState(() {
-            _currentFileUploadedBytes = _currentFileTotalBytes;
-          });
-          await Future.delayed(const Duration(milliseconds: 150));
-
-          if (mounted) {
-            setState(() {
-              _isUploading = false;
-              _uploadComplete = true;
-            });
-
-            // Auto-dismiss after 1500ms unless accessibility navigation is active
-            final isAccessible = MediaQuery.accessibleNavigationOf(context);
-            if (!isAccessible) {
-              Future.delayed(const Duration(milliseconds: 1500), () {
-                if (mounted && _uploadComplete) {
-                  Navigator.of(context).maybePop();
-                }
-              });
-            }
-
-            // Print success message in the terminal scrollback
-            final count = _completedFiles.length;
-            final dirDisplay = targetDir == '.' ? 'current directory' : targetDir;
-            final names = _completedFiles.join(', ');
-            widget.session.terminal.write(
-              '\r\n\x1b[38;2;63;185;80m✔ Uploaded $count file(s) to $dirDisplay: $names\x1b[0m\r\n',
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isUploading = false;
-          _errorMessage = 'Upload failed: $e';
-        });
-      }
-    }
-  }
-
-  void _cancelUpload() {
-    setState(() {
-      _isCancelled = true;
-    });
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = context.appTheme;
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    final currentFile = _selectedFiles.isNotEmpty ? _selectedFiles[_currentFileIndex] : null;
-    final fileProgress = (_currentFileTotalBytes > 0)
-        ? (_currentFileUploadedBytes / _currentFileTotalBytes).clamp(0.0, 1.0)
-        : 0.0;
-    final totalFiles = _selectedFiles.length;
-    final overallProgress = (totalFiles > 0)
-        ? ((_currentFileIndex + fileProgress) / totalFiles).clamp(0.0, 1.0)
-        : 0.0;
-
-    return PopScope(
-      canPop: !_isUploading,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: SafeArea(
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.65,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FileUploadHeader(
-                  title: _uploadComplete ? 'Upload Successful' : 'Upload Files to Server',
-                  subtitle: _uploadComplete
-                      ? '${_completedFiles.length} file(s) transferred'
-                      : '${widget.session.profile.displayName} (${widget.session.profile.username}@${widget.session.profile.host})',
-                  isComplete: _uploadComplete,
-                  canClose: !_isUploading,
-                  onClose: () => Navigator.of(context).pop(),
-                  theme: theme,
-                ),
-                const Divider(height: 1),
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!_uploadComplete) ...[
-                          FileDirectorySection(
-                            controller: _dirController,
-                            isLoading: _isLoadingDirectory,
-                            isUploading: _isUploading,
-                            onRefresh: _initDirectory,
-                            onQuickSelect: (path) => setState(() => _dirController.text = path),
-                            theme: theme,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        if (_uploadComplete)
-                          FileUploadCompleteView(
-                            destinationDir: _dirController.text.trim(),
-                            completedFiles: _completedFiles,
-                            onDone: () => Navigator.of(context).maybePop(),
-                            theme: theme,
-                          )
-                        else if (_isUploading && currentFile != null)
-                          FileUploadProgressView(
-                            fileName: currentFile.name,
-                            fileIndex: _currentFileIndex,
-                            totalFiles: totalFiles,
-                            uploadedBytes: _currentFileUploadedBytes,
-                            totalBytes: _currentFileTotalBytes,
-                            overallProgress: overallProgress,
-                            onCancel: _cancelUpload,
-                            theme: theme,
-                          )
-                        else ...[
-                          FilePickerDropzone(
-                            onTap: _pickFiles,
-                            theme: theme,
-                          ),
-                          if (_selectedFiles.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            SelectedFileList(
-                              files: _selectedFiles,
-                              isUploading: _isUploading,
-                              onRemove: _removeFile,
-                              theme: theme,
-                            ),
-                          ],
-                          if (_errorMessage != null) ...[
-                            const SizedBox(height: 12),
-                            _buildErrorBanner(theme),
-                          ],
-                          const SizedBox(height: 20),
-                          _buildActionButtons(theme),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
+  Widget build(BuildContext context) => PopScope(
+      canPop: !_busy,
+      child: SafeArea(
+          child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+            20, 16, 20, MediaQuery.viewInsetsOf(context).bottom + 20),
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(children: [
+                Expanded(
+                    child: Text(_complete ? 'Upload complete' : 'Upload file',
+                        style: Theme.of(context).textTheme.titleLarge)),
+                IconButton(
+                    tooltip: 'Close',
+                    onPressed: _busy ? null : () => Navigator.pop(context),
+                    icon: const Icon(Icons.close))
+              ]),
+              Text(_item.name),
+              Text(_item.formattedSize),
+              const SizedBox(height: 16),
+              if (_complete) ...[
+                Text('Destination: ${_folder.text}'),
+                FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Done')),
+              ] else ...[
+                TextField(
+                    controller: _folder,
+                    enabled: !_busy,
+                    autocorrect: false,
+                    decoration: const InputDecoration(
+                        labelText: 'Destination folder',
+                        helperText: '~ is your home directory')),
+                if (_error != null)
+                  Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(_error!,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error))),
+                if (_busy) ...[
+                  const SizedBox(height: 16),
+                  LinearProgressIndicator(
+                      value: _item.size == 0
+                          ? null
+                          : (_uploaded / _item.size).clamp(0, 1)),
+                  Text(
+                      '${FileTransferService.formatBytes(_uploaded)} / ${_item.formattedSize}'),
+                  TextButton(
+                      onPressed: _cancelled
+                          ? null
+                          : () => setState(() => _cancelled = true),
+                      child: Text(_cancelled ? 'Cancelling…' : 'Cancel')),
+                ] else ...[
+                  TextButton(
+                      onPressed: _chooseAnother,
+                      child: const Text('Choose another file')),
+                  FilledButton(onPressed: _upload, child: const Text('Upload')),
+                ],
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorBanner(AppThemeExtension theme) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: theme.error.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.error.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline_rounded, color: theme.error, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _errorMessage ?? '',
-              style: TextStyle(color: theme.error, fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(AppThemeExtension theme) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: theme.border),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: theme.textSecondary),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: ElevatedButton.icon(
-            onPressed: _selectedFiles.isEmpty ? null : _startUpload,
-            icon: const Icon(Icons.cloud_upload_rounded, size: 18),
-            label: Text(
-              _selectedFiles.isEmpty
-                  ? 'Upload'
-                  : 'Upload (${_selectedFiles.length})',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.primaryAccent,
-              foregroundColor: AppTheme.computeOnPrimary(theme.primaryAccent),
-              disabledBackgroundColor: theme.border,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+            ]),
+      )));
 }

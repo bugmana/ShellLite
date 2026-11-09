@@ -5,7 +5,6 @@ import 'package:dartssh2/dartssh2.dart';
 import '../config/app_config.dart';
 import '../models/auth_method.dart';
 import '../models/server_profile.dart';
-import 'file_transfer_service.dart';
 import 'key_parser.dart';
 import 'ssh_socket_factory.dart';
 import 'storage_service.dart';
@@ -70,14 +69,10 @@ class SSHService {
   final List<int> _inputBuffer = [];
   static const int _maxInputBufferSize = 256;
 
-  Future<String> resolveRemoteCurrentDirectory() async {
-    if (_client == null || !isConnected) return '~';
-    return FileTransferService.resolveRemoteCurrentDirectory(_client!);
-  }
-
   /// Proactively probes the SSH connection with a keep-alive message to detect
   /// half-open / zombie sockets after waking from sleep.
-  Future<bool> probeConnection({Duration timeout = const Duration(seconds: 2)}) async {
+  Future<bool> probeConnection(
+      {Duration timeout = const Duration(seconds: 2)}) async {
     if (_client == null || _client!.isClosed || _shellSession == null) {
       return false;
     }
@@ -96,7 +91,8 @@ class SSHService {
     int pixelWidth = 0,
     int pixelHeight = 0,
     required void Function(String output) onOutput,
-    required void Function(SSHConnectionState state, String? error) onStateChange,
+    required void Function(SSHConnectionState state, String? error)
+        onStateChange,
     StorageService? storageService,
   }) async {
     await disconnect();
@@ -247,7 +243,8 @@ class SSHService {
       if (profile.persistSession) {
         final tmuxCmd = buildTmuxCommand(profile.tmuxSessionName);
         sendInput('$tmuxCmd\n');
-      } else if (profile.initialCommand != null && profile.initialCommand!.trim().isNotEmpty) {
+      } else if (profile.initialCommand != null &&
+          profile.initialCommand!.trim().isNotEmpty) {
         final cmd = profile.initialCommand!.trim();
         sendInput('$cmd\n');
       }
@@ -279,7 +276,8 @@ class SSHService {
     }
   }
 
-  void resizeTerminal(int width, int height, [int pixelWidth = 0, int pixelHeight = 0]) {
+  void resizeTerminal(int width, int height,
+      [int pixelWidth = 0, int pixelHeight = 0]) {
     if (width > 0) _terminalWidth = width;
     if (height > 0) _terminalHeight = height;
     if (pixelWidth >= 0) _pixelWidth = pixelWidth;

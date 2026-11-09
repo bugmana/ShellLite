@@ -6,7 +6,7 @@ import 'file_picker_stub.dart'
 /// Cross-platform file picker service providing native file dialogs
 /// across Android, iOS, and pure DOM file selection on Web.
 class AppFilePicker {
-  static Future<List<FileTransferItem>> pickFiles() {
-    return platformPickFiles();
+  static Future<FileTransferItem?> pickFile() {
+    return platformPickFile();
   }
 }

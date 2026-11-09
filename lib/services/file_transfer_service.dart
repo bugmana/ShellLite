@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 /// Encapsulates a selected local file for cross-platform upload (Mobile, Desktop, Web).
 class FileTransferItem {
@@ -57,7 +58,8 @@ class FileTransferItem {
       }
     } else if (readStream != null) {
       await for (final rawChunk in readStream!) {
-        final chunk = rawChunk is Uint8List ? rawChunk : Uint8List.fromList(rawChunk);
+        final chunk =
+            rawChunk is Uint8List ? rawChunk : Uint8List.fromList(rawChunk);
         if (chunk.isNotEmpty) {
           yield chunk;
         }
@@ -68,32 +70,7 @@ class FileTransferItem {
   }
 }
 
-/// Status and progress information for an active file upload.
-class FileUploadProgress {
-  final String fileName;
-  final int bytesUploaded;
-  final int totalBytes;
-  final double percentage; // 0.0 to 1.0
-  final bool isComplete;
-  final String? error;
-
-  const FileUploadProgress({
-    required this.fileName,
-    required this.bytesUploaded,
-    required this.totalBytes,
-    required this.percentage,
-    this.isComplete = false,
-    this.error,
-  });
-
-  double get progress => percentage;
-}
-
 class FileTransferService {
-  /// Alias for backward compatibility
-  static Future<String> resolveRemoteCurrentDirectory(SSHClient client) =>
-      resolveCurrentDirectory(client);
-
   /// Format a byte count into a human-readable string (B, KB, MB, GB).
   static String formatBytes(int bytes) {
     if (bytes <= 0) return '0 B';
@@ -111,78 +88,95 @@ class FileTransferService {
     return '$formatted ${suffixes[clampedIndex]}';
   }
 
-  /// Proactively resolves the current remote directory for the given SSH session.
-  static Future<String> resolveCurrentDirectory(SSHClient client) async {
-    // 1. Try pwd via SSH exec first (fast, reliable, and avoids SFTP uint64 accessors in dart2js)
+  static Future<String> resolveHomeDirectory(SSHClient client) async {
     try {
-      final session = await client.execute('pwd');
-      final output = await utf8.decodeStream(session.stdout);
-      final trimmed = output.trim();
-      if (trimmed.isNotEmpty && trimmed.startsWith('/')) {
-        return trimmed;
-      }
-    } catch (_) {}
-
-    // 2. Try SFTP absolute if exec is unavailable on native platforms
+      final session = await client.execute(r'''printf '%s\n' "$HOME"''');
+      final errors = session.stderr.drain<void>();
+      final output = (await utf8.decodeStream(session.stdout)).trim();
+      await errors;
+      await session.done;
+      if (session.exitCode == 0 && output.startsWith('/')) return output;
+    } catch (_) {/* SFTP-only servers may not allow exec. */}
     if (!kIsWeb) {
+      final sftp = await client.sftp();
       try {
-        final sftp = await client.sftp();
-        try {
-          final absPath = await sftp.absolute('.');
-          if (absPath.isNotEmpty && absPath.startsWith('/')) {
-            return absPath;
-          }
-        } finally {
-          await sftp.close();
-        }
-      } catch (_) {}
+        return await sftp.absolute('.');
+      } finally {
+        await sftp.close();
+      }
     }
-
-    return '~';
+    throw StateError(
+        'Could not find the home directory. Enter an absolute path.');
   }
 
-  /// Uploads a single file to [remoteDirectory] on the remote server.
-  ///
-  /// On Web, we stream through an SSH channel (`cat > file`) to prevent
-  /// `dart2js` runtime errors with 64-bit integer accessors in SFTP packets.
-  /// On native platforms, SFTP is used with automatic fallback.
+  static Future<String> resolveDestination(
+      String input, Future<String> Function() home) async {
+    final value = input.trim();
+    if (value.contains('\x00')) {
+      throw const FormatException('Invalid destination folder');
+    }
+    if (value.isEmpty || value == '~') return home();
+    if (value.startsWith('~/')) return '${await home()}/${value.substring(2)}';
+    if (!value.startsWith('/')) {
+      throw const FormatException('Enter an absolute path or ~/folder');
+    }
+    return value;
+  }
+
   static Future<void> uploadFile({
     required SSHClient client,
     required String remoteDirectory,
     required FileTransferItem item,
-    void Function(int bytesUploaded, int totalBytes)? onProgress,
+    void Function(int, int)? onProgress,
     bool Function()? isCancelled,
-  }) async {
-    if (kIsWeb) {
-      await _uploadViaExec(
-        client: client,
-        remoteDirectory: remoteDirectory,
-        item: item,
-        onProgress: onProgress,
-        isCancelled: isCancelled,
-      );
-    } else {
-      try {
-        await _uploadViaSftp(
-          client: client,
+    Future<bool> Function(String)? confirmReplace,
+  }) =>
+      uploadTo(
+          destination: _SshUploadDestination(client),
           remoteDirectory: remoteDirectory,
           item: item,
           onProgress: onProgress,
           isCancelled: isCancelled,
-        );
-      } catch (e) {
-        if (e.toString().contains('Uint64') || e is UnsupportedError) {
-          await _uploadViaExec(
-            client: client,
-            remoteDirectory: remoteDirectory,
-            item: item,
-            onProgress: onProgress,
-            isCancelled: isCancelled,
-          );
-        } else {
-          rethrow;
-        }
+          confirmReplace: confirmReplace);
+
+  static Future<void> uploadTo({
+    required UploadDestination destination,
+    required String remoteDirectory,
+    required FileTransferItem item,
+    void Function(int, int)? onProgress,
+    bool Function()? isCancelled,
+    Future<bool> Function(String)? confirmReplace,
+  }) async {
+    final directory =
+        await resolveDestination(remoteDirectory, destination.home);
+    final prefix = directory.endsWith('/') ? directory : '$directory/';
+    final path = '$prefix${sanitizeFileName(item.name)}';
+    final temporary = '$prefix.shelllite-${const Uuid().v4()}.part';
+    var confirmed = false;
+    void checkCancelled() {
+      if (isCancelled?.call() == true) throw const UploadCancelled();
+    }
+
+    checkCancelled();
+    if (await destination.exists(path)) {
+      confirmed = await confirmReplace?.call(path) ?? false;
+      if (!confirmed) throw const UploadCancelled();
+    }
+    checkCancelled();
+    try {
+      await destination.write(temporary, item, onProgress, isCancelled);
+      checkCancelled();
+      if (!confirmed && await destination.exists(path)) {
+        confirmed = await confirmReplace?.call(path) ?? false;
+        if (!confirmed) throw const UploadCancelled();
       }
+      checkCancelled();
+      await destination.publish(temporary, path, confirmed);
+    } finally {
+      // Only the staging path belongs to this upload. Never delete the target.
+      try {
+        await destination.remove(temporary);
+      } catch (_) {/* Best effort after disconnect. */}
     }
   }
 
@@ -207,7 +201,7 @@ class FileTransferService {
   }) async {
     var targetDir = remoteDirectory.trim();
     if (targetDir.isEmpty || targetDir == '~') {
-      targetDir = await resolveCurrentDirectory(client);
+      targetDir = await resolveHomeDirectory(client);
     }
 
     if (targetDir.length > 1 && targetDir.endsWith('/')) {
@@ -245,14 +239,16 @@ class FileTransferService {
       }
 
       if (total > 0 && bytesSent < total) {
-        onProgress?.call(total, total);
+        throw StateError(
+            'The file could not be read completely. Choose it again.');
       }
 
       await session.stdin.close();
       await session.done;
 
       if (session.exitCode != null && session.exitCode != 0) {
-        throw Exception('Upload failed on server with exit code ${session.exitCode}');
+        throw Exception(
+            'Upload failed on server with exit code ${session.exitCode}');
       }
     } catch (e) {
       session.close();
@@ -288,11 +284,14 @@ class FileTransferService {
       }
 
       final safeName = sanitizeFileName(item.name);
-      final remotePath = targetDir == '/' ? '/$safeName' : '$targetDir/$safeName';
+      final remotePath =
+          targetDir == '/' ? '/$safeName' : '$targetDir/$safeName';
 
       final remoteFile = await sftp.open(
         remotePath,
-        mode: SftpFileOpenMode.create | SftpFileOpenMode.write | SftpFileOpenMode.truncate,
+        mode: SftpFileOpenMode.create |
+            SftpFileOpenMode.write |
+            SftpFileOpenMode.truncate,
       );
 
       try {
@@ -300,7 +299,8 @@ class FileTransferService {
         var bytesSent = 0;
         final total = item.size;
 
-        await for (final chunk in item.openChunkStream(chunkSize: maxChunkSize)) {
+        await for (final chunk
+            in item.openChunkStream(chunkSize: maxChunkSize)) {
           if (isCancelled?.call() == true) {
             throw Exception('Upload cancelled');
           }
@@ -311,13 +311,139 @@ class FileTransferService {
         }
 
         if (total > 0 && bytesSent < total) {
-          onProgress?.call(total, total);
+          throw StateError(
+              'The file could not be read completely. Choose it again.');
         }
       } finally {
         await remoteFile.close();
       }
     } finally {
       await sftp.close();
+    }
+  }
+}
+
+class UploadCancelled implements Exception {
+  const UploadCancelled();
+  @override
+  String toString() => 'Upload cancelled';
+}
+
+abstract class UploadDestination {
+  Future<String> home();
+  Future<bool> exists(String path);
+  Future<void> write(String path, FileTransferItem item,
+      void Function(int, int)? onProgress, bool Function()? isCancelled);
+  Future<void> publish(String temporary, String path, bool replace);
+  Future<void> remove(String path);
+}
+
+class _SshUploadDestination implements UploadDestination {
+  _SshUploadDestination(this.client);
+  final SSHClient client;
+  String quote(String value) => "'${value.replaceAll("'", "'\\''")}'";
+  Future<int?> command(String command) async {
+    final session = await client.execute(command);
+    final output = session.stdout.drain<void>();
+    final errors = session.stderr.drain<void>();
+    await Future.wait([output, errors]);
+    await session.done;
+    return session.exitCode;
+  }
+
+  @override
+  Future<String> home() => FileTransferService.resolveHomeDirectory(client);
+  @override
+  Future<bool> exists(String path) async {
+    if (!kIsWeb) {
+      final sftp = await client.sftp();
+      try {
+        await sftp.stat(path, followLink: false);
+        return true;
+      } on SftpStatusError catch (error) {
+        if (error.code == 2) return false;
+        rethrow;
+      } finally {
+        await sftp.close();
+      }
+    }
+    final code =
+        await command('test -e ${quote(path)} || test -L ${quote(path)}');
+    if (code == 0) return true;
+    if (code == 1) return false;
+    throw StateError('Could not check destination');
+  }
+
+  @override
+  Future<void> write(String path, FileTransferItem item,
+      void Function(int, int)? onProgress, bool Function()? isCancelled) async {
+    final slash = path.lastIndexOf('/');
+    final staged = FileTransferItem(
+        name: path.substring(slash + 1),
+        size: item.size,
+        bytes: item.bytes,
+        localPath: item.localPath,
+        readStream: item.readStream);
+    Future<void> viaExec() => FileTransferService._uploadViaExec(
+        client: client,
+        remoteDirectory: slash == 0 ? '/' : path.substring(0, slash),
+        item: staged,
+        onProgress: onProgress,
+        isCancelled: isCancelled);
+    if (kIsWeb) {
+      await viaExec();
+      return;
+    }
+    try {
+      await FileTransferService._uploadViaSftp(
+          client: client,
+          remoteDirectory: slash == 0 ? '/' : path.substring(0, slash),
+          item: staged,
+          onProgress: onProgress,
+          isCancelled: isCancelled);
+    } catch (error) {
+      if ((error is UnsupportedError || error.toString().contains('Uint64')) &&
+          (item.bytes != null || item.localPath != null)) {
+        await viaExec();
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  @override
+  Future<void> publish(String temporary, String path, bool replace) async {
+    if (!kIsWeb) {
+      final sftp = await client.sftp();
+      try {
+        if (!replace && await exists(path)) {
+          throw StateError('Destination changed. Try again.');
+        }
+        await sftp.rename(temporary, path);
+      } finally {
+        await sftp.close();
+      }
+    } else {
+      final action = replace
+          ? 'mv -f -- ${quote(temporary)} ${quote(path)}'
+          : 'ln -T -- ${quote(temporary)} ${quote(path)}';
+      if (await command(action) != 0) {
+        throw StateError('Could not finish upload. Check the destination.');
+      }
+    }
+  }
+
+  @override
+  Future<void> remove(String path) async {
+    if (!kIsWeb) {
+      final sftp = await client.sftp();
+      try {
+        await sftp.remove(path);
+      } finally {
+        await sftp.close();
+      }
+    } else {
+      await command('rm -f -- ${quote(path)}');
     }
   }
 }

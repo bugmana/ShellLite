@@ -25,34 +25,31 @@ ShellLite targets three platforms:
 - ANSI/VT100 terminal emulation via [`xterm.dart`](https://pub.dev/packages/xterm) with dynamic PTY window resizing and configurable scrollback up to 10,000 lines.
 - Stateful UTF-8 stream decoding to prevent character truncation across network packet boundaries.
 - Six color presets: ShellLite Obsidian, Catppuccin Mocha, Dracula, Nord, Tokyo Night, and Solarized Dark.
-- Adjustable terminal font size (10 to 22 pt) using JetBrains Mono with system fallbacks.
+- Adjustable terminal font size (9 to 26 pt) using JetBrains Mono with system fallbacks.
 - Touch text selection with draggable handles, edge scrolling, and a floating action toolbar.
 - Long-press printed HTTP(S) links to select the full URL and copy it with **Copy link**.
 
 ### Keyboard Accessory Bar
-- Mobile-optimized key row: Tab, Shift+Tab, arrow keys, Escape, and quick interrupt (`^C`).
+- One key row with Escape, Tab, Ctrl, arrows, Paste, More keys, and the keyboard toggle.
 - Sticky modifier keys: `Ctrl` and `Alt` supporting single-tap latch (applies to next keystroke) and double-tap lock.
 - Customizable keys: Add custom keys with escape sequences (`\e`, `\t`, `\n`, `^C`, hex `\x1b`) and reorder via drag-and-drop.
-- Inline expandable drawer organizing Control, Navigation, and Function (F1–F12) keys.
+- More keys opens one sheet with control, navigation, function, and tmux shortcuts. Customize keys in Settings.
 - Haptic feedback on keystroke (can be disabled in settings).
 
 ### Authentication and Key Management
 - Password authentication and unencrypted or passphrase-encrypted OpenSSH private keys (Ed25519, ECDSA, RSA).
-- Built-in on-device Ed25519 key generator with one-tap public key copying and automated `authorized_keys` setup scripts.
-- Clipboard auto-parser for connection strings (extracts host, port, and user from `ssh -p <port> <user>@<host>`).
 - Credentials encrypted locally via hardware security: Apple Keychain on iOS and KeyStore on Android.
 - Limit of 10 configured server profiles.
 
 ### File Transfer
-- Upload files directly to the remote server from within the terminal session.
-- Chunked streaming (32 KB chunks) with progress tracking and cancellation.
+- Upload one file from the terminal menu. Confirm the destination folder (home by default), then tap Upload.
+- Chunked transfers with progress and cancellation. Existing files require replacement confirmation; uploads are staged before publishing the final file.
 - SFTP on native platforms; streamed standard input (`cat > remote_file`) on Web to circumvent JavaScript runtime limitations with 64-bit integer SFTP packet offsets.
 - Native file picker on iOS and Android; DOM file input element on Web.
 
-### Session Persistence and Telemetry
+### Session Persistence
 - Optional automatic `tmux` session attach (`tmux new-session -A -s <name>`), falling back to standard shell if `tmux` is absent.
 - Initial command execution on connect when persistent session is disabled.
-- Server telemetry queried over SSH: CPU load/utilization, memory consumption, root disk usage, and uptime.
 
 ### Privacy
 - All credentials, private keys, and session data remain on the local device.

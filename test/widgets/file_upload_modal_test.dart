@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,374 +7,121 @@ import 'package:shell_lite/models/server_profile.dart';
 import 'package:shell_lite/providers/session_store.dart';
 import 'package:shell_lite/services/file_transfer_service.dart';
 import 'package:shell_lite/services/ssh_service.dart';
-import 'package:shell_lite/theme/app_theme.dart';
-import 'package:shell_lite/theme/terminal_theme_presets.dart';
 import 'package:shell_lite/widgets/file_upload_modal.dart';
 import 'package:xterm/xterm.dart';
+import '../support/upload_destination.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  late OpenSession testSession;
-  late ServerProfile testProfile;
-
+  late OpenSession session;
+  late MemoryUploadDestination destination;
+  late FileTransferItem item;
   setUp(() {
-    testProfile = ServerProfile(
-      id: 'server-upload-test',
-      displayName: 'Staging Server',
-      host: '192.168.1.100',
-      port: 2222,
-      username: 'deploy',
-      authMethod: const PasswordAuth(credentialTag: 'cred-123'),
-    );
-
-    testSession = OpenSession(
-      id: testProfile.id,
-      profile: testProfile,
-      terminal: Terminal(),
-      controller: TerminalController(),
-      sshService: SSHService(),
-    );
+    session = OpenSession(
+        id: 'test',
+        profile: ServerProfile(
+            displayName: 'Server',
+            host: 'host',
+            username: 'user',
+            authMethod: const PasswordAuth(credentialTag: 'cred')),
+        terminal: Terminal(),
+        controller: TerminalController(),
+        sshService: SSHService());
+    destination = MemoryUploadDestination();
+    item = FileTransferItem(
+        name: 'hello.txt', size: 3, bytes: Uint8List.fromList([1, 2, 3]));
   });
-
-  Widget createTestWidget({String? initialDirectory}) {
-    return MaterialApp(
-      theme: AppTheme.buildTheme(TerminalThemePresets.obsidian),
+  Widget build({Future<FileTransferItem?> Function()? picker}) => MaterialApp(
       home: Scaffold(
-        body: FileUploadModal(
-          session: testSession,
-          initialDirectory: initialDirectory,
-        ),
-      ),
-    );
-  }
+          body: FileUploadModal(
+              session: session,
+              item: item,
+              destination: destination,
+              pickFile: picker ?? () async => null)));
 
-  Widget wrapWithTheme(Widget child) {
-    return MaterialApp(
-      theme: AppTheme.buildTheme(TerminalThemePresets.obsidian),
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => child,
-        ),
-      ),
-    );
-  }
-
-  group('FileUploadModal Coordinator', () {
-    testWidgets('renders header, initial directory and file selection prompt', (tester) async {
-      await tester.pumpWidget(createTestWidget(initialDirectory: '/var/www/my-site'));
+  testWidgets('shows one file, home folder and completion until Done',
+      (tester) async {
+    await tester.pumpWidget(build());
+    await tester.pumpAndSettle();
+    expect(find.text('hello.txt'), findsOneWidget);
+    expect(find.text('/home/user'), findsOneWidget);
+    await tester.tap(find.text('Upload'));
+    await tester.pumpAndSettle();
+    expect(destination.files['/home/user/hello.txt'], [1, 2, 3]);
+    expect(find.text('Upload complete'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.text('Done'), findsOneWidget);
+    expect(session.terminal.buffer.getText(), isNot(contains('Uploaded')));
+  });
+  for (final replace in [false, true]) {
+    testWidgets('replacement confirmation replace=$replace', (tester) async {
+      destination.files['/home/user/hello.txt'] = [9];
+      await tester.pumpWidget(build());
       await tester.pumpAndSettle();
-
-      // Verify header title and server info
-      expect(find.text('Upload Files to Server'), findsOneWidget);
-      expect(find.textContaining('Staging Server'), findsOneWidget);
-      expect(find.textContaining('deploy@192.168.1.100'), findsOneWidget);
-
-      // Verify remote destination folder field
-      expect(find.text('Remote Destination Folder'), findsOneWidget);
-      expect(find.widgetWithText(TextField, '/var/www/my-site'), findsOneWidget);
-      expect(find.text('Re-detect'), findsOneWidget);
-
-      // Verify empty file picker prompt
-      expect(find.text('Select Files to Upload'), findsOneWidget);
-      expect(find.text('Tap to choose one or more files from your device'), findsOneWidget);
-
-      // Verify bottom action buttons
-      expect(find.text('Cancel'), findsOneWidget);
-      expect(find.text('Upload'), findsOneWidget);
-
-      // Verify Upload button is disabled when no files are selected
-      final uploadButton = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, 'Upload'),
-      );
-      expect(uploadButton.onPressed, isNull);
-    });
-
-    testWidgets('uses PopScope to protect against accidental navigation during upload', (tester) async {
-      await tester.pumpWidget(createTestWidget(initialDirectory: '/tmp'));
+      await tester.tap(find.text('Upload'));
       await tester.pumpAndSettle();
-
-      final popScopeFinder = find.byType(PopScope);
-      expect(popScopeFinder, findsOneWidget);
-      final popScope = tester.widget<PopScope>(popScopeFinder);
-      expect(popScope.canPop, isTrue);
-
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.text('Replace “hello.txt”?'), findsOneWidget);
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(replace ? 'Replace' : 'Cancel')));
+      await tester.pumpAndSettle();
+      expect(
+          destination.files['/home/user/hello.txt'], replace ? [1, 2, 3] : [9]);
     });
+  }
+  testWidgets('picker cancellation opens no sheet', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: Builder(
+                builder: (context) => TextButton(
+                    onPressed: () => FileUploadModal.show(context,
+                        session: session, pickFile: () async => null),
+                    child: const Text('Choose'))))));
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FileUploadModal), findsNothing);
   });
-
-  group('FileUploadHeader Widget', () {
-    testWidgets('renders title, subtitle, close button and handles close callback', (tester) async {
-      bool closed = false;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileUploadHeader(
-            title: 'Upload Files to Server',
-            subtitle: 'My Server (root@10.0.0.1)',
-            isComplete: false,
-            canClose: true,
-            onClose: () => closed = true,
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.text('Upload Files to Server'), findsOneWidget);
-      expect(find.text('My Server (root@10.0.0.1)'), findsOneWidget);
-      expect(find.byIcon(Icons.cloud_upload_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
-
-      await tester.tap(find.byIcon(Icons.close_rounded));
-      await tester.pump();
-      expect(closed, isTrue);
-    });
-
-    testWidgets('hides close button when canClose is false during upload', (tester) async {
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileUploadHeader(
-            title: 'Uploading...',
-            subtitle: '1 file remaining',
-            isComplete: false,
-            canClose: false,
-            onClose: () {},
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.byIcon(Icons.close_rounded), findsNothing);
-    });
-
-    testWidgets('renders celebratory check icon when isComplete is true', (tester) async {
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileUploadHeader(
-            title: 'Upload Successful',
-            subtitle: '2 file(s) transferred',
-            isComplete: true,
-            canClose: true,
-            onClose: () {},
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
-      expect(find.text('Upload Successful'), findsOneWidget);
-    });
+  testWidgets('can choose another file', (tester) async {
+    await tester.pumpWidget(build(
+        picker: () async =>
+            FileTransferItem(name: 'other.txt', size: 0, bytes: Uint8List(0))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose another file'));
+    await tester.pumpAndSettle();
+    expect(find.text('other.txt'), findsOneWidget);
+    expect(find.text('hello.txt'), findsNothing);
   });
-
-  group('FileDirectorySection Widget', () {
-    testWidgets('renders directory text field and quick selection chips', (tester) async {
-      final controller = TextEditingController(text: '/home/deploy');
-      String? selectedQuickPath;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileDirectorySection(
-            controller: controller,
-            isLoading: false,
-            isUploading: false,
-            onRefresh: () {},
-            onQuickSelect: (path) => selectedQuickPath = path,
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.text('Remote Destination Folder'), findsOneWidget);
-      expect(find.widgetWithText(TextField, '/home/deploy'), findsOneWidget);
-      expect(find.text('Current'), findsOneWidget);
-      expect(find.text('~ (Home)'), findsOneWidget);
-      expect(find.text('/tmp'), findsOneWidget);
-      expect(find.text('/var/www'), findsOneWidget);
-
-      await tester.tap(find.text('/var/www'));
-      await tester.pump();
-      expect(selectedQuickPath, '/var/www');
-    });
-
-    testWidgets('triggers onRefresh callback when Re-detect is tapped', (tester) async {
-      final controller = TextEditingController(text: '~');
-      bool refreshTapped = false;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileDirectorySection(
-            controller: controller,
-            isLoading: false,
-            isUploading: false,
-            onRefresh: () => refreshTapped = true,
-            onQuickSelect: (_) {},
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.text('Re-detect'), findsOneWidget);
-      await tester.tap(find.text('Re-detect'));
-      await tester.pump();
-      expect(refreshTapped, isTrue);
-    });
-
-    testWidgets('shows loading spinner when isLoading is true', (tester) async {
-      final controller = TextEditingController(text: '~');
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileDirectorySection(
-            controller: controller,
-            isLoading: true,
-            isUploading: false,
-            onRefresh: () {},
-            onQuickSelect: (_) {},
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Re-detect'), findsNothing);
-    });
+  testWidgets(
+      'home failure permits explicit folder and failed transfer retains controls',
+      (tester) async {
+    destination.failHome = true;
+    destination.failWrite = true;
+    await tester.pumpWidget(build());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not find the home'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '/tmp');
+    await tester.tap(find.text('Upload'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Upload failed.'), findsOneWidget);
+    expect(destination.files, isEmpty);
+    expect(find.text('Choose another file'), findsOneWidget);
   });
-
-  group('FilePickerDropzone Widget', () {
-    testWidgets('renders dropzone and triggers onTap on click', (tester) async {
-      bool tapped = false;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FilePickerDropzone(
-            onTap: () => tapped = true,
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.byIcon(Icons.file_upload_outlined), findsOneWidget);
-      expect(find.text('Select Files to Upload'), findsOneWidget);
-      expect(find.text('Tap to choose one or more files from your device'), findsOneWidget);
-
-      await tester.tap(find.byType(FilePickerDropzone));
-      await tester.pump();
-      expect(tapped, isTrue);
-    });
-  });
-
-  group('SelectedFileList Widget', () {
-    testWidgets('renders selected file items with names and formatted sizes and allows removal', (tester) async {
-      final files = [
-        FileTransferItem(name: 'app.conf', size: 1024, bytes: Uint8List(1024)),
-        FileTransferItem(name: 'data.tar.gz', size: 204800, bytes: Uint8List(204800)),
-      ];
-      int? removedIndex;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => SelectedFileList(
-            files: files,
-            isUploading: false,
-            onRemove: (idx) => removedIndex = idx,
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.text('app.conf'), findsOneWidget);
-      expect(find.text('1.0 KB'), findsOneWidget);
-      expect(find.text('data.tar.gz'), findsOneWidget);
-      expect(find.text('200 KB'), findsOneWidget);
-      expect(find.byIcon(Icons.close), findsNWidgets(2));
-
-      await tester.tap(find.byIcon(Icons.close).first);
-      await tester.pump();
-      expect(removedIndex, 0);
-    });
-
-    testWidgets('disables removal while upload is active', (tester) async {
-      final files = [
-        FileTransferItem(name: 'backup.sql', size: 5000, bytes: Uint8List(5000)),
-      ];
-      int? removedIndex;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => SelectedFileList(
-            files: files,
-            isUploading: true,
-            onRemove: (idx) => removedIndex = idx,
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      final closeButton = tester.widget<IconButton>(
-        find.ancestor(of: find.byIcon(Icons.close), matching: find.byType(IconButton)),
-      );
-      expect(closeButton.onPressed, isNull);
-      expect(removedIndex, isNull);
-    });
-  });
-
-  group('FileUploadProgressView Widget', () {
-    testWidgets('renders progress info, percentage and handles cancel', (tester) async {
-      bool cancelled = false;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileUploadProgressView(
-            fileName: 'archive.zip',
-            fileIndex: 1,
-            totalFiles: 4,
-            uploadedBytes: 524288,
-            totalBytes: 1048576,
-            overallProgress: 0.375,
-            onCancel: () => cancelled = true,
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.text('Uploading (2/4): archive.zip'), findsOneWidget);
-      expect(find.text('38%'), findsOneWidget);
-      expect(find.text('512 KB of 1.0 MB'), findsOneWidget);
-      expect(find.byType(LinearProgressIndicator), findsOneWidget);
-
-      final indicator = tester.widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator));
-      expect(indicator.value, 0.375);
-
-      await tester.tap(find.text('Cancel'));
-      await tester.pump();
-      expect(cancelled, isTrue);
-    });
-  });
-
-  group('FileUploadCompleteView Widget', () {
-    testWidgets('renders celebratory badge, completed files chips and handles Done button', (tester) async {
-      bool done = false;
-
-      await tester.pumpWidget(wrapWithTheme(
-        Builder(
-          builder: (context) => FileUploadCompleteView(
-            destinationDir: '/var/www/html',
-            completedFiles: const ['index.html', 'style.css'],
-            onDone: () => done = true,
-            theme: context.appTheme,
-          ),
-        ),
-      ));
-
-      expect(find.text('Upload Complete'), findsOneWidget);
-      expect(find.text('2 file(s) transferred to /var/www/html'), findsOneWidget);
-      expect(find.text('index.html'), findsOneWidget);
-      expect(find.text('style.css'), findsOneWidget);
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
-
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Done'));
-      await tester.pump();
-      expect(done, isTrue);
+  testWidgets('Cancel stops staged upload without changing existing file',
+      (tester) async {
+    destination.files['/home/user/hello.txt'] = [9];
+    destination.block = Completer<void>();
+    await tester.pumpWidget(build());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upload'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Replace'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.descendant(of: find.byType(FileUploadModal), matching: find.text('Cancel')));
+    await tester.pump();
+    destination.block!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Upload cancelled'), findsOneWidget);
+    expect(destination.files, {
+      '/home/user/hello.txt': [9]
     });
   });
 }

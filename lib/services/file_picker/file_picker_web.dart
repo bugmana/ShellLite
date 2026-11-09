@@ -4,60 +4,38 @@ import 'dart:typed_data';
 import 'package:web/web.dart' as web;
 import '../file_transfer_service.dart';
 
-Future<List<FileTransferItem>> platformPickFiles() async {
-  final completer = Completer<List<FileTransferItem>>();
-  final input = web.document.createElement('input') as web.HTMLInputElement;
-  input.type = 'file';
-  input.multiple = true;
+Future<FileTransferItem?> platformPickFile() {
+  final result = Completer<FileTransferItem?>();
+  final input = web.HTMLInputElement()
+    ..type = 'file'
+    ..multiple = false;
   input.style.display = 'none';
+  void finish(FileTransferItem? item) {
+    input.remove();
+    if (!result.isCompleted) result.complete(item);
+  }
 
-  web.document.body?.appendChild(input);
-
-  input.onchange = ((web.Event event) {
-    final fileList = input.files;
-    if (fileList == null || fileList.length == 0) {
-      input.remove();
-      if (!completer.isCompleted) {
-        completer.complete([]);
-      }
-      return;
-    }
-
+  input.oncancel = ((web.Event _) => finish(null)).toJS;
+  input.onchange = ((web.Event _) {
     () async {
       try {
-        final count = fileList.length;
-        final items = <FileTransferItem>[];
-
-        for (var i = 0; i < count; i++) {
-          final file = fileList.item(i);
-          if (file == null) continue;
-
-          // Directly read binary ArrayBuffer from the browser File/Blob Promise
-          final jsBuffer = await file.arrayBuffer().toDart;
-          final jsList = jsBuffer.toDart.asUint8List();
-          // Create pure Dart Uint8List copy to ensure compatibility across all JS runtime accessors
-          final bytes = Uint8List.fromList(jsList);
-
-          items.add(FileTransferItem(
+        final file = input.files?.item(0);
+        if (file == null) {
+          finish(null);
+          return;
+        }
+        final buffer = await file.arrayBuffer().toDart;
+        finish(FileTransferItem(
             name: file.name,
             size: file.size,
-            bytes: bytes,
-          ));
-        }
-
+            bytes: Uint8List.fromList(buffer.toDart.asUint8List())));
+      } catch (error, stack) {
         input.remove();
-        if (!completer.isCompleted) {
-          completer.complete(items);
-        }
-      } catch (e) {
-        input.remove();
-        if (!completer.isCompleted) {
-          completer.completeError(e);
-        }
+        if (!result.isCompleted) result.completeError(error, stack);
       }
     }();
-  }.toJS);
-
+  }).toJS;
+  web.document.body?.appendChild(input);
   input.click();
-  return completer.future;
+  return result.future;
 }
