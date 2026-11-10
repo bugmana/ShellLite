@@ -7,10 +7,9 @@ void main() {
   setUp(() async =>
       directory = await Directory.systemTemp.createTemp('shelllite publish '));
   tearDown(() async => directory.delete(recursive: true));
-  for (final replace in [false, true]) {
-    test(
-        'directory collision is rejected without moving staging (replace=$replace)',
-        () async {
+  test('directory collisions preserve staging with either replacement choice',
+      () async {
+    for (final replace in [false, true]) {
       final source = File("${directory.path}/.upload's.part")
         ..writeAsStringSync('new contents');
       final target = Directory('${directory.path}/destination')..createSync();
@@ -22,9 +21,10 @@ void main() {
       expect(result.exitCode, isNot(0));
       expect(source.readAsStringSync(), 'new contents');
       expect(target.listSync(), isEmpty);
-    });
-    test('quoted file targets respect replacement choice (replace=$replace)',
-        () async {
+    }
+  });
+  test('quoted file targets respect both replacement choices', () async {
+    for (final replace in [false, true]) {
       final source = File("${directory.path}/.upload's.part")
         ..writeAsStringSync('new contents');
       final target = File("${directory.path}/report's file.txt")
@@ -38,6 +38,6 @@ void main() {
       expect(
           target.readAsStringSync(), replace ? 'new contents' : 'old contents');
       expect(source.existsSync(), !replace);
-    });
-  }
+    }
+  });
 }

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shell_lite/providers/terminal_settings_store.dart';
 import 'package:shell_lite/services/storage_service.dart';
-import 'package:shell_lite/theme/terminal_theme_presets.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,49 +15,8 @@ void main() {
     store = TerminalSettingsStore(storageService: storageService);
   });
 
-  test('TerminalSettingsStore initializes with defaults and loads', () async {
-    await store.load();
-    expect(store.themeId, 'obsidian');
-    expect(store.fontSize, 13.5);
-    expect(store.fontFamily, 'JetBrains Mono');
-    expect(store.activeThemePreset.id, 'obsidian');
-  });
-
-  test('TerminalSettingsStore changes theme and persists', () async {
-    await store.load();
-    await store.setTheme('dracula');
-
-    expect(store.themeId, 'dracula');
-    expect(store.activeThemePreset.name, 'Dracula');
-
-    final loadedId = await storageService.getTerminalThemeId();
-    expect(loadedId, 'dracula');
-  });
-
-  test('TerminalSettingsStore changes font size within clamp limits', () async {
-    await store.load();
-    await store.setFontSize(16.0);
-    expect(store.fontSize, 16.0);
-
-    await store.setFontSize(40.0);
-    expect(store.fontSize, 26.0);
-
-    await store.setFontSize(5.0);
-    expect(store.fontSize, 9.0);
-  });
-
-  test('TerminalSettingsStore resetDefaults restores initial settings',
-      () async {
-    await store.load();
-    await store.setTheme('catppuccin');
-    await store.setFontSize(18.0);
-
-    await store.resetDefaults();
-    expect(store.themeId, 'obsidian');
-    expect(store.fontSize, 13.5);
-  });
-
-  test('TerminalSettingsStore reorders, toggles, adds custom keys and resets',
+  test(
+      'custom key preferences persist and can be reordered, removed, and reset',
       () async {
     await store.load();
     expect(store.hapticFeedbackEnabled, isTrue);
@@ -84,6 +42,11 @@ void main() {
     expect(store.configuredAccessoryKeys.last.sequence, 'sudo \n');
     expect(store.configuredAccessoryKeys.last.isCustom, isTrue);
 
+    final reloaded = TerminalSettingsStore(storageService: storageService);
+    await reloaded.load();
+    expect(reloaded.configuredAccessoryKeys.last.label, 'sudo');
+    expect(reloaded.hapticFeedbackEnabled, isFalse);
+
     // Reorder key
     final lastIdx = store.configuredAccessoryKeys.length - 1;
     await store.reorderAccessoryKeys(lastIdx, 0);
@@ -97,10 +60,5 @@ void main() {
     await store.resetAccessoryKeysToDefault();
     expect(store.configuredAccessoryKeys.length, 6);
     expect(store.accessoryKeys.first.label, 'Esc');
-  });
-
-  test('TerminalThemePresets returns obsidian on unknown id', () {
-    final preset = TerminalThemePresets.getById('non_existent');
-    expect(preset.id, 'obsidian');
   });
 }

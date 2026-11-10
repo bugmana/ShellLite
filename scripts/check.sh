@@ -26,7 +26,9 @@ done
 
 flutter pub get
 flutter analyze --no-pub
-flutter test "${test_arguments[@]}"
+mkdir -p build
+flutter test "${test_arguments[@]}" --file-reporter json:build/test-results.json
+python3 scripts/check_test_budget.py build/test-results.json
 if [[ "$build_web" == true ]]; then
   flutter build web --release --no-pub
 fi

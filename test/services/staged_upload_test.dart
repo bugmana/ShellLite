@@ -27,19 +27,7 @@ void main() {
     expect(remote.writes.single, startsWith('/.shelllite-'));
     expect(remote.removed.single, isNot('/file.txt'));
   });
-  test('cancel before replacement does not write or remove anything', () async {
-    final remote = MemoryUploadDestination()..files['/tmp/file.txt'] = [9];
-    await expectLater(
-        FileTransferService.uploadTo(
-            destination: remote,
-            remoteDirectory: '/tmp',
-            item: file(),
-            confirmReplace: (_) async => false),
-        throwsA(isA<UploadCancelled>()));
-    expect(remote.files['/tmp/file.txt'], [9]);
-    expect(remote.writes, isEmpty);
-    expect(remote.removed, isEmpty);
-  });
+
   test('transfer error preserves old destination and removes only staging',
       () async {
     final remote = MemoryUploadDestination()

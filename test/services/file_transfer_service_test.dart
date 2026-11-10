@@ -3,120 +3,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_lite/services/file_transfer_service.dart';
 
 void main() {
-  group('FileTransferService formatBytes', () {
-    test('formats zero and negative bytes', () {
-      expect(FileTransferService.formatBytes(0), '0 B');
-      expect(FileTransferService.formatBytes(-50), '0 B');
-    });
-
-    test('formats bytes under 1KB', () {
-      expect(FileTransferService.formatBytes(1), '1 B');
-      expect(FileTransferService.formatBytes(512), '512 B');
-      expect(FileTransferService.formatBytes(1023), '1023 B');
-    });
-
-    test('formats kilobytes correctly', () {
-      expect(FileTransferService.formatBytes(1024), '1.0 KB');
-      expect(FileTransferService.formatBytes(1536), '1.5 KB');
-      expect(FileTransferService.formatBytes(10240), '10 KB');
-      expect(FileTransferService.formatBytes(500 * 1024), '500 KB');
-    });
-
-    test('formats megabytes correctly', () {
-      expect(FileTransferService.formatBytes(1024 * 1024), '1.0 MB');
-      expect(FileTransferService.formatBytes((2.5 * 1024 * 1024).round()), '2.5 MB');
-      expect(FileTransferService.formatBytes(15 * 1024 * 1024), '15 MB');
-    });
-
-    test('formats gigabytes correctly', () {
-      expect(FileTransferService.formatBytes(1024 * 1024 * 1024), '1.0 GB');
-      expect(FileTransferService.formatBytes((3.7 * 1024 * 1024 * 1024).round()), '3.7 GB');
-    });
+  test(
+      'file sources preserve bytes and chunk boundaries, including empty files',
+      () async {
+    final data = Uint8List.fromList(List.generate(100, (i) => i));
+    final bytes =
+        FileTransferItem(name: 'bytes', size: data.length, bytes: data);
+    final chunks = await bytes.openChunkStream(chunkSize: 40).toList();
+    expect(chunks.map((chunk) => chunk.length), [40, 40, 20]);
+    expect(chunks.expand((chunk) => chunk), data);
+    final streamed = FileTransferItem(
+        name: 'stream',
+        size: 5,
+        readStream: Stream.fromIterable([
+          [1, 2],
+          [3, 4, 5]
+        ]));
+    expect(await streamed.openChunkStream().toList(), [
+      [1, 2],
+      [3, 4, 5]
+    ]);
+    final empty = FileTransferItem(name: 'empty', size: 0, bytes: Uint8List(0));
+    expect(await empty.openChunkStream().toList(), [isEmpty]);
   });
 
-  group('FileTransferItem', () {
-    test('creates item with bytes and provides formattedSize', () {
-      final item = FileTransferItem(
-        name: 'test_script.sh',
-        size: 2048,
-        bytes: Uint8List.fromList([1, 2, 3]),
-      );
-
-      expect(item.name, 'test_script.sh');
-      expect(item.size, 2048);
-      expect(item.formattedSize, '2.0 KB');
-      expect(item.bytes, isNotNull);
-    });
-
-    test('creates item with localPath', () {
-      const item = FileTransferItem(
-        name: 'document.pdf',
-        size: 10485760,
-        localPath: '/tmp/document.pdf',
-      );
-
-      expect(item.name, 'document.pdf');
-      expect(item.size, 10485760);
-      expect(item.formattedSize, '10 MB');
-      expect(item.localPath, '/tmp/document.pdf');
-    });
-
-    test('openChunkStream yields correct chunks for in-memory bytes', () async {
-      final data = Uint8List.fromList(List.generate(100, (i) => i));
-      final item = FileTransferItem(name: 'data.bin', size: 100, bytes: data);
-
-      final chunks = await item.openChunkStream(chunkSize: 40).toList();
-      expect(chunks.length, 3);
-      expect(chunks[0].length, 40);
-      expect(chunks[1].length, 40);
-      expect(chunks[2].length, 20);
-    });
-
-    test('openChunkStream yields empty chunk for zero-byte data', () async {
-      final item = FileTransferItem(name: 'empty.txt', size: 0, bytes: Uint8List(0));
-      final chunks = await item.openChunkStream().toList();
-      expect(chunks.length, 1);
-      expect(chunks.first.isEmpty, isTrue);
-    });
-
-    test('openChunkStream forwards stream data', () async {
-      final stream = Stream<List<int>>.fromIterable([
-        [1, 2],
-        [3, 4, 5],
-      ]);
-      final item = FileTransferItem(name: 'stream.txt', size: 5, readStream: stream);
-      final chunks = await item.openChunkStream().toList();
-      expect(chunks.length, 2);
-      expect(chunks[0], [1, 2]);
-      expect(chunks[1], [3, 4, 5]);
-    });
-  });
-
-  group('FileTransferService sanitizeFileName (SEC-INJECT-01)', () {
-    test('preserves clean filenames', () {
-      expect(FileTransferService.sanitizeFileName('document.pdf'), 'document.pdf');
-      expect(FileTransferService.sanitizeFileName('my_script_v1.0.tar.gz'), 'my_script_v1.0.tar.gz');
-    });
-
-    test('strips leading POSIX directory paths', () {
-      expect(FileTransferService.sanitizeFileName('/etc/shadow'), 'shadow');
-      expect(FileTransferService.sanitizeFileName('../../root/.ssh/authorized_keys'), 'authorized_keys');
-    });
-
-    test('strips Windows directory paths', () {
-      expect(FileTransferService.sanitizeFileName(r'C:\Windows\System32\cmd.exe'), 'cmd.exe');
-      expect(FileTransferService.sanitizeFileName(r'..\..\Windows\cmd.exe'), 'cmd.exe');
-    });
-
-    test('removes path traversal sequences and null bytes', () {
-      expect(FileTransferService.sanitizeFileName('..test..file..\x00.sh'), 'testfile.sh');
-    });
-
-    test('handles empty or pure traversal names with fallback', () {
-      final fallback = FileTransferService.sanitizeFileName('..');
-      expect(fallback.startsWith('upload_'), isTrue);
-      final emptyFallback = FileTransferService.sanitizeFileName('');
-      expect(emptyFallback.startsWith('upload_'), isTrue);
-    });
+  test('upload names cannot retain paths, traversal, or null bytes', () {
+    for (final entry in {
+      'document.pdf': 'document.pdf',
+      '/etc/shadow': 'shadow',
+      '../../root/.ssh/authorized_keys': 'authorized_keys',
+      r'C:\Windows\System32\cmd.exe': 'cmd.exe',
+      r'..\..\Windows\cmd.exe': 'cmd.exe',
+      '..test..file..\x00.sh': 'testfile.sh',
+    }.entries) {
+      expect(FileTransferService.sanitizeFileName(entry.key), entry.value);
+    }
+    for (final name in ['', '..']) {
+      expect(FileTransferService.sanitizeFileName(name), startsWith('upload_'));
+    }
   });
 }

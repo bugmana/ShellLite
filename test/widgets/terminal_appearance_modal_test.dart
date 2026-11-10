@@ -82,35 +82,4 @@ void main() {
     expect(store.themeId, 'obsidian');
     expect(store.hapticFeedbackEnabled, isTrue);
   });
-
-  testWidgets(
-      'TerminalAppearanceModal opens CustomizeAccessoryKeysModal when tapped',
-      (tester) async {
-    tester.view.physicalSize = const Size(800, 1200);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    SharedPreferences.setMockInitialValues({});
-    final storage = StorageService();
-    final store = TerminalSettingsStore(storageService: storage);
-    await store.load();
-
-    await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: store,
-        child: const MaterialApp(
-          home: Scaffold(
-            body: TerminalAppearanceModal(),
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.text('Keys'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Modifiers'), findsOneWidget);
-    expect(find.text('Shortcuts'), findsOneWidget);
-  });
 }

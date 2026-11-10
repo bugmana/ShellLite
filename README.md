@@ -119,11 +119,13 @@ Run local checks with one dependency setup:
 
 ```bash
 ./scripts/check.sh                              # analysis and all tests
-./scripts/check.sh test/services/terminal_link_test.dart  # analysis and focused tests
+./scripts/check.sh test/services/staged_upload_test.dart  # analysis and focused tests
 ./scripts/check.sh --web                        # also build Web for release
 ```
 
 Use focused tests while editing, then run the full command before pushing. CI still runs the full suite and platform builds.
+
+Keep the suite within **50 executable tests**: up to 48 core Flutter scenarios and two browser checks (desktop and mobile). Prioritize credential safety, connection recovery, upload integrity, and user journeys. Use small input tables for the same behavior; replace overlapping tests rather than adding one for every field, setter, or layout detail. Local checks and CI enforce the core budget from Flutter's test report.
 
 Run a browser smoke test against the deployed app:
 

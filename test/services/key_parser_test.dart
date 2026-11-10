@@ -98,96 +98,47 @@ yQNiFax2/YOxWZ7KfgDT2Zkh4vipZAaOGkksVEfY6U49M6twUxvbQsq5gp26W819
 ''';
     const testEncryptedRsaPassphrase = 'CustedNG';
 
-    test('Parses valid Ed25519 private key', () {
-      final keys = SSHKeyParser.parse(testEd25519PEM);
-      expect(keys, isNotEmpty);
-    });
-
-    test('Parses valid ECDSA P-256 private key', () {
-      final keys = SSHKeyParser.parse(testECDSAP256PEM);
-      expect(keys, isNotEmpty);
-    });
-
-    test('Parses valid ECDSA P-384 private key', () {
-      final keys = SSHKeyParser.parse(testECDSAP384PEM);
-      expect(keys, isNotEmpty);
-    });
-
-    test('Parses valid ECDSA P-521 private key', () {
-      final keys = SSHKeyParser.parse(testECDSAP521PEM);
-      expect(keys, isNotEmpty);
-    });
-
-    test('SSHKeyParser.isEncrypted correctly detects unencrypted vs encrypted keys', () {
-      expect(SSHKeyParser.isEncrypted(testEd25519PEM), isFalse);
-      expect(SSHKeyParser.isEncrypted(testECDSAP256PEM), isFalse);
-      expect(SSHKeyParser.isEncrypted(testEncryptedEd25519PEM), isTrue);
-      expect(SSHKeyParser.isEncrypted(testEncryptedRsaPEM), isTrue);
-    });
-
-    test('Unencrypted key with comment containing ENCRYPTED is not detected as encrypted (SEC-CRYPTO-03)', () {
-      final keyWithComment = testEd25519PEM.replaceFirst(
-        '-----END OPENSSH PRIVATE KEY-----',
-        '# admin@ENCRYPTED-VPC\n-----END OPENSSH PRIVATE KEY-----',
-      );
-      expect(SSHKeyParser.isEncrypted(keyWithComment), isFalse);
-    });
-
-    test('Rejects garbage text with InvalidKeyFormatException', () {
+    test('parses supported unencrypted keys and ignores ENCRYPTED in comments',
+        () {
+      for (final key in [
+        testEd25519PEM,
+        testECDSAP256PEM,
+        testECDSAP384PEM,
+        testECDSAP521PEM
+      ]) {
+        expect(SSHKeyParser.parse(key), isNotEmpty);
+        expect(SSHKeyParser.isEncrypted(key), isFalse);
+      }
       expect(
-        () => SSHKeyParser.parse('not a real key at all'),
-        throwsA(isA<InvalidKeyFormatException>()),
-      );
+          SSHKeyParser.isEncrypted(testEd25519PEM.replaceFirst(
+              '-----END OPENSSH PRIVATE KEY-----',
+              '# admin@ENCRYPTED-VPC\n-----END OPENSSH PRIVATE KEY-----')),
+          isFalse);
     });
 
-    test('Malformed key body with valid header throws InvalidKeyFormatException (SEC-CRYPTO-01)', () {
-      const corruptKey = '''
------BEGIN OPENSSH PRIVATE KEY-----
-invalid_base64_payload_corrupted!!!
------END OPENSSH PRIVATE KEY-----
-''';
-      expect(
-        () => SSHKeyParser.parse(corruptKey, passphrase: 'test'),
-        throwsA(isA<InvalidKeyFormatException>()),
-      );
+    test('rejects garbage and malformed key bodies', () {
+      for (final key in [
+        'not a key',
+        '-----BEGIN OPENSSH PRIVATE KEY-----\ninvalid\n-----END OPENSSH PRIVATE KEY-----'
+      ]) {
+        expect(() => SSHKeyParser.parse(key),
+            throwsA(isA<InvalidKeyFormatException>()));
+      }
     });
 
-    test('Encrypted key without passphrase throws EncryptedKeyException', () {
-      expect(
-        () => SSHKeyParser.parse(testEncryptedEd25519PEM),
-        throwsA(isA<EncryptedKeyException>()),
-      );
-      expect(
-        () => SSHKeyParser.parse(testEncryptedRsaPEM),
-        throwsA(isA<EncryptedKeyException>()),
-      );
-    });
-
-    test('Encrypted key with wrong passphrase throws InvalidKeyPassphraseException', () {
-      expect(
-        () => SSHKeyParser.parse(testEncryptedEd25519PEM, passphrase: 'incorrect_passphrase'),
-        throwsA(isA<InvalidKeyPassphraseException>()),
-      );
-      expect(
-        () => SSHKeyParser.parse(testEncryptedRsaPEM, passphrase: 'wrong_password'),
-        throwsA(isA<InvalidKeyPassphraseException>()),
-      );
-    });
-
-    test('Encrypted OpenSSH Ed25519 key parses successfully with correct passphrase', () {
-      final keys = SSHKeyParser.parse(
-        testEncryptedEd25519PEM,
-        passphrase: testEncryptedEd25519Passphrase,
-      );
-      expect(keys, isNotEmpty);
-    });
-
-    test('Encrypted RSA key parses successfully with correct passphrase', () {
-      final keys = SSHKeyParser.parse(
-        testEncryptedRsaPEM,
-        passphrase: testEncryptedRsaPassphrase,
-      );
-      expect(keys, isNotEmpty);
+    test('encrypted Ed25519 and RSA keys require the correct passphrase', () {
+      for (final entry in {
+        testEncryptedEd25519PEM: testEncryptedEd25519Passphrase,
+        testEncryptedRsaPEM: testEncryptedRsaPassphrase,
+      }.entries) {
+        expect(SSHKeyParser.isEncrypted(entry.key), isTrue);
+        expect(() => SSHKeyParser.parse(entry.key),
+            throwsA(isA<EncryptedKeyException>()));
+        expect(() => SSHKeyParser.parse(entry.key, passphrase: 'wrong'),
+            throwsA(isA<InvalidKeyPassphraseException>()));
+        expect(
+            SSHKeyParser.parse(entry.key, passphrase: entry.value), isNotEmpty);
+      }
     });
   });
 }

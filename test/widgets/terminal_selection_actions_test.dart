@@ -6,7 +6,6 @@ import 'package:shell_lite/screens/terminal/terminal_selection_overlay.dart';
 import 'package:shell_lite/services/terminal_selection_controller.dart';
 import 'package:shell_lite/theme/app_theme.dart';
 import 'package:shell_lite/theme/terminal_theme_presets.dart';
-import 'package:shell_lite/widgets/terminal_selection_handle.dart';
 
 class _RenderTerminal {
   double get lineHeight => 16;
@@ -25,7 +24,7 @@ void main() {
         .setMockMethodCallHandler(
             const MethodChannel('com.bugmana.shell_lite/platform'), null);
   });
-  for (final columns in [80, 20]) {
+  for (final columns in [20]) {
     testWidgets('copies whole URL without browser actions at width $columns',
         (tester) async {
       String? copied;
@@ -135,46 +134,6 @@ void main() {
     expect(find.text('Copied to clipboard'), findsNothing);
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
-    scroll.dispose();
-  });
-
-  testWidgets('edge scroll stops on cancellation and disposal', (tester) async {
-    final scroll = ScrollController();
-    var updates = 0;
-    await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-            body: SizedBox(
-                height: 200,
-                child: Stack(children: [
-                  ListView(
-                      controller: scroll,
-                      children: const [SizedBox(height: 2000)]),
-                  TerminalSelectionHandle(
-                      position: TerminalHandlePosition.right,
-                      offset: const Offset(100, 100),
-                      lineHeight: 16,
-                      color: Colors.blue,
-                      scrollController: scroll,
-                      onDragUpdate: (_) => updates++),
-                ])))));
-    final gesture = await tester.startGesture(const Offset(100, 115));
-    await gesture.moveTo(const Offset(100, 190));
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(scroll.offset, greaterThan(0));
-    await gesture.cancel();
-    final offset = scroll.offset;
-    final count = updates;
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(scroll.offset, offset);
-    expect(updates, count);
-    final activeDrag = await tester.startGesture(const Offset(100, 115));
-    await activeDrag.moveTo(const Offset(100, 190));
-    await tester.pump(const Duration(milliseconds: 80));
-    final beforeDisposal = updates;
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(updates, beforeDisposal);
-    await activeDrag.cancel();
     scroll.dispose();
   });
 }

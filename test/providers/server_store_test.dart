@@ -68,7 +68,8 @@ void main() {
       expect(cred, 'pass2');
     });
 
-    test('Add, retrieve key passphrase, update passphrase, and delete profile', () async {
+    test('Add, retrieve key passphrase, update passphrase, and delete profile',
+        () async {
       await store.load();
 
       final profile = ServerProfile(

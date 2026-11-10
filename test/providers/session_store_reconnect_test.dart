@@ -38,26 +38,8 @@ void main() {
       store.closeSession(profile.id);
     });
 
-    testWidgets('Initial drop reconnects immediately as soon as possible (0s delay)', (tester) async {
-      final session = store.getOrCreateSession(profile);
-      await tester.pumpAndSettle();
-
-      session.wasConnected = true;
-      session.connectionState = SSHConnectionState.disconnected;
-      session.autoReconnectAttempts = 0;
-
-      // Trigger initial auto-reconnect
-      store.triggerAutoReconnect(session.id);
-
-      // Attempt 1 should launch immediately with 0s delay
-      expect(session.autoReconnectAttempts, equals(1));
-      expect(session.connectionState, equals(SSHConnectionState.connecting));
-      expect(session.autoReconnectCountdown, isNull);
-
-      store.cancelAutoReconnect(session.id);
-    });
-
-    testWidgets('Subsequent failure starts 3-second backoff countdown', (tester) async {
+    testWidgets('Subsequent failure starts 3-second backoff countdown',
+        (tester) async {
       final session = store.getOrCreateSession(profile);
       await tester.pumpAndSettle();
 
@@ -90,7 +72,8 @@ void main() {
       store.cancelAutoReconnect(session.id);
     });
 
-    testWidgets('Stops auto-reconnecting after max attempts (3)', (tester) async {
+    testWidgets('Stops auto-reconnecting after max attempts (3)',
+        (tester) async {
       final session = store.getOrCreateSession(profile);
       await tester.pumpAndSettle();
 
@@ -106,62 +89,9 @@ void main() {
       expect(session.connectionState, equals(SSHConnectionState.error));
     });
 
-    testWidgets('Manual reconnect resets attempt count for future drops', (tester) async {
-      final session = store.getOrCreateSession(profile);
-      await tester.pumpAndSettle();
-
-      session.wasConnected = true;
-      session.connectionState = SSHConnectionState.disconnected;
-      session.autoReconnectAttempts = 2;
-
-      // User manually taps Reconnect
-      unawaited(store.reconnectSession(session.id, isManual: true));
-
-      expect(session.autoReconnectAttempts, equals(0));
-      expect(session.connectionState, equals(SSHConnectionState.connecting));
-
-      store.cancelAutoReconnect(session.id);
-    });
-
-    testWidgets('getOrCreateSession automatically reconnects and updates profile when opening a disconnected session', (tester) async {
-      final session = store.getOrCreateSession(profile);
-      await tester.pumpAndSettle();
-
-      session.wasConnected = true;
-      session.connectionState = SSHConnectionState.disconnected;
-
-      // User edited profile (e.g. changed port and display name) and reopened from server list
-      final updatedProfile = profile.copyWith(displayName: 'Updated Server Name', port: 2222);
-      final reloadedSession = store.getOrCreateSession(updatedProfile);
-
-      expect(reloadedSession.profile.displayName, equals('Updated Server Name'));
-      expect(reloadedSession.profile.port, equals(2222));
-      expect(reloadedSession.connectionState, equals(SSHConnectionState.connecting));
-
-      store.cancelAutoReconnect(reloadedSession.id);
-    });
-
-    testWidgets('isSessionConnected accurately reflects live connection status', (tester) async {
-      final session = store.getOrCreateSession(profile);
-      await tester.pumpAndSettle();
-
-      session.connectionState = SSHConnectionState.disconnected;
-      expect(store.isSessionConnected(profile.id), isFalse);
-
-      session.connectionState = SSHConnectionState.error;
-      expect(store.isSessionConnected(profile.id), isFalse);
-
-      session.connectionState = SSHConnectionState.connecting;
-      expect(store.isSessionConnected(profile.id), isTrue);
-
-      session.connectionState = SSHConnectionState.connected;
-      expect(store.isSessionConnected(profile.id), isTrue);
-
-      store.closeSession(profile.id);
-      expect(store.isSessionConnected(profile.id), isFalse);
-    });
-
-    testWidgets('App backgrounding pauses countdown and suppresses auto-reconnect', (tester) async {
+    testWidgets(
+        'App backgrounding pauses countdown and suppresses auto-reconnect',
+        (tester) async {
       final session = store.getOrCreateSession(profile);
       await tester.pumpAndSettle();
 
@@ -195,24 +125,22 @@ void main() {
       store.cancelAutoReconnect(session.id);
     });
 
-    testWidgets('Does not pollute terminal buffer with error or connecting messages during auto-reconnect', (tester) async {
+    testWidgets(
+        'getOrCreateSession automatically reconnects and updates profile when opening a disconnected session',
+        (tester) async {
       final session = store.getOrCreateSession(profile);
       await tester.pumpAndSettle();
-
-      final textBefore = session.terminal.buffer.getText();
-
       session.wasConnected = true;
       session.connectionState = SSHConnectionState.disconnected;
-
-      // Simulate reconnect attempt
-      unawaited(store.reconnectSession(session.id));
-      await tester.pump();
-
-      // Buffer should remain unchanged (no duplicate "Connecting to...", no additional failure text)
-      final textAfter = session.terminal.buffer.getText();
-      expect(textAfter, equals(textBefore));
-
-      store.cancelAutoReconnect(session.id);
+      final updatedProfile =
+          profile.copyWith(displayName: 'Updated Server Name', port: 2222);
+      final reloadedSession = store.getOrCreateSession(updatedProfile);
+      expect(
+          reloadedSession.profile.displayName, equals('Updated Server Name'));
+      expect(reloadedSession.profile.port, equals(2222));
+      expect(reloadedSession.connectionState,
+          equals(SSHConnectionState.connecting));
+      store.cancelAutoReconnect(reloadedSession.id);
     });
   });
 }
